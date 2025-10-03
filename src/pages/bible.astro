@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import BibleReader from '../components/BibleReader';
+---
+
+<Base title="Bible Reader">
+  <div class="container mx-auto px-4 py-16">
+    <h1 class="text-4xl md:text-5xl font-bold mb-8">Bible Reader</h1>
+    <p class="text-xl text-neutral-600 dark:text-neutral-300 mb-8">
+      Read Scripture with the Sacred Names restored. Toggle between versions to compare.
+    </p>
+    
+    <BibleReader client:load />
+  </div>
+</Base>
+

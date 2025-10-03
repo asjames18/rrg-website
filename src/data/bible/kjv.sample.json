@@ -1,0 +1,42 @@
+{
+  "books": [
+    {
+      "name": "Genesis",
+      "chapters": [
+        {
+          "chapter": 1,
+          "verses": [
+            {
+              "verse": 1,
+              "text": "In the beginning God created the heaven and the earth.",
+              "sacredNames": "In the beginning ELOHIM created the heaven and the earth."
+            },
+            {
+              "verse": 2,
+              "text": "And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.",
+              "sacredNames": "And the earth was without form, and void; and darkness was upon the face of the deep. And the RUACH of ELOHIM moved upon the face of the waters."
+            },
+            {
+              "verse": 3,
+              "text": "And God said, Let there be light: and there was light.",
+              "sacredNames": "And ELOHIM said, Let there be light: and there was light."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "version": "KJV with Sacred Names",
+    "description": "Sample Bible data for Real & Raw Gospel. Full Bible data to be added.",
+    "sacredNames": {
+      "God": "ELOHIM / YAHUAH",
+      "LORD": "YAHUAH",
+      "Jesus": "YAHUSHA",
+      "Christ": "MASHIACH / HAMASHIACH",
+      "Spirit": "RUACH",
+      "Holy Spirit": "RUACH HAQODESH"
+    }
+  }
+}
+
