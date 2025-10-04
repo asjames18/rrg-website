@@ -14,7 +14,7 @@
     "astro": "astro",
     "vercel:pull": "vercel pull --yes --environment=production",
     "vercel:build": "vercel build",
-    "vercel:deploy": "vercel deploy --prebuilt",
+    "vercel:deploy": "vercel deploy --prebuilt --force",
     "deploy:prebuilt": "npm run vercel:pull && npm run vercel:build && npm run vercel:deploy"
   },
   "dependencies": {
