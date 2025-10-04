@@ -1,6 +1,6 @@
 import { c as createComponent, d as createAstro, b as renderComponent, a as renderTemplate, m as maybeRenderHead, e as addAttribute, F as Fragment } from '../../chunks/astro/server_DCtlZR10.mjs';
 import 'kleur/colors';
-import { g as getCollection } from '../../chunks/_astro_content_BpBvdgrV.mjs';
+import { g as getCollection } from '../../chunks/_astro_content_DdPQ2v8Z.mjs';
 import { $ as $$Base } from '../../chunks/Base_CLTBcQpW.mjs';
 export { renderers } from '../../renderers.mjs';
 
