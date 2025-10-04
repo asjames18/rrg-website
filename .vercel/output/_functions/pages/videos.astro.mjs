@@ -2,7 +2,7 @@ import { c as createComponent, b as renderComponent, a as renderTemplate, m as m
 import 'kleur/colors';
 import { $ as $$Base } from '../chunks/Base_CLTBcQpW.mjs';
 import { U as UniversalVideoEmbed } from '../chunks/UniversalVideoEmbed_vRksbGrn.mjs';
-import { g as getCollection } from '../chunks/_astro_content_BVYNe1Pt.mjs';
+import { g as getCollection } from '../chunks/_astro_content_BKm8UUvn.mjs';
 export { renderers } from '../renderers.mjs';
 
 const $$Index = createComponent(async ($$result, $$props, $$slots) => {
