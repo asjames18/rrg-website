@@ -12,7 +12,7 @@ backend:
 media_folder: "public/uploads"
 public_folder: "/uploads"
 
-site_url: "https://rrg-website.netlify.app"
+site_url: "https://rrg-website.vercel.app"
 logo_url: "/rrg-logo.jpg"
 locale: "en"
 

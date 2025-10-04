@@ -14,12 +14,20 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-});
+// Singleton pattern to prevent multiple instances
+let supabaseInstance: any = null;
+
+export const supabase = (() => {
+  if (typeof window !== 'undefined' && !supabaseInstance) {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    });
+  }
+  return supabaseInstance;
+})();
 
 /**
  * Database Types

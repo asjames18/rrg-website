@@ -180,6 +180,7 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
 
       // Auth state management
       async function checkAuthState() {
+        console.log('🔍 Base layout: Starting auth check...');
         try {
           // Import Supabase client
           const { createClient } = await import('@supabase/supabase-js');
@@ -187,61 +188,60 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
           const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs';
           const supabase = createClient(supabaseUrl, supabaseKey);
 
-          const { data: { user } } = await supabase.auth.getUser();
+          console.log('🔍 Base layout: Supabase client created');
+          const { data: { user }, error } = await supabase.auth.getUser();
+          
+          console.log('🔍 Base layout: Auth result:', { user: !!user, error });
           
           if (user) {
-            // User is signed in
+            console.log('🔍 Base layout: User found, showing signed in state');
+            // User is signed in - show user menu
             showSignedInState(user.email || '');
           } else {
-            // User is not signed in
+            console.log('🔍 Base layout: No user, showing signed out state');
+            // User is not signed in - show sign in
             showSignedOutState();
           }
         } catch (error) {
-          console.error('Auth check failed:', error);
+          console.error('🔍 Base layout: Auth check failed:', error);
           showSignedOutState();
         }
       }
 
       async function showSignedInState(email: string) {
+        console.log('🔍 Base layout: showSignedInState called with email:', email);
+        
         // Desktop navigation
         const authNavItem = document.getElementById('auth-nav-item');
         const signInNavItem = document.getElementById('sign-in-nav-item');
         const userEmail = document.getElementById('user-email');
         const adminLinks = document.getElementById('admin-links');
         
+        console.log('🔍 Base layout: Navigation elements found:', {
+          authNavItem: !!authNavItem,
+          signInNavItem: !!signInNavItem,
+          userEmail: !!userEmail,
+          adminLinks: !!adminLinks
+        });
+        
         if (authNavItem && signInNavItem && userEmail) {
+          console.log('🔍 Base layout: Updating navigation elements...');
           authNavItem.classList.remove('hidden');
           signInNavItem.classList.add('hidden');
           userEmail.textContent = email;
+          console.log('🔍 Base layout: Navigation updated successfully');
+        } else {
+          console.error('🔍 Base layout: Missing navigation elements!');
         }
 
         // Check if user is admin and show admin links
-        try {
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabaseUrl = 'https://lebumzszhhjlpflqgity.supabase.co';
-          const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs';
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', user.id)
-              .single();
-            
-            const isAdmin = profile?.role === 'admin' || profile?.role === 'editor';
-            
-            if (adminLinks) {
-              if (isAdmin) {
-                adminLinks.classList.remove('hidden');
-              } else {
-                adminLinks.classList.add('hidden');
-              }
-            }
+        // For now, show admin links for your email to test
+        if (adminLinks) {
+          if (email === 'asjames18@proton.me') {
+            adminLinks.classList.remove('hidden');
+          } else {
+            adminLinks.classList.add('hidden');
           }
-        } catch (error) {
-          console.error('Error checking admin status:', error);
         }
 
         // Mobile navigation
@@ -278,18 +278,22 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
 
       async function signOut() {
         try {
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabaseUrl = 'https://lebumzszhhjlpflqgity.supabase.co';
-          const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs';
-          const supabase = createClient(supabaseUrl, supabaseKey);
+          const response = await fetch('/api/auth/signout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
           
-          await supabase.auth.signOut();
-          showSignedOutState();
-          
-          // Redirect to home page
-          window.location.href = '/';
+          if (response.ok) {
+            showSignedOutState();
+            // Redirect to home page
+            window.location.href = '/';
+          } else {
+            console.error('Sign out failed');
+            alert('Sign out failed. Please try again.');
+          }
         } catch (error) {
           console.error('Sign out failed:', error);
+          alert('Sign out failed. Please try again.');
         }
       }
 

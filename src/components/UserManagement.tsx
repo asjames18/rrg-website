@@ -42,11 +42,13 @@ export default function UserManagement() {
   const promoteUser = async (userId: string, newRole: 'admin' | 'editor' | 'viewer') => {
     try {
       setPromoting(userId);
+      setError(null);
       
       const response = await fetch('/api/promote-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
         },
         body: JSON.stringify({ userId, role: newRole }),
       });
@@ -58,6 +60,10 @@ export default function UserManagement() {
         setUsers(users.map(user => 
           user.id === userId ? { ...user, role: newRole } : user
         ));
+        
+        // Show success message
+        setError(`✅ User successfully promoted to ${newRole}`);
+        setTimeout(() => setError(null), 3000);
       } else {
         throw new Error(result.error || 'Failed to promote user');
       }
@@ -105,7 +111,11 @@ export default function UserManagement() {
       </div>
 
       {error && (
-        <div className="bg-red-900/30 border border-red-700 text-red-200 p-3 rounded mb-4">
+        <div className={`p-3 rounded mb-4 ${
+          error.startsWith('✅') 
+            ? 'bg-green-900/30 border border-green-700 text-green-200'
+            : 'bg-red-900/30 border border-red-700 text-red-200'
+        }`}>
           {error}
         </div>
       )}

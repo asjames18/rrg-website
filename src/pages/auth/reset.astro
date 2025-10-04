@@ -1,0 +1,90 @@
+---
+import { createServerClient } from '@supabase/ssr';
+
+const code = Astro.url.searchParams.get('code');
+const supabase = createServerClient(
+  import.meta.env.PUBLIC_SUPABASE_URL!,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+      get: (k) => Astro.cookies.get(k)?.value,
+      set: (k, v, o) => Astro.cookies.set(k, v, { ...o, path: '/' }),
+      remove: (k, o) => Astro.cookies.delete(k, { ...o, path: '/' })
+    }
+  }
+);
+
+if (code) {
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) return Astro.redirect(`/auth/reset?error=${encodeURIComponent(error.message)}`);
+}
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const password = String(form.get('password') ?? '');
+  const confirm  = String(form.get('confirm') ?? '');
+  if (!password || password !== confirm) {
+    return Astro.redirect('/auth/reset?error=Passwords do not match');
+  }
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return Astro.redirect(`/auth/reset?error=${encodeURIComponent(error.message)}`);
+  return Astro.redirect('/auth?reset=1');
+}
+
+const err = Astro.url.searchParams.get('error');
+---
+
+<html>
+  <head>
+    <title>Reset Password | Real & Raw Gospel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { 
+        max-width: 520px; 
+        margin: 48px auto; 
+        font-family: system-ui, -apple-system, sans-serif; 
+        padding: 0 16px;
+        background: #0a0a0a;
+        color: #f5f5f5;
+      }
+      h1 { color: #fbbf24; margin-bottom: 24px; }
+      label { display: block; margin-bottom: 8px; font-weight: 500; }
+      input { 
+        width: 100%; 
+        padding: 12px; 
+        margin-bottom: 16px; 
+        border: 1px solid #374151; 
+        border-radius: 8px; 
+        background: #1f2937; 
+        color: #f5f5f5;
+        box-sizing: border-box;
+      }
+      button { 
+        background: #f59e0b; 
+        color: white; 
+        padding: 12px 24px; 
+        border: none; 
+        border-radius: 8px; 
+        font-weight: 600; 
+        cursor: pointer;
+        width: 100%;
+      }
+      button:hover { background: #d97706; }
+      .error { color: #ef4444; background: #1f2937; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+      .success { color: #10b981; background: #1f2937; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    </style>
+  </head>
+  <body>
+    <h1>Set a new password</h1>
+    {err && <div class="error">{err}</div>}
+    <form method="post">
+      <label>New password</label>
+      <input type="password" name="password" required minlength="8" />
+      
+      <label>Confirm password</label>
+      <input type="password" name="confirm" required minlength="8" />
+      
+      <button type="submit">Update password</button>
+    </form>
+  </body>
+</html>

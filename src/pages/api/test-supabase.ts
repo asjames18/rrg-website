@@ -3,12 +3,12 @@
  * Visit: http://localhost:4321/api/test-supabase
  */
 import type { APIRoute } from 'astro';
-import { supabase } from '../../lib/supabase';
+import { supabaseServer } from '../../lib/supabase-server';
 
 export const GET: APIRoute = async () => {
   try {
     // Test database connection
-    const { error, count } = await supabase
+    const { error, count } = await supabaseServer
       .from('posts')
       .select('*', { count: 'exact', head: true });
 

@@ -23,6 +23,7 @@
     "@astrojs/check": "^0.9.4",
     "@astrojs/mdx": "^4.0.0",
     "@astrojs/react": "^4.0.0",
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
     "@tailwindcss/vite": "^4.0.0-alpha.30",
     "react": "^18.3.1",
