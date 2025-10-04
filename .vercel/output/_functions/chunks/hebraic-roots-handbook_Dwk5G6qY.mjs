@@ -1,5 +1,5 @@
 async function getMod() {
-						return import('./hebraic-roots-handbook_BzzNU1Tx.mjs');
+						return import('./hebraic-roots-handbook_B5LHQyfr.mjs');
 					}
 					const collectedLinks = [];
 					const collectedStyles = [];

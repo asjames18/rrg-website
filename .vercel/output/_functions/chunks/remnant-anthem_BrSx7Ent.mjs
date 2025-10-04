@@ -1,5 +1,5 @@
 async function getMod() {
-						return import('./shut-the-doorways-warfare-101_YoDuAv0d.mjs');
+						return import('./remnant-anthem_BObsDSS0.mjs');
 					}
 					const collectedLinks = [];
 					const collectedStyles = [];

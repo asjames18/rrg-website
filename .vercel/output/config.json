@@ -36,6 +36,14 @@
 			"dest": "_render"
 		},
 		{
+			"src": "^/api/health/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/ping/?$",
+			"dest": "_render"
+		},
+		{
 			"src": "^/api/promote-to-admin/?$",
 			"dest": "_render"
 		},
@@ -105,6 +113,10 @@
 		},
 		{
 			"src": "^/start-here/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/test-minimal/?$",
 			"dest": "_render"
 		},
 		{

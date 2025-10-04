@@ -216,16 +216,6 @@ const MissingSharp = {
   message: "Could not find Sharp. Please install Sharp (`sharp`) manually into your project or migrate to another image service.",
   hint: "See Sharp's installation instructions for more information: https://sharp.pixelplumbing.com/install. If you are not relying on `astro:assets` to optimize, transform, or process any images, you can configure a passthrough image service instead of installing Sharp. See https://docs.astro.build/en/reference/errors/missing-sharp for more information.\n\nSee https://docs.astro.build/en/guides/images/#default-image-service for more information on how to migrate to another image service."
 };
-const ForbiddenRewrite = {
-  name: "ForbiddenRewrite",
-  title: "Forbidden rewrite to a static route.",
-  message: (from, to, component) => `You tried to rewrite the on-demand route '${from}' with the static route '${to}', when using the 'server' output. 
-
-The static route '${to}' is rendered by the component
-'${component}', which is marked as prerendered. This is a forbidden operation because during the build the component '${component}' is compiled to an
-HTML file, which can't be retrieved at runtime by Astro.`,
-  hint: (component) => `Add \`export const prerender = false\` to the component '${component}', or use a Astro.redirect().`
-};
 const ExperimentalFontsNotEnabled = {
   name: "ExperimentalFontsNotEnabled",
   title: "Experimental fonts are not enabled",
@@ -284,7 +274,6 @@ function createComponent(arg1, moduleId, propagation) {
 
 const ASTRO_VERSION = "5.14.1";
 const NOOP_MIDDLEWARE_HEADER = "X-Astro-Noop";
-const originPathnameSymbol = Symbol.for("astro.originPathname");
 
 function createAstroGlobFn() {
   const globHandler = (importMetaGlobResult) => {
@@ -2353,4 +2342,4 @@ function createVNode(type, props = {}, key) {
   return vnode;
 }
 
-export { AstroError as A, ExpectedNotESMImage as B, InvalidImageService as C, ImageMissingAlt as D, ExpectedImage as E, ForbiddenRewrite as F, spreadAttributes as G, ExperimentalFontsNotEnabled as H, IncompatibleDescriptorOptions as I, FontFamilyNotFound as J, MissingSharp as K, LocalImageUsedWrongly as L, MissingImageDimension as M, NOOP_MIDDLEWARE_HEADER as N, RenderUndefinedEntryError as R, UnknownContentCollectionError as U, __astro_tag_component__ as _, renderTemplate as a, renderComponent as b, createComponent as c, createAstro as d, Fragment as e, addAttribute as f, renderUniqueStylesheet as g, renderScriptElement as h, createHeadAndContent as i, renderHead as j, renderSlot as k, renderJSX as l, maybeRenderHead as m, createVNode as n, originPathnameSymbol as o, AstroJSX as p, AstroUserError as q, renderScript as r, decodeKey as s, UnsupportedImageFormat as t, unescapeHTML as u, UnsupportedImageConversion as v, toStyleString as w, NoImageMetadata as x, FailedToFetchRemoteImageDimensions as y, ExpectedImageOptions as z };
+export { AstroError as A, spreadAttributes as B, ExperimentalFontsNotEnabled as C, FontFamilyNotFound as D, ExpectedImage as E, Fragment as F, renderSlot as G, MissingSharp as H, IncompatibleDescriptorOptions as I, LocalImageUsedWrongly as L, MissingImageDimension as M, NOOP_MIDDLEWARE_HEADER as N, RenderUndefinedEntryError as R, UnknownContentCollectionError as U, __astro_tag_component__ as _, renderTemplate as a, renderComponent as b, createComponent as c, createAstro as d, addAttribute as e, renderHead as f, renderUniqueStylesheet as g, renderScriptElement as h, createHeadAndContent as i, renderJSX as j, createVNode as k, AstroJSX as l, maybeRenderHead as m, AstroUserError as n, decodeKey as o, UnsupportedImageFormat as p, UnsupportedImageConversion as q, renderScript as r, NoImageMetadata as s, toStyleString as t, unescapeHTML as u, FailedToFetchRemoteImageDimensions as v, ExpectedImageOptions as w, ExpectedNotESMImage as x, InvalidImageService as y, ImageMissingAlt as z };
