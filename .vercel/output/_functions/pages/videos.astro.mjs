@@ -1,8 +1,8 @@
-import { c as createComponent, b as renderComponent, a as renderTemplate, m as maybeRenderHead, e as addAttribute } from '../chunks/astro/server_CtqYzVrK.mjs';
+import { c as createComponent, b as renderComponent, a as renderTemplate, m as maybeRenderHead, e as addAttribute } from '../chunks/astro/server_DCtlZR10.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_Dqt0Kjdn.mjs';
+import { $ as $$Base } from '../chunks/Base_CLTBcQpW.mjs';
 import { U as UniversalVideoEmbed } from '../chunks/UniversalVideoEmbed_vRksbGrn.mjs';
-import { g as getCollection } from '../chunks/_astro_content_EZvVieB_.mjs';
+import { g as getCollection } from '../chunks/_astro_content_BpBvdgrV.mjs';
 export { renderers } from '../renderers.mjs';
 
 const $$Index = createComponent(async ($$result, $$props, $$slots) => {

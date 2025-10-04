@@ -1,5 +1,5 @@
 async function getMod() {
-						return import('./hebraic-roots-handbook_B5LHQyfr.mjs');
+						return import('./keep-the-feast-dump-the-yeast_DCi1FYiB.mjs');
 					}
 					const collectedLinks = [];
 					const collectedStyles = [];

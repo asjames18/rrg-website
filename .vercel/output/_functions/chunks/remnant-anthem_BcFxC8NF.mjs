@@ -1,4 +1,4 @@
-import { k as createVNode, F as Fragment, _ as __astro_tag_component__ } from './astro/server_CtqYzVrK.mjs';
+import { k as createVNode, F as Fragment, ax as __astro_tag_component__ } from './astro/server_DCtlZR10.mjs';
 import 'clsx';
 
 const frontmatter = {

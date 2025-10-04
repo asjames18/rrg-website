@@ -1,5 +1,5 @@
 async function getMod() {
-						return import('./remnant-anthem_BObsDSS0.mjs');
+						return import('./hebraic-roots-handbook_BoK6E1lK.mjs');
 					}
 					const collectedLinks = [];
 					const collectedStyles = [];
