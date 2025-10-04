@@ -3,7 +3,7 @@ import 'kleur/colors';
 import { $ as $$Base } from '../chunks/Base_CnD7KCS-.mjs';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { useState, useRef, useEffect } from 'react';
-import { g as getCollection } from '../chunks/_astro_content_CE37nYmy.mjs';
+import { g as getCollection } from '../chunks/_astro_content_B0JywR9X.mjs';
 export { renderers } from '../renderers.mjs';
 
 function AudioPlayer({ tracks, className = "" }) {

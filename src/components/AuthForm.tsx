@@ -11,7 +11,7 @@ interface AuthFormProps {
   onModeChange?: (mode: 'signin' | 'signup' | 'reset') => void;
 }
 
-export default function AuthForm({ mode, onSuccess, onModeChange }: AuthFormProps) {
+export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -39,7 +39,7 @@ export default function AuthForm({ mode, onSuccess, onModeChange }: AuthFormProp
           return;
         }
 
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
         });
@@ -51,7 +51,7 @@ export default function AuthForm({ mode, onSuccess, onModeChange }: AuthFormProp
           text: 'Check your email for the confirmation link!'
         });
       } else if (currentMode === 'signin') {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });

@@ -2,7 +2,7 @@ import { c as createComponent, b as renderComponent, a as renderTemplate, m as m
 import 'kleur/colors';
 import { $ as $$Base } from '../chunks/Base_CnD7KCS-.mjs';
 import { s as supabaseServer } from '../chunks/supabase-server_DNXtBe2A.mjs';
-import { U as UserProfile } from '../chunks/UserProfile_BmDXL3Eu.mjs';
+import { U as UserProfile } from '../chunks/UserProfile_Ber5OXdn.mjs';
 import { U as UserManagement } from '../chunks/UserManagement_Bftlx0ze.mjs';
 export { renderers } from '../renderers.mjs';
 

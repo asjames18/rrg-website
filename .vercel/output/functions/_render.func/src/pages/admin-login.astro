@@ -122,7 +122,7 @@ import UserProfile from '../components/UserProfile';
   });
 
   // Listen for auth changes
-  supabase.auth.onAuthStateChange((event, session) => {
+  supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.user) {
       adminProfile?.classList.remove('hidden');
       adminForms?.classList.add('hidden');

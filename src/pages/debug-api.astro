@@ -101,21 +101,21 @@ import Base from '../layouts/Base.astro';
 
     // Set default JSON data in textarea
     if (testDataTextarea) {
-      testDataTextarea.value = JSON.stringify({
+      (testDataTextarea as HTMLTextAreaElement).value = JSON.stringify({
         email: "test@example.com",
         adminSecret: "rrg-admin-2024"
       }, null, 2);
     }
 
-    function logError(message, error) {
+    function logError(message: string, error: any) {
       const timestamp = new Date().toLocaleTimeString();
       const errorText = `${timestamp}: ${message}\n${error instanceof Error ? error.stack : error}\n\n`;
-      errorLog.innerHTML += errorText;
-      errorLog.scrollTop = errorLog.scrollHeight;
+      errorLog!.innerHTML += errorText;
+      errorLog!.scrollTop = errorLog!.scrollHeight;
     }
 
-    function showResult(element, data) {
-      element.querySelector('pre').textContent = JSON.stringify(data, null, 2);
+    function showResult(element: HTMLElement, data: any) {
+      element.querySelector('pre')!.textContent = JSON.stringify(data, null, 2);
       element.classList.remove('hidden');
     }
 
@@ -124,23 +124,23 @@ import Base from '../layouts/Base.astro';
       try {
         const response = await fetch('/api/debug-json');
         const data = await response.json();
-        showResult(getResult, data);
+        showResult(getResult!, data);
       } catch (error) {
         logError('GET request failed:', error);
-        showResult(getResult, { error: error.message });
+        showResult(getResult!, { error: (error as Error).message });
       }
     });
 
     // Test POST request
     testPostBtn?.addEventListener('click', async () => {
       try {
-        const testData = document.getElementById('test-data')?.value;
+        const testData = (document.getElementById('test-data') as HTMLTextAreaElement)?.value;
         let jsonData;
         
         try {
           jsonData = JSON.parse(testData);
         } catch (parseError) {
-          throw new Error('Invalid JSON in test data: ' + parseError.message);
+          throw new Error('Invalid JSON in test data: ' + (parseError as Error).message);
         }
 
         const response = await fetch('/api/debug-json', {
@@ -152,10 +152,10 @@ import Base from '../layouts/Base.astro';
         });
 
         const data = await response.json();
-        showResult(postResult, data);
+        showResult(postResult!, data);
       } catch (error) {
         logError('POST request failed:', error);
-        showResult(postResult, { error: error.message });
+        showResult(postResult!, { error: (error as Error).message });
       }
     });
 
@@ -164,10 +164,10 @@ import Base from '../layouts/Base.astro';
       try {
         const response = await fetch('/api/test-supabase');
         const data = await response.json();
-        showResult(supabaseResult, data);
+        showResult(supabaseResult!, data);
       } catch (error) {
         logError('Supabase test failed:', error);
-        showResult(supabaseResult, { error: error.message });
+        showResult(supabaseResult!, { error: (error as Error).message });
       }
     });
   });

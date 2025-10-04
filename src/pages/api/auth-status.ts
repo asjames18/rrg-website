@@ -46,7 +46,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     // Get user profile
-    const { data: profile, error: profileError } = await supabaseServer
+    const { data: profile } = await supabaseServer
       .from('profiles')
       .select('*')
       .eq('id', user.id)

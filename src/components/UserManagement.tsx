@@ -2,7 +2,7 @@
  * User Management Component
  * For admins to view and manage user roles
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface User {

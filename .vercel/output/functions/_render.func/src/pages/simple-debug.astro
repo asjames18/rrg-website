@@ -82,15 +82,15 @@ import Base from '../layouts/Base.astro';
     const promoteResult = document.getElementById('promote-result');
     const errorLog = document.getElementById('error-log');
 
-    function logError(message, error) {
+    function logError(message: string, error: any) {
       const timestamp = new Date().toLocaleTimeString();
       const errorText = `${timestamp}: ${message}\n${error instanceof Error ? error.stack : error}\n\n`;
-      errorLog.innerHTML += errorText;
-      errorLog.scrollTop = errorLog.scrollHeight;
+      errorLog!.innerHTML += errorText;
+      errorLog!.scrollTop = errorLog!.scrollHeight;
     }
 
-    function showResult(element, data) {
-      element.querySelector('pre').textContent = JSON.stringify(data, null, 2);
+    function showResult(element: HTMLElement, data: any) {
+      element.querySelector('pre')!.textContent = JSON.stringify(data, null, 2);
       element.classList.remove('hidden');
     }
 
@@ -99,17 +99,17 @@ import Base from '../layouts/Base.astro';
       try {
         const response = await fetch('/api/test-supabase');
         const data = await response.json();
-        showResult(supabaseResult, data);
+        showResult(supabaseResult!, data);
       } catch (error) {
         logError('Supabase test failed:', error);
-        showResult(supabaseResult, { error: error.message });
+        showResult(supabaseResult!, { error: (error as Error).message });
       }
     });
 
     // Test admin promotion
     testPromoteBtn?.addEventListener('click', async () => {
       try {
-        const email = document.getElementById('promote-email')?.value;
+        const email = (document.getElementById('promote-email') as HTMLInputElement)?.value;
         
         if (!email) {
           throw new Error('Please enter an email address');
@@ -127,10 +127,10 @@ import Base from '../layouts/Base.astro';
         });
 
         const data = await response.json();
-        showResult(promoteResult, data);
+        showResult(promoteResult!, data);
       } catch (error) {
         logError('Admin promotion test failed:', error);
-        showResult(promoteResult, { error: error.message });
+        showResult(promoteResult!, { error: (error as Error).message });
       }
     });
   });

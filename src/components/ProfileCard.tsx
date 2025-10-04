@@ -2,7 +2,7 @@
  * Profile Card Component
  * Displays user profile information in a card format
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/supabase';
 
@@ -29,7 +29,7 @@ export default function ProfileCard({ showActions = true, className = '' }: Prof
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);

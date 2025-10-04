@@ -42,7 +42,7 @@ export function useAuth(): AuthState & {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         setState(prev => ({ ...prev, user: session?.user ?? null }));
         
         if (session?.user) {

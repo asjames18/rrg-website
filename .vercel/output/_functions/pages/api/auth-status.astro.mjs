@@ -32,7 +32,7 @@ const GET = async ({ request }) => {
         }
       );
     }
-    const { data: profile, error: profileError } = await supabaseServer.from("profiles").select("*").eq("id", user.id).single();
+    const { data: profile } = await supabaseServer.from("profiles").select("*").eq("id", user.id).single();
     return new Response(
       JSON.stringify({
         authenticated: true,

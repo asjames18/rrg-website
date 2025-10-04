@@ -3,7 +3,7 @@ export { renderers } from '../../renderers.mjs';
 
 const GET = async () => {
   try {
-    const { data, error, count } = await supabase.from("posts").select("*", { count: "exact", head: true });
+    const { error, count } = await supabase.from("posts").select("*", { count: "exact", head: true });
     if (error) {
       return new Response(JSON.stringify({
         success: false,

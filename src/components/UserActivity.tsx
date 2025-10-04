@@ -2,7 +2,7 @@
  * User Activity Component
  * Shows user's activity, engagement stats, and recent actions
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface ActivityItem {

@@ -2,7 +2,7 @@ import { jsxs, jsx } from 'react/jsx-runtime';
 import { useState } from 'react';
 import { s as supabase } from './supabase_rylPBTzj.mjs';
 
-function AuthForm({ mode, onSuccess, onModeChange }) {
+function AuthForm({ mode, onSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,7 +27,7 @@ function AuthForm({ mode, onSuccess, onModeChange }) {
           setMessage({ type: "error", text: "Password must be at least 6 characters" });
           return;
         }
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password
         });
@@ -37,7 +37,7 @@ function AuthForm({ mode, onSuccess, onModeChange }) {
           text: "Check your email for the confirmation link!"
         });
       } else if (currentMode === "signin") {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
           password
         });

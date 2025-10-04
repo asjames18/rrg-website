@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase';
 export const GET: APIRoute = async () => {
   try {
     // Test database connection
-    const { data, error, count } = await supabase
+    const { error, count } = await supabase
       .from('posts')
       .select('*', { count: 'exact', head: true });
 

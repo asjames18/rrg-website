@@ -245,14 +245,14 @@ import UserManagement from '../components/UserManagement';
         const emailField = document.getElementById('profile-email');
         const createdField = document.getElementById('profile-created');
         
-        if (emailField) emailField.value = user.email || '';
+        if (emailField) (emailField as HTMLInputElement).value = user.email || '';
         if (createdField) {
           const createdDate = new Date(user.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           });
-          createdField.value = createdDate;
+          (createdField as HTMLInputElement).value = createdDate;
         }
 
         // Check if user is admin and show admin tab

@@ -1,6 +1,6 @@
 import { renderers } from './renderers.mjs';
 import { s as serverEntrypointModule } from './chunks/_@astrojs-ssr-adapter_VFUEmVsm.mjs';
-import { manifest } from './manifest_BotsM3Ui.mjs';
+import { manifest } from './manifest_CKXwlcCJ.mjs';
 import { createExports } from '@astrojs/vercel/entrypoint';
 
 const serverIslandMap = new Map();;
@@ -84,7 +84,7 @@ const _manifest = Object.assign(manifest, {
     middleware: () => import('./_astro-internal_middleware.mjs')
 });
 const _args = {
-    "middlewareSecret": "9e1c247c-ae03-4ee4-8c9f-a1800d92c969",
+    "middlewareSecret": "3c540501-67db-4044-a5af-df76d8b9201f",
     "skewProtection": false
 };
 const _exports = createExports(_manifest, _args);

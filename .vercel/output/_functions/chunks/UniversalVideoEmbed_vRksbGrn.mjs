@@ -1,5 +1,4 @@
 import { jsx } from 'react/jsx-runtime';
-import 'react';
 
 function UniversalVideoEmbed({
   platform,
