@@ -1,18 +1,14 @@
-// @ts-check
 import { defineConfig } from 'astro/config';
-
+import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
-import vercel from '@astrojs/vercel';
 
-// https://astro.build/config
 export default defineConfig({
   output: 'server',
-  adapter: vercel({ webAnalytics: { enabled: true } }),
+  adapter: vercel(),
   vite: {
     plugins: [tailwindcss()]
   },
-
   integrations: [react(), mdx()]
 });

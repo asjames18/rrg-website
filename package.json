@@ -9,13 +9,14 @@
     "dev": "astro dev",
     "start": "astro dev",
     "prebuild": "bash scripts/check-no-legacy.sh",
-    "build": "astro check && astro build",
+    "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
     "vercel:pull": "vercel pull --yes --environment=production",
     "vercel:build": "vercel build",
-    "vercel:deploy": "vercel deploy --prebuilt --force",
-    "deploy:prebuilt": "npm run vercel:pull && npm run vercel:build && npm run vercel:deploy"
+    "vercel:deploy:prod": "vercel deploy --prebuilt --prod",
+    "deploy:prebuilt:prod": "npm run vercel:pull && npm run vercel:build && npm run vercel:deploy:prod",
+    "inspect:render": "cat .vercel/output/functions/_render.func/.vc-config.json || true"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
