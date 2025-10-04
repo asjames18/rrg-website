@@ -16,6 +16,7 @@
     "vercel:build": "vercel build",
     "vercel:deploy:prod": "vercel deploy --prebuilt --prod",
     "deploy:prebuilt:prod": "npm run vercel:pull && npm run vercel:build && npm run vercel:deploy:prod",
+    "deploy:fresh": "vercel --prod",
     "inspect:render": "cat .vercel/output/functions/_render.func/.vc-config.json || true"
   },
   "dependencies": {
