@@ -1,4 +1,11 @@
 ---
+/**
+ * Base Layout Component
+ * 
+ * TODO: Add Pagefind search integration in header (https://pagefind.app)
+ * TODO: Add newsletter signup form in footer (with privacy-first email service)
+ * TODO: Consider adding dark/light theme toggle (currently dark-only)
+ */
 import '../styles/global.css';
 
 interface Props {
@@ -48,16 +55,42 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
             </svg>
           </button>
           
-          <ul id="nav-menu" class="hidden md:flex items-center gap-6">
-            <li><a href="/" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Home</a></li>
-            <li><a href="/start-here" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Start Here</a></li>
-            <li><a href="/videos" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Videos</a></li>
-            <li><a href="/bible" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Bible</a></li>
-            <li><a href="/blog" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
-            <li><a href="/music" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
-            <li><a href="/books" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
-            <li><a href="/give" class="bg-amber-700 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black transition-colors">Give</a></li>
-          </ul>
+              <ul id="nav-menu" class="hidden md:flex items-center gap-6">
+                <li><a href="/" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Home</a></li>
+                <li><a href="/start-here" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Start Here</a></li>
+                <li><a href="/videos" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Videos</a></li>
+                <li><a href="/bible" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Bible</a></li>
+                <li><a href="/blog" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
+                <li><a href="/music" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
+                <li><a href="/books" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
+                
+                <!-- Auth Section -->
+                <li id="auth-nav-item" class="hidden">
+                  <div id="user-menu" class="relative">
+                    <button id="user-menu-button" class="flex items-center gap-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1 transition-colors">
+                      <span id="user-email" class="text-sm"></span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-neutral-800 border border-neutral-700 rounded-lg shadow-lg py-2 z-50">
+                      <a href="/profile" class="block px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">Profile</a>
+                      <div id="admin-links" class="hidden">
+                        <div class="border-t border-neutral-700 my-2"></div>
+                        <a href="/admin-dashboard" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">Admin Dashboard</a>
+                        <a href="/admin" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">Content Management</a>
+                      </div>
+                      <button id="sign-out-btn" class="block w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-700 hover:text-red-400 transition-colors">Sign Out</button>
+                    </div>
+                  </div>
+                </li>
+                
+                <li id="sign-in-nav-item">
+                  <a href="/auth" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Sign In</a>
+                </li>
+                
+                <li><a href="/give" class="bg-amber-700 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black transition-colors">Give</a></li>
+              </ul>
         </div>
         
         <!-- Mobile menu -->
@@ -70,6 +103,23 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
             <li><a href="/blog" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
             <li><a href="/music" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
             <li><a href="/books" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
+            
+            <!-- Mobile Auth Section -->
+            <li id="mobile-auth-nav-item" class="hidden">
+              <div class="py-2">
+                <div class="text-sm text-neutral-400 mb-2">Signed in as:</div>
+                <div id="mobile-user-email" class="text-amber-100 font-medium mb-3"></div>
+                <div class="space-y-2">
+                  <a href="/profile" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Profile</a>
+                  <button id="mobile-sign-out-btn" class="block w-full text-left py-2 text-neutral-300 hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Sign Out</button>
+                </div>
+              </div>
+            </li>
+            
+            <li id="mobile-sign-in-nav-item">
+              <a href="/auth" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Sign In</a>
+            </li>
+            
             <li><a href="/give" class="block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black transition-colors text-center">Give</a></li>
           </ul>
         </div>
@@ -116,6 +166,148 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
         const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
         toggle.setAttribute('aria-expanded', String(!isExpanded));
         menu?.classList.toggle('hidden');
+      });
+
+      // Auth state management
+      async function checkAuthState() {
+        try {
+          // Import Supabase client
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabaseUrl = 'https://lebumzszhhjlpflqgity.supabase.co';
+          const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs';
+          const supabase = createClient(supabaseUrl, supabaseKey);
+
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            // User is signed in
+            showSignedInState(user.email);
+          } else {
+            // User is not signed in
+            showSignedOutState();
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          showSignedOutState();
+        }
+      }
+
+      async function showSignedInState(email) {
+        // Desktop navigation
+        const authNavItem = document.getElementById('auth-nav-item');
+        const signInNavItem = document.getElementById('sign-in-nav-item');
+        const userEmail = document.getElementById('user-email');
+        const adminLinks = document.getElementById('admin-links');
+        
+        if (authNavItem && signInNavItem && userEmail) {
+          authNavItem.classList.remove('hidden');
+          signInNavItem.classList.add('hidden');
+          userEmail.textContent = email;
+        }
+
+        // Check if user is admin and show admin links
+        try {
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabaseUrl = 'https://lebumzszhhjlpflqgity.supabase.co';
+          const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs';
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', user.id)
+              .single();
+            
+            const isAdmin = profile?.role === 'admin' || profile?.role === 'editor';
+            
+            if (adminLinks) {
+              if (isAdmin) {
+                adminLinks.classList.remove('hidden');
+              } else {
+                adminLinks.classList.add('hidden');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+        }
+
+        // Mobile navigation
+        const mobileAuthNavItem = document.getElementById('mobile-auth-nav-item');
+        const mobileSignInNavItem = document.getElementById('mobile-sign-in-nav-item');
+        const mobileUserEmail = document.getElementById('mobile-user-email');
+        
+        if (mobileAuthNavItem && mobileSignInNavItem && mobileUserEmail) {
+          mobileAuthNavItem.classList.remove('hidden');
+          mobileSignInNavItem.classList.add('hidden');
+          mobileUserEmail.textContent = email;
+        }
+      }
+
+      function showSignedOutState() {
+        // Desktop navigation
+        const authNavItem = document.getElementById('auth-nav-item');
+        const signInNavItem = document.getElementById('sign-in-nav-item');
+        
+        if (authNavItem && signInNavItem) {
+          authNavItem.classList.add('hidden');
+          signInNavItem.classList.remove('hidden');
+        }
+
+        // Mobile navigation
+        const mobileAuthNavItem = document.getElementById('mobile-auth-nav-item');
+        const mobileSignInNavItem = document.getElementById('mobile-sign-in-nav-item');
+        
+        if (mobileAuthNavItem && mobileSignInNavItem) {
+          mobileAuthNavItem.classList.add('hidden');
+          mobileSignInNavItem.classList.remove('hidden');
+        }
+      }
+
+      async function signOut() {
+        try {
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabaseUrl = 'https://lebumzszhhjlpflqgity.supabase.co';
+          const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs';
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          await supabase.auth.signOut();
+          showSignedOutState();
+          
+          // Redirect to home page
+          window.location.href = '/';
+        } catch (error) {
+          console.error('Sign out failed:', error);
+        }
+      }
+
+      // Event listeners
+      document.addEventListener('DOMContentLoaded', () => {
+        checkAuthState();
+        
+        // Desktop sign out button
+        const signOutBtn = document.getElementById('sign-out-btn');
+        signOutBtn?.addEventListener('click', signOut);
+        
+        // Mobile sign out button
+        const mobileSignOutBtn = document.getElementById('mobile-sign-out-btn');
+        mobileSignOutBtn?.addEventListener('click', signOut);
+        
+        // User menu dropdown toggle
+        const userMenuButton = document.getElementById('user-menu-button');
+        const userDropdown = document.getElementById('user-dropdown');
+        
+        userMenuButton?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          userDropdown?.classList.toggle('hidden');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+          userDropdown?.classList.add('hidden');
+        });
       });
     </script>
   </body>

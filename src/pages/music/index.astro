@@ -1,63 +1,70 @@
 ---
 import Base from '../../layouts/Base.astro';
+import AudioPlayer from '../../components/AudioPlayer';
+import { getCollection } from 'astro:content';
+
+const musicContent = await getCollection('music');
+
+// Separate audio and video content
+const audioTracks = musicContent
+  .filter(item => item.data.type === 'audio' && item.data.audioSrc)
+  .map(item => ({
+    title: item.data.title,
+    src: item.data.audioSrc!,
+  }));
 ---
 
 <Base title="Music">
-  <div class="container mx-auto px-4 py-16">
-    <h1 class="text-4xl md:text-5xl font-bold mb-8">Music</h1>
-    <p class="text-xl text-neutral-600 dark:text-neutral-300 mb-12">
+  <div class="container mx-auto px-4 py-12 md:py-16">
+    <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Music</h1>
+    <p class="text-lg md:text-xl text-neutral-300 mb-12 max-w-3xl">
       Worship music that honors the sacred Names and glorifies YAHUAH.
     </p>
     
-    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-8">
-      <p class="text-neutral-700 dark:text-neutral-300">
-        Music content coming soon. This page will feature worship songs, hymns, and audio teachings.
-      </p>
-    </div>
+    <div class="max-w-3xl mx-auto">
+      {audioTracks.length > 0 ? (
+        <div class="mb-12">
+          <AudioPlayer tracks={audioTracks} client:load />
+        </div>
+      ) : (
+        <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center mb-12">
+          <p class="text-neutral-400">No music tracks available yet. Check back soon for worship songs and teachings.</p>
+        </div>
+      )}
 
-    <div class="space-y-4">
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md p-6 border border-neutral-200 dark:border-neutral-700">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="font-bold text-lg mb-1">Sample Worship Song 1</h3>
-            <p class="text-sm text-neutral-600 dark:text-neutral-300">Artist Name</p>
-          </div>
-          <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 transition-colors" aria-label="Play">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-          </button>
+      {/* Music Content List */}
+      {musicContent.length > 0 && (
+        <div class="space-y-6 mb-12">
+          <h2 class="text-2xl font-bold text-amber-100">All Music</h2>
+          {musicContent.map((item) => (
+            <article class="bg-neutral-900 border border-neutral-800 rounded-lg p-6 hover:border-amber-700 transition-colors">
+              <h3 class="text-xl font-bold mb-2 text-amber-100">
+                <a 
+                  href={`/music/${item.data.slug}`}
+                  class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
+                >
+                  {item.data.title}
+                </a>
+              </h3>
+              <p class="text-sm text-neutral-400 mb-3">
+                Type: {item.data.type === 'audio' ? '🎵 Audio' : '🎬 Video'}
+              </p>
+              {item.data.scriptures.length > 0 && (
+                <p class="text-xs text-neutral-500">
+                  Scriptures: {item.data.scriptures.join(', ')}
+                </p>
+              )}
+            </article>
+          ))}
         </div>
-      </div>
-      
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md p-6 border border-neutral-200 dark:border-neutral-700">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="font-bold text-lg mb-1">Sample Worship Song 2</h3>
-            <p class="text-sm text-neutral-600 dark:text-neutral-300">Artist Name</p>
-          </div>
-          <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 transition-colors" aria-label="Play">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md p-6 border border-neutral-200 dark:border-neutral-700">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="font-bold text-lg mb-1">Sample Worship Song 3</h3>
-            <p class="text-sm text-neutral-600 dark:text-neutral-300">Artist Name</p>
-          </div>
-          <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 transition-colors" aria-label="Play">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-          </button>
-        </div>
+      )}
+
+      <div class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-6">
+        <p class="text-neutral-300 text-sm">
+          <strong class="text-amber-100">Note:</strong> Music content coming soon. 
+          This player will feature worship songs, hymns, and audio teachings that honor the sacred Names of YAHUAH, YAHUSHA, and RUACH HAQODESH.
+        </p>
       </div>
     </div>
   </div>
 </Base>
-

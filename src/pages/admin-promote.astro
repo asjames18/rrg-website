@@ -1,0 +1,163 @@
+---
+/**
+ * Admin Promotion Tool
+ * Visit: http://localhost:4321/admin-promote
+ * 
+ * Quick tool to promote users to admin role
+ */
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Promote to Admin | Real & Raw Gospel">
+  <div class="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black">
+    <div class="container mx-auto px-4 py-12 md:py-16">
+      <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-12">
+          <h1 class="text-4xl md:text-5xl font-bold text-amber-100 mb-6 font-display">
+            Promote to Admin
+          </h1>
+          <p class="text-xl text-neutral-300">
+            Promote a user to admin role by entering their email address.
+          </p>
+        </div>
+
+        <div class="bg-neutral-900/50 backdrop-blur-sm border border-neutral-700/50 rounded-2xl p-8 shadow-2xl">
+          <form id="promote-form" class="space-y-6">
+            <div>
+              <label for="email" class="block text-sm font-medium text-neutral-200 mb-2">
+                User Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                required
+                class="w-full px-4 py-3 bg-neutral-800/80 border border-neutral-600/50 rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
+                placeholder="user@example.com"
+              />
+            </div>
+
+            <div>
+              <label for="admin-secret" class="block text-sm font-medium text-neutral-200 mb-2">
+                Admin Secret
+              </label>
+              <input
+                type="password"
+                id="admin-secret"
+                required
+                class="w-full px-4 py-3 bg-neutral-800/80 border border-neutral-600/50 rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
+                placeholder="Enter admin secret"
+              />
+              <p class="text-sm text-neutral-400 mt-2">
+                Secret: <code class="bg-neutral-800 px-2 py-1 rounded text-amber-400">rrg-admin-2024</code>
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              id="promote-btn"
+              class="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 focus:ring-offset-neutral-900 shadow-lg hover:shadow-xl"
+            >
+              Promote to Admin
+            </button>
+          </form>
+
+          <div id="result" class="mt-6 hidden">
+            <!-- Result message will appear here -->
+          </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="mt-12 bg-amber-900/20 border border-amber-800/50 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-amber-100 mb-4">How to Use:</h3>
+          <ol class="space-y-2 text-neutral-300 text-sm">
+            <li>1. Make sure the user has already created an account</li>
+            <li>2. Enter their email address exactly as they signed up</li>
+            <li>3. Enter the admin secret: <code class="bg-neutral-800 px-2 py-1 rounded text-amber-400">rrg-admin-2024</code></li>
+            <li>4. Click "Promote to Admin"</li>
+            <li>5. The user will immediately have admin access</li>
+          </ol>
+        </div>
+
+        <!-- Alternative Methods -->
+        <div class="mt-8 bg-neutral-900/50 border border-neutral-700/50 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-amber-100 mb-4">Alternative Methods:</h3>
+          <div class="space-y-4 text-sm text-neutral-300">
+            <div>
+              <strong>1. Supabase Dashboard:</strong>
+              <p>Go to Authentication → Users → Find user → Edit metadata → Add role: "admin"</p>
+            </div>
+            <div>
+              <strong>2. SQL Editor:</strong>
+              <p>Run: <code class="bg-neutral-800 px-2 py-1 rounded text-amber-400">UPDATE profiles SET role = 'admin' WHERE email = 'user@example.com';</code></p>
+            </div>
+            <div>
+              <strong>3. Admin Dashboard:</strong>
+              <p>If you're already an admin, use the User Management section in your profile</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  document.getElementById('promote-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = (document.getElementById('email') as HTMLInputElement)?.value;
+    const adminSecret = (document.getElementById('admin-secret') as HTMLInputElement)?.value;
+    const promoteBtn = document.getElementById('promote-btn') as HTMLButtonElement;
+    const resultDiv = document.getElementById('result');
+    
+    if (!email || !adminSecret) return;
+    
+    // Show loading state
+    promoteBtn.textContent = 'Promoting...';
+    promoteBtn.disabled = true;
+    
+    try {
+      const response = await fetch('/api/promote-to-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, adminSecret }),
+      });
+      
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        throw new Error('Invalid response from server');
+      }
+      
+      // Show result
+      if (resultDiv) {
+        resultDiv.className = `mt-6 p-4 rounded-lg text-sm font-medium ${
+          result.success 
+            ? 'bg-green-900/20 border border-green-600/30 text-green-200'
+            : 'bg-red-900/20 border border-red-600/30 text-red-200'
+        }`;
+        resultDiv.textContent = result.message || result.error;
+        resultDiv.classList.remove('hidden');
+      }
+      
+      if (result.success) {
+        // Clear form
+        (document.getElementById('email') as HTMLInputElement).value = '';
+        (document.getElementById('admin-secret') as HTMLInputElement).value = '';
+      }
+      
+    } catch (error) {
+      if (resultDiv) {
+        resultDiv.className = 'mt-6 p-4 rounded-lg text-sm font-medium bg-red-900/20 border border-red-600/30 text-red-200';
+        resultDiv.textContent = 'Failed to promote user. Please try again.';
+        resultDiv.classList.remove('hidden');
+      }
+    } finally {
+      promoteBtn.textContent = 'Promote to Admin';
+      promoteBtn.disabled = false;
+    }
+  });
+</script>

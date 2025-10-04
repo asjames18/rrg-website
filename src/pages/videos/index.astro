@@ -1,45 +1,82 @@
 ---
+/**
+ * Videos Index Page
+ * 
+ * TODO: Add series/topic filtering
+ * TODO: Add video grid/list view toggle
+ * TODO: Add load-more or pagination for performance
+ */
 import Base from '../../layouts/Base.astro';
+import UniversalVideoEmbed from '../../components/UniversalVideoEmbed';
+import { getCollection } from 'astro:content';
+
+const videoContent = await getCollection('videos');
+const sortedVideos = videoContent.sort((a, b) => 
+  b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
+);
 ---
 
 <Base title="Videos">
-  <div class="container mx-auto px-4 py-16">
-    <h1 class="text-4xl md:text-5xl font-bold mb-8">Videos</h1>
-    <p class="text-xl text-neutral-600 dark:text-neutral-300 mb-12">
+  <div class="container mx-auto px-4 py-12 md:py-16">
+    <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Videos</h1>
+    <p class="text-lg md:text-xl text-neutral-300 mb-12 max-w-3xl">
       Watch powerful teachings, testimonies, and training from the remnant. No fluff—just raw truth.
     </p>
     
-    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-8">
-      <p class="text-neutral-700 dark:text-neutral-300">
-        Video content coming soon. This page will feature embedded teachings, testimonies, and spiritual warfare training.
-      </p>
-    </div>
+    {sortedVideos.length > 0 ? (
+      <div class="grid md:grid-cols-2 gap-8 max-w-6xl">
+        {sortedVideos.map((video) => (
+          <article class="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden hover:border-amber-700 transition-colors">
+            <UniversalVideoEmbed 
+              platform={video.data.platform}
+              videoId={video.data.videoId}
+              title={video.data.title}
+              client:load
+            />
+            <div class="p-6">
+              <h2 class="text-xl font-bold mb-2 text-amber-100">
+                <a 
+                  href={`/videos/${video.slug}`}
+                  class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
+                >
+                  {video.data.title}
+                </a>
+              </h2>
+              
+              {video.data.series.length > 0 && (
+                <p class="text-sm text-amber-400 mb-2">
+                  Series: {video.data.series.join(', ')}
+                </p>
+              )}
+              
+              <div class="flex flex-wrap gap-2 mb-3">
+                {video.data.topics.map((topic) => (
+                  <span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs px-2 py-1 rounded">
+                    {topic}
+                  </span>
+                ))}
+              </div>
+              
+              {video.data.scriptures.length > 0 && (
+                <p class="text-xs text-neutral-500">
+                  Scriptures: {video.data.scriptures.join(', ')}
+                </p>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center">
+        <p class="text-neutral-400">No videos available yet. Check back soon for teachings and testimonies.</p>
+      </div>
+    )}
 
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md p-6 border border-neutral-200 dark:border-neutral-700">
-        <div class="bg-neutral-200 dark:bg-neutral-700 h-48 rounded mb-4 flex items-center justify-center">
-          <span class="text-neutral-500 dark:text-neutral-400">Video Placeholder</span>
-        </div>
-        <h3 class="font-bold text-lg mb-2">Sample Teaching 1</h3>
-        <p class="text-sm text-neutral-600 dark:text-neutral-300">Description of teaching content</p>
-      </div>
-      
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md p-6 border border-neutral-200 dark:border-neutral-700">
-        <div class="bg-neutral-200 dark:bg-neutral-700 h-48 rounded mb-4 flex items-center justify-center">
-          <span class="text-neutral-500 dark:text-neutral-400">Video Placeholder</span>
-        </div>
-        <h3 class="font-bold text-lg mb-2">Sample Teaching 2</h3>
-        <p class="text-sm text-neutral-600 dark:text-neutral-300">Description of teaching content</p>
-      </div>
-      
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md p-6 border border-neutral-200 dark:border-neutral-700">
-        <div class="bg-neutral-200 dark:bg-neutral-700 h-48 rounded mb-4 flex items-center justify-center">
-          <span class="text-neutral-500 dark:text-neutral-400">Video Placeholder</span>
-        </div>
-        <h3 class="font-bold text-lg mb-2">Sample Teaching 3</h3>
-        <p class="text-sm text-neutral-600 dark:text-neutral-300">Description of teaching content</p>
-      </div>
+    <div class="mt-12 bg-amber-900/20 border border-amber-800/50 rounded-lg p-6 max-w-3xl">
+      <p class="text-neutral-300">
+        <strong class="text-amber-100">Note:</strong> More video content coming soon. 
+        This page will feature teachings on spiritual warfare, the Feasts of YAHUAH, end-times prophecy, and more.
+      </p>
     </div>
   </div>
 </Base>
-

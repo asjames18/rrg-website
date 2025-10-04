@@ -1,77 +1,73 @@
 import React from 'react';
 
 interface UniversalVideoEmbedProps {
-  url: string;
+  platform: 'youtube' | 'tiktok' | 'instagram' | 'facebook';
+  videoId: string;
   title?: string;
   className?: string;
 }
 
 /**
- * Universal video embed component that supports YouTube, Vimeo, and direct video URLs.
- * Maintains 16:9 aspect ratio by default.
+ * Universal video embed component supporting YouTube, TikTok, Instagram, and Facebook.
+ * All embeds lazy-load and maintain proper aspect ratios to prevent CLS.
  */
-export default function UniversalVideoEmbed({ url, title = 'Video Player', className = '' }: UniversalVideoEmbedProps) {
-  const getEmbedUrl = (videoUrl: string): string | null => {
-    // YouTube
-    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-    const youtubeMatch = videoUrl.match(youtubeRegex);
-    if (youtubeMatch && youtubeMatch[1]) {
-      return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+export default function UniversalVideoEmbed({ 
+  platform, 
+  videoId, 
+  title = 'Video Player',
+  className = '' 
+}: UniversalVideoEmbedProps) {
+  
+  const getEmbedUrl = (): string => {
+    switch (platform) {
+      case 'youtube':
+        // Use youtube-nocookie for privacy
+        return `https://www.youtube-nocookie.com/embed/${videoId}`;
+      
+      case 'tiktok':
+        return `https://www.tiktok.com/embed/v2/${videoId}`;
+      
+      case 'instagram':
+        return `https://www.instagram.com/p/${videoId}/embed`;
+      
+      case 'facebook':
+        // Facebook requires encoded URL
+        const encodedUrl = encodeURIComponent(`https://www.facebook.com/watch/?v=${videoId}`);
+        return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false`;
+      
+      default:
+        return '';
     }
-
-    // Vimeo
-    const vimeoRegex = /vimeo\.com\/(?:video\/)?(\d+)/;
-    const vimeoMatch = videoUrl.match(vimeoRegex);
-    if (vimeoMatch && vimeoMatch[1]) {
-      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-    }
-
-    // Direct video URL (mp4, webm, ogg)
-    if (/\.(mp4|webm|ogg)$/i.test(videoUrl)) {
-      return videoUrl;
-    }
-
-    return null;
   };
 
-  const embedUrl = getEmbedUrl(url);
+  const embedUrl = getEmbedUrl();
 
   if (!embedUrl) {
     return (
-      <div className={`bg-neutral-100 dark:bg-neutral-800 rounded-lg p-8 text-center ${className}`}>
-        <p className="text-neutral-600 dark:text-neutral-400">Invalid video URL</p>
+      <div className={`bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center ${className}`}>
+        <p className="text-neutral-500">Unsupported platform</p>
       </div>
     );
   }
 
-  // Direct video file
-  if (/\.(mp4|webm|ogg)$/i.test(embedUrl)) {
-    return (
-      <div className={`relative pb-[56.25%] h-0 overflow-hidden rounded-lg ${className}`}>
-        <video
-          className="absolute top-0 left-0 w-full h-full"
-          controls
-          aria-label={title}
-        >
-          <source src={embedUrl} type={`video/${embedUrl.split('.').pop()}`} />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-    );
-  }
+  // Different aspect ratios for different platforms
+  // TikTok and Instagram Reels are typically 9:16 (vertical)
+  // YouTube and Facebook are typically 16:9 (horizontal)
+  const isVertical = platform === 'tiktok' || platform === 'instagram';
+  const aspectRatio = isVertical ? 'pb-[177.78%]' : 'pb-[56.25%]';
+  const maxHeight = isVertical ? 'max-h-[600px]' : '';
 
-  // Embedded iframe (YouTube, Vimeo)
   return (
-    <div className={`relative pb-[56.25%] h-0 overflow-hidden rounded-lg ${className}`}>
+    <div className={`relative ${aspectRatio} ${maxHeight} h-0 overflow-hidden rounded-lg bg-neutral-900 border border-neutral-800 ${className}`}>
       <iframe
-        className="absolute top-0 left-0 w-full h-full"
         src={embedUrl}
         title={title}
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        className="absolute top-0 left-0 w-full h-full border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
-      ></iframe>
+        loading="lazy"
+        tabIndex={0}
+      />
     </div>
   );
 }
-

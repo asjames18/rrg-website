@@ -1,60 +1,82 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const bookContent = await getCollection('books');
 ---
 
-<Base title="Books">
-  <div class="container mx-auto px-4 py-16">
-    <h1 class="text-4xl md:text-5xl font-bold mb-8">Recommended Books</h1>
-    <p class="text-xl text-neutral-600 dark:text-neutral-300 mb-12">
-      Essential reading for the remnant. Affiliate links support this ministry.
+<Base title="Recommended Books">
+  <div class="container mx-auto px-4 py-12 md:py-16">
+    <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Recommended Books</h1>
+    <p class="text-lg md:text-xl text-neutral-300 mb-12 max-w-3xl">
+      Essential reading for the remnant. These resources align with biblical truth and help train believers in righteousness.
     </p>
     
-    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-8">
-      <p class="text-neutral-700 dark:text-neutral-300">
-        Book recommendations coming soon. This page will feature affiliate links to books that align with biblical truth.
-      </p>
-    </div>
+    {bookContent.length > 0 ? (
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {bookContent.map((book) => (
+          <article class="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden hover:border-amber-700 transition-colors flex flex-col">
+            {/* Book Cover Placeholder */}
+            <div class="bg-gradient-to-br from-neutral-800 to-neutral-900 h-64 flex items-center justify-center border-b border-neutral-800">
+              <div class="text-center p-6">
+                <svg class="w-16 h-16 mx-auto mb-4 text-amber-700" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>
+                </svg>
+                <p class="text-sm text-neutral-500">Book Cover</p>
+              </div>
+            </div>
+            
+            {/* Book Info */}
+            <div class="p-6 flex-1 flex flex-col">
+              <h2 class="text-xl font-bold mb-2 text-amber-100">
+                <a 
+                  href={`/books/${book.data.slug}`}
+                  class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
+                >
+                  {book.data.title}
+                </a>
+              </h2>
+              <p class="text-sm text-neutral-400 mb-3">by {book.data.author}</p>
+              
+              {book.data.topics.length > 0 && (
+                <div class="flex flex-wrap gap-2 mb-4">
+                  {book.data.topics.map((topic) => (
+                    <span class="inline-block bg-amber-900/30 border border-amber-800 text-amber-200 text-xs px-2 py-1 rounded">
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              )}
+              
+              <a 
+                href={book.data.affiliate.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center gap-2 bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 mt-auto"
+              >
+                <span>{book.data.affiliate.label}</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+              <p class="text-xs text-neutral-500 mt-2 text-center">via {book.data.affiliate.merchant}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center mb-12">
+        <p class="text-neutral-400">No books available yet. Check back soon for recommended resources.</p>
+      </div>
+    )}
 
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-700">
-        <div class="bg-neutral-200 dark:bg-neutral-700 h-64 flex items-center justify-center">
-          <span class="text-neutral-500 dark:text-neutral-400">Book Cover</span>
-        </div>
-        <div class="p-6">
-          <h3 class="font-bold text-lg mb-2">Sample Book Title</h3>
-          <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-4">by Author Name</p>
-          <a href="#" class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded transition-colors">
-            View on Amazon
-          </a>
-        </div>
-      </div>
-      
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-700">
-        <div class="bg-neutral-200 dark:bg-neutral-700 h-64 flex items-center justify-center">
-          <span class="text-neutral-500 dark:text-neutral-400">Book Cover</span>
-        </div>
-        <div class="p-6">
-          <h3 class="font-bold text-lg mb-2">Another Book Title</h3>
-          <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-4">by Author Name</p>
-          <a href="#" class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded transition-colors">
-            View on Amazon
-          </a>
-        </div>
-      </div>
-      
-      <div class="bg-white dark:bg-neutral-800 rounded-lg shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-700">
-        <div class="bg-neutral-200 dark:bg-neutral-700 h-64 flex items-center justify-center">
-          <span class="text-neutral-500 dark:text-neutral-400">Book Cover</span>
-        </div>
-        <div class="p-6">
-          <h3 class="font-bold text-lg mb-2">Third Book Title</h3>
-          <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-4">by Author Name</p>
-          <a href="#" class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded transition-colors">
-            View on Amazon
-          </a>
-        </div>
-      </div>
+    {/* Affiliate Disclosure */}
+    <div class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-6 max-w-3xl mx-auto">
+      <p class="text-neutral-300 text-sm text-center">
+        <span class="text-amber-100 font-semibold">★ Links may support the mission at no extra cost.</span><br />
+        When you purchase through affiliate links, we may receive a small commission. 
+        This helps support the ministry and keeps resources free. Your price stays the same.
+      </p>
     </div>
   </div>
 </Base>
-

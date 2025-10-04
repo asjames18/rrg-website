@@ -1,0 +1,76 @@
+# Real & Raw Gospel - Site Map
+# Key routes for navigation and reference
+
+routes:
+  - path: /
+    name: Home
+    description: Main landing page with core training paths
+  
+  - path: /start-here
+    name: Start Here
+    description: Introduction and 7-Day Reset for new visitors
+  
+  - path: /walk-in-the-spirit
+    name: Walk in the Spirit
+    description: Daily self-check and Spirit-led living
+  
+  - path: /prayer-and-fasting
+    name: Prayer & Fasting
+    description: Spiritual disciplines and doorway-closing liturgy
+  
+  - path: /feasts
+    name: Feasts of YAH
+    description: Biblical feasts and appointed times
+  
+  - path: /spiritual-warfare
+    name: Spiritual Warfare
+    description: Armor of YAHUAH and closing spiritual doorways
+  
+  - path: /identity-and-messiah
+    name: Identity & Mashiach
+    description: Understanding identity in YAHUSHA
+  
+  - path: /end-times
+    name: End-Times
+    description: Watch & Work checklist for the last days
+  
+  - path: /videos
+    name: Videos
+    description: Teaching videos and testimonies
+  
+  - path: /bible
+    name: Bible Reader
+    description: Scripture with Sacred Names toggle
+  
+  - path: /blog
+    name: Blog
+    description: Articles and teachings for the remnant
+  
+  - path: /music
+    name: Music
+    description: Worship music and audio content
+  
+  - path: /books
+    name: Books
+    description: Recommended resources with affiliate links
+  
+  - path: /privacy
+    name: Privacy Policy
+    description: Privacy practices and affiliate disclosures
+  
+      - path: /give
+        name: Give
+        description: Support the ministry
+
+      - path: /auth
+        name: Sign In
+        description: User authentication and account management
+
+      - path: /admin-login
+        name: Admin Login
+        description: Admin authentication and management access
+
+      - path: /admin-dashboard
+        name: Admin Dashboard
+        description: Admin dashboard with content and user management
+

@@ -1,116 +1,159 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-interface AudioPlayerProps {
-  src: string;
+interface Track {
   title: string;
-  artist?: string;
+  src: string;
+}
+
+interface AudioPlayerProps {
+  tracks: Track[];
   className?: string;
 }
 
 /**
- * Custom audio player component with play/pause, progress bar, and time display.
+ * Audio player component with track navigation.
+ * Supports keyboard controls and multiple tracks.
+ * 
+ * TODO: Add playback speed control (0.5x, 1x, 1.25x, 1.5x, 2x)
+ * TODO: Add shuffle and repeat modes
+ * TODO: Add volume control with persistence
+ * TODO: Add download track option
  */
-export default function AudioPlayer({ src, title, artist, className = '' }: AudioPlayerProps) {
+export default function AudioPlayer({ tracks, className = '' }: AudioPlayerProps) {
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
-    const handleEnded = () => setIsPlaying(false);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      // Auto-play next track if available
+      if (currentTrackIndex < tracks.length - 1) {
+        setCurrentTrackIndex(prev => prev + 1);
+      } else {
+        setIsPlaying(false);
+      }
+    };
 
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
 
     return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, []);
+  }, [currentTrackIndex, tracks.length]);
 
-  const togglePlayPause = () => {
+  // Update audio source when track changes
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
+    audio.load();
     if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play();
+      audio.play().catch(() => setIsPlaying(false));
     }
-    setIsPlaying(!isPlaying);
+  }, [currentTrackIndex]);
+
+  const goToPrevious = () => {
+    if (currentTrackIndex > 0) {
+      setCurrentTrackIndex(prev => prev - 1);
+    }
   };
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const progressBar = e.currentTarget;
-    const clickX = e.clientX - progressBar.getBoundingClientRect().left;
-    const width = progressBar.offsetWidth;
-    const percentage = clickX / width;
-    audio.currentTime = percentage * duration;
+  const goToNext = () => {
+    if (currentTrackIndex < tracks.length - 1) {
+      setCurrentTrackIndex(prev => prev + 1);
+    }
   };
 
-  const formatTime = (time: number): string => {
-    if (isNaN(time)) return '0:00';
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  if (tracks.length === 0) {
+    return (
+      <div className={`bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center ${className}`}>
+        <p className="text-neutral-500">No tracks available</p>
+      </div>
+    );
+  }
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const currentTrack = tracks[currentTrackIndex];
 
   return (
-    <div className={`bg-white dark:bg-neutral-800 rounded-lg shadow-md p-6 border border-neutral-200 dark:border-neutral-700 ${className}`}>
-      <audio ref={audioRef} src={src} preload="metadata" />
-      
-      <div className="flex items-center gap-4 mb-4">
-        <button
-          onClick={togglePlayPause}
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 transition-colors flex-shrink-0"
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          {isPlaying ? (
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          )}
-        </button>
-        
-        <div className="flex-1">
-          <h3 className="font-bold text-lg">{title}</h3>
-          {artist && <p className="text-sm text-neutral-600 dark:text-neutral-300">{artist}</p>}
-        </div>
+    <div className={`bg-neutral-900 border border-neutral-800 rounded-lg p-6 ${className}`}>
+      {/* Current Track Info */}
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-amber-100 mb-1">
+          {currentTrack.title}
+        </h3>
+        <p className="text-sm text-neutral-500">
+          Track {currentTrackIndex + 1} of {tracks.length}
+        </p>
       </div>
 
-      <div className="space-y-2">
-        <div
-          onClick={handleProgressClick}
-          className="h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full cursor-pointer group"
+      {/* Native Audio Player */}
+      <audio
+        ref={audioRef}
+        controls
+        className="w-full mb-4 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
+        preload="metadata"
+      >
+        <source src={currentTrack.src} type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
+
+      {/* Track Navigation */}
+      <div className="flex items-center justify-between gap-4">
+        <button
+          onClick={goToPrevious}
+          disabled={currentTrackIndex === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-900 disabled:text-neutral-600 disabled:cursor-not-allowed text-neutral-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900"
+          aria-label="Previous track"
         >
-          <div
-            className="h-full bg-blue-600 rounded-full transition-all group-hover:bg-blue-700"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        
-        <div className="flex justify-between text-sm text-neutral-600 dark:text-neutral-400">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+          </svg>
+          <span className="text-sm font-medium">Previous</span>
+        </button>
+
+        <button
+          onClick={goToNext}
+          disabled={currentTrackIndex === tracks.length - 1}
+          className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-900 disabled:text-neutral-600 disabled:cursor-not-allowed text-neutral-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900"
+          aria-label="Next track"
+        >
+          <span className="text-sm font-medium">Next</span>
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M16 18h2V6h-2zm-11.5-6L13 6v12z"/>
+          </svg>
+        </button>
       </div>
+
+      {/* Track List */}
+      {tracks.length > 1 && (
+        <div className="mt-6 pt-6 border-t border-neutral-800">
+          <h4 className="text-sm font-semibold text-neutral-400 mb-3">Playlist</h4>
+          <div className="space-y-2">
+            {tracks.map((track, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentTrackIndex(index)}
+                className={`w-full text-left px-3 py-2 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 ${
+                  index === currentTrackIndex
+                    ? 'bg-amber-900/30 text-amber-100 border border-amber-700'
+                    : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 border border-transparent'
+                }`}
+              >
+                <span className="text-sm font-medium">{track.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
