@@ -1,0 +1,17 @@
+---
+// Minimal test page with no imports
+const timestamp = new Date().toISOString();
+---
+
+<html>
+<head>
+  <title>Minimal Test</title>
+</head>
+<body>
+  <h1>Minimal Test Page</h1>
+  <p>If you can see this, basic Astro is working.</p>
+  <p>Timestamp: {timestamp}</p>
+  <p><a href="/api/ping">Test API Ping</a></p>
+  <p><a href="/api/health">Test API Health</a></p>
+</body>
+</html>
