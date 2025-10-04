@@ -1,6 +1,6 @@
-import { c as createComponent, d as createAstro, b as renderComponent, r as renderScript, a as renderTemplate, m as maybeRenderHead, F as Fragment } from '../chunks/astro/server_CisC67R1.mjs';
+import { c as createComponent, d as createAstro, b as renderComponent, r as renderScript, a as renderTemplate, m as maybeRenderHead, F as Fragment } from '../chunks/astro/server_DCtlZR10.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_D1PxsKEZ.mjs';
+import { $ as $$Base } from '../chunks/Base_CLTBcQpW.mjs';
 import { A as AuthForm } from '../chunks/AuthForm_Duv_9HFW.mjs';
 import { U as UserProfile } from '../chunks/UserProfile_Ber5OXdn.mjs';
 import { s as supabaseServer } from '../chunks/supabase-server_DNXtBe2A.mjs';

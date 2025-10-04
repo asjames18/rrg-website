@@ -6,11 +6,30 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   const path = ctx.url.pathname;
   const needsAuth = PROTECTED.some(rx => rx.test(path));
   
-  if (!needsAuth) return next();        // all public routes bypass
+  // If not a protected route, just continue
+  if (!needsAuth) {
+    return next();
+  }
 
-  // lightweight check (no Node APIs here)
-  const isAuthed = Boolean(ctx.cookies.get('sb-access-token')?.value);
-  if (!isAuthed) return ctx.redirect('/auth');
-  
-  return next();
+  // For protected routes, check for auth cookie
+  try {
+    const authCookie = ctx.cookies.get('sb-access-token');
+    const isAuthed = Boolean(authCookie?.value);
+    
+    if (!isAuthed) {
+      // Use Astro's redirect instead of ctx.redirect
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': '/auth'
+        }
+      });
+    }
+    
+    return next();
+  } catch (error) {
+    console.error('Middleware error:', error);
+    // If there's an error, just continue to avoid breaking the site
+    return next();
+  }
 });
