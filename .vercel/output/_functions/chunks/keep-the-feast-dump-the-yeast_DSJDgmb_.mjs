@@ -1,5 +1,5 @@
 async function getMod() {
-						return import('./keep-the-feast-dump-the-yeast_BUz4xc1m.mjs');
+						return import('./keep-the-feast-dump-the-yeast_nGnShdCN.mjs');
 					}
 					const collectedLinks = [];
 					const collectedStyles = [];

@@ -1,5 +1,3 @@
-// React import removed as it's not needed
-
 interface UniversalVideoEmbedProps {
   platform: 'youtube' | 'tiktok' | 'instagram' | 'facebook';
   videoId: string;

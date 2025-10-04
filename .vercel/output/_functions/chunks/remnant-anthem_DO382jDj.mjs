@@ -1,5 +1,5 @@
 async function getMod() {
-						return import('./remnant-anthem_CMaNq97g.mjs');
+						return import('./remnant-anthem_DWoa7kai.mjs');
 					}
 					const collectedLinks = [];
 					const collectedStyles = [];

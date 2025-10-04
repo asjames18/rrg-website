@@ -13,7 +13,6 @@ import { supabaseServer } from '../lib/supabase-server';
 
 // Get redirect URL and error from query params
 const url = new URL(Astro.request.url);
-const redirectTo = url.searchParams.get('redirect') || '/';
 const error = url.searchParams.get('error');
 
 // Check if user is already authenticated

@@ -1,6 +1,6 @@
 import { joinPaths, isRemotePath } from '@astrojs/internal-helpers/path';
-import { A as AstroError, E as ExpectedImage, L as LocalImageUsedWrongly, M as MissingImageDimension, U as UnsupportedImageFormat, I as IncompatibleDescriptorOptions, l as UnsupportedImageConversion, t as toStyleString, n as NoImageMetadata, p as FailedToFetchRemoteImageDimensions, q as ExpectedImageOptions, s as ExpectedNotESMImage, u as InvalidImageService, c as createComponent, d as createAstro, v as ImageMissingAlt, m as maybeRenderHead, f as addAttribute, w as spreadAttributes, a as renderTemplate, x as ExperimentalFontsNotEnabled, y as FontFamilyNotFound, z as unescapeHTML } from './astro/server_Dkd2Gmz6.mjs';
-import { D as DEFAULT_OUTPUT_FORMAT, V as VALID_SUPPORTED_FORMATS, a as DEFAULT_HASH_PROPS } from './consts_HRoi08cg.mjs';
+import { A as AstroError, E as ExpectedImage, L as LocalImageUsedWrongly, M as MissingImageDimension, t as UnsupportedImageFormat, I as IncompatibleDescriptorOptions, v as UnsupportedImageConversion, w as toStyleString, x as NoImageMetadata, y as FailedToFetchRemoteImageDimensions, z as ExpectedImageOptions, B as ExpectedNotESMImage, C as InvalidImageService, c as createComponent, d as createAstro, D as ImageMissingAlt, m as maybeRenderHead, f as addAttribute, G as spreadAttributes, a as renderTemplate, H as ExperimentalFontsNotEnabled, J as FontFamilyNotFound, u as unescapeHTML } from './astro/server_ClRe6QG4.mjs';
+import { D as DEFAULT_OUTPUT_FORMAT, a as VALID_SUPPORTED_FORMATS, b as DEFAULT_HASH_PROPS } from './consts_BmVDRGlB.mjs';
 import { isRemoteAllowed } from '@astrojs/internal-helpers/remote';
 import * as mime from 'mrmime';
 import 'clsx';
@@ -1188,7 +1188,7 @@ async function getConfiguredImageService() {
   if (!globalThis?.astroAsset?.imageService) {
     const { default: service } = await import(
       // @ts-expect-error
-      './sharp_CsuTIF6D.mjs'
+      './sharp_B_H6ffFr.mjs'
     ).catch((e) => {
       const error = new AstroError(InvalidImageService);
       error.cause = e;

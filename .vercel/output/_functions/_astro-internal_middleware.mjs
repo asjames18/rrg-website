@@ -2,7 +2,7 @@ import 'es-module-lexer';
 import './chunks/shared_9gEenf6c.mjs';
 import { appendForwardSlash, removeTrailingForwardSlash } from '@astrojs/internal-helpers/path';
 import 'kleur/colors';
-import { o as originPathnameSymbol, A as AstroError, F as ForbiddenRewrite } from './chunks/astro/server_Dkd2Gmz6.mjs';
+import { o as originPathnameSymbol, A as AstroError, F as ForbiddenRewrite } from './chunks/astro/server_ClRe6QG4.mjs';
 import 'clsx';
 import 'cookie';
 import 'html-escaper';

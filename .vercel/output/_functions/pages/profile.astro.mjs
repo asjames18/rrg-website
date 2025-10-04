@@ -1,6 +1,6 @@
-import { c as createComponent, b as renderComponent, r as renderScript, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_Dkd2Gmz6.mjs';
+import { c as createComponent, b as renderComponent, r as renderScript, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_ClRe6QG4.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_CnD7KCS-.mjs';
+import { $ as $$Base } from '../chunks/Base_Cyjh60mP.mjs';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { useState, useEffect } from 'react';
 import { s as supabase } from '../chunks/supabase_rylPBTzj.mjs';
@@ -138,42 +138,12 @@ function UserActivity() {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const mockActivities = [
-        {
-          id: "1",
-          type: "login",
-          description: "Signed in to Real & Raw Gospel",
-          timestamp: (/* @__PURE__ */ new Date()).toISOString()
-        },
-        {
-          id: "2",
-          type: "profile_updated",
-          description: "Updated profile information",
-          timestamp: new Date(Date.now() - 1e3 * 60 * 30).toISOString()
-          // 30 minutes ago
-        },
-        {
-          id: "3",
-          type: "post_read",
-          description: 'Read "Keep the Feast, Dump the Yeast"',
-          timestamp: new Date(Date.now() - 1e3 * 60 * 60 * 2).toISOString()
-          // 2 hours ago
-        },
-        {
-          id: "4",
-          type: "video_watched",
-          description: 'Watched "Shut the Doorways - Warfare 101"',
-          timestamp: new Date(Date.now() - 1e3 * 60 * 60 * 4).toISOString()
-          // 4 hours ago
-        }
-      ];
-      setActivities(mockActivities);
+      setActivities([]);
       setStats({
-        postsRead: 1,
-        videosWatched: 1,
+        postsRead: 0,
+        videosWatched: 0,
         favoritesSaved: 0,
-        totalTimeSpent: 45
-        // minutes
+        totalTimeSpent: 0
       });
     } catch (error) {
       console.error("Error fetching activity data:", error);

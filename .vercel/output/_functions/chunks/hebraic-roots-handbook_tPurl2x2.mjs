@@ -1,5 +1,5 @@
 async function getMod() {
-						return import('./shut-the-doorways-warfare-101_PRiW1zR3.mjs');
+						return import('./hebraic-roots-handbook_BzzNU1Tx.mjs');
 					}
 					const collectedLinks = [];
 					const collectedStyles = [];

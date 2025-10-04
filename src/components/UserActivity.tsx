@@ -42,41 +42,14 @@ export default function UserActivity() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // For now, we'll use mock data since we don't have activity tracking set up yet
-      // In a real app, you'd fetch from a user_activities table
-      const mockActivities: ActivityItem[] = [
-        {
-          id: '1',
-          type: 'login',
-          description: 'Signed in to Real & Raw Gospel',
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          type: 'profile_updated',
-          description: 'Updated profile information',
-          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-        },
-        {
-          id: '3',
-          type: 'post_read',
-          description: 'Read "Keep the Feast, Dump the Yeast"',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-        },
-        {
-          id: '4',
-          type: 'video_watched',
-          description: 'Watched "Shut the Doorways - Warfare 101"',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4 hours ago
-        }
-      ];
-
-      setActivities(mockActivities);
+      // TODO: Implement real activity tracking
+      // For now, show empty state
+      setActivities([]);
       setStats({
-        postsRead: 1,
-        videosWatched: 1,
+        postsRead: 0,
+        videosWatched: 0,
         favoritesSaved: 0,
-        totalTimeSpent: 45 // minutes
+        totalTimeSpent: 0
       });
     } catch (error) {
       console.error('Error fetching activity data:', error);

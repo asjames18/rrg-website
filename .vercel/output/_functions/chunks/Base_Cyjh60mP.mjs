@@ -1,7 +1,7 @@
-import { c as createComponent, d as createAstro, f as addAttribute, B as renderHead, C as renderSlot, r as renderScript, a as renderTemplate } from './astro/server_Dkd2Gmz6.mjs';
+import { c as createComponent, d as createAstro, f as addAttribute, j as renderHead, k as renderSlot, r as renderScript, a as renderTemplate } from './astro/server_ClRe6QG4.mjs';
 import 'kleur/colors';
 import 'clsx';
-/* empty css                                          */
+/* empty css                                   */
 
 const $$Astro = createAstro();
 const $$Base = createComponent(async ($$result, $$props, $$slots) => {

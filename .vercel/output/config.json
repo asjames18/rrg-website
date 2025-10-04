@@ -28,27 +28,11 @@
 			"dest": "_render"
 		},
 		{
-			"src": "^/admin-dashboard-simple/?$",
-			"dest": "_render"
-		},
-		{
 			"src": "^/admin-login/?$",
 			"dest": "_render"
 		},
 		{
 			"src": "^/admin-promote/?$",
-			"dest": "_render"
-		},
-		{
-			"src": "^/admin-test/?$",
-			"dest": "_render"
-		},
-		{
-			"src": "^/api/auth-status/?$",
-			"dest": "_render"
-		},
-		{
-			"src": "^/api/debug-json/?$",
 			"dest": "_render"
 		},
 		{
@@ -84,10 +68,6 @@
 			"dest": "_render"
 		},
 		{
-			"src": "^/debug-api/?$",
-			"dest": "_render"
-		},
-		{
 			"src": "^/end-times/?$",
 			"dest": "_render"
 		},
@@ -120,19 +100,11 @@
 			"dest": "_render"
 		},
 		{
-			"src": "^/simple-debug/?$",
-			"dest": "_render"
-		},
-		{
 			"src": "^/spiritual-warfare/?$",
 			"dest": "_render"
 		},
 		{
 			"src": "^/start-here/?$",
-			"dest": "_render"
-		},
-		{
-			"src": "^/test-database/?$",
 			"dest": "_render"
 		},
 		{
