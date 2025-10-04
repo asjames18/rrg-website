@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import bibleData from '../data/bible/kjv.sample.json';
 
 interface BibleBook {

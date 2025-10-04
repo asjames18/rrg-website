@@ -2,7 +2,7 @@
  * Authentication Form Component
  * Handles sign up, sign in, and password reset
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface AuthFormProps {
