@@ -181,7 +181,7 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
           
           if (user) {
             // User is signed in
-            showSignedInState(user.email);
+            showSignedInState(user.email || '');
           } else {
             // User is not signed in
             showSignedOutState();
@@ -192,7 +192,7 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
         }
       }
 
-      async function showSignedInState(email) {
+      async function showSignedInState(email: string) {
         // Desktop navigation
         const authNavItem = document.getElementById('auth-nav-item');
         const signInNavItem = document.getElementById('sign-in-nav-item');

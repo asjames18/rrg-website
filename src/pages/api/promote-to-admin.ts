@@ -38,7 +38,9 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Find user by email
-    const { data: user, error: userError } = await supabaseServer.auth.admin.getUserByEmail(email);
+    // Find user by email - use listUsers and filter by email
+    const { data: users, error: userError } = await supabaseServer.auth.admin.listUsers();
+    const user = users?.users?.find(u => u.email === email);
 
     if (userError || !user) {
       return new Response(
@@ -51,7 +53,7 @@ export const POST: APIRoute = async ({ request }) => {
     const { error: updateError } = await supabaseServer
       .from('profiles')
       .update({ role: 'admin' })
-      .eq('id', user.user.id);
+      .eq('id', user.id);
 
     if (updateError) {
       throw updateError;

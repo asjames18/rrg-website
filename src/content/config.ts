@@ -42,6 +42,7 @@ const books = defineCollection({
       merchant: z.string(),
     }),
     topics: z.array(z.string()).default([]),
+    slug: z.string().optional(),
   }),
 });
 
@@ -54,6 +55,7 @@ const music = defineCollection({
     platform: z.enum(['youtube', 'tiktok', 'instagram', 'facebook']).optional(),
     videoId: z.string().optional(),
     scriptures: z.array(z.string()).default([]),
+    slug: z.string().optional(),
   }),
 });
 
