@@ -5,6 +5,17 @@
 import { defineMiddleware } from 'astro:middleware';
 import { supabaseServer } from './lib/supabase-server';
 
+// Add error handling for unhandled rejections
+if (typeof process !== 'undefined') {
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('UNHANDLED_REJECTION at:', promise, 'reason:', reason);
+  });
+  
+  process.on('uncaughtException', (error) => {
+    console.error('UNCAUGHT_EXCEPTION:', error);
+  });
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const { url, request } = context;
   const pathname = url.pathname;
