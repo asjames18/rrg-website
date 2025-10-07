@@ -8,7 +8,11 @@ export default defineConfig({
   output: 'server',
   adapter: vercel(),
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    resolve: {
+      alias: { '@': new URL('./src', import.meta.url).pathname },
+      dedupe: ['@supabase/supabase-js']
+    }
   },
   integrations: [react(), mdx()]
 });

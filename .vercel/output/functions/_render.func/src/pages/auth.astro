@@ -8,39 +8,29 @@ export const prerender = false;
 
 import Base from '../layouts/Base.astro';
 import AuthForm from '../components/AuthForm';
+import SimpleAuthForm from '../components/SimpleAuthForm';
 import UserProfile from '../components/UserProfile';
 import { supabaseServer } from '../lib/supabase-server';
 
-// Get redirect URL and error from query params
+// Get redirect URL, error, and reset status from query params
 const url = new URL(Astro.request.url);
 const error = url.searchParams.get('error');
+const reset = url.searchParams.get('reset');
 
 // Check if user is already authenticated
 let user = null;
-let profile = null;
 let isAdmin = false;
 
 try {
-  const authHeader = Astro.request.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '') || 
-               Astro.request.headers.get('cookie')?.match(/sb-.*-auth-token=([^;]+)/)?.[1];
-
-  if (token) {
-    const { data: { user: authUser }, error: authError } = await supabaseServer.auth.getUser(token);
+  const supabase = supabaseServer(Astro.cookies);
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  
+  if (authUser) {
+    user = authUser;
     
-    if (!authError && authUser) {
-      user = authUser;
-      
-      // Get user profile to check role
-      const { data: userProfile } = await supabaseServer
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      profile = userProfile;
-      isAdmin = profile?.role === 'admin' || profile?.role === 'editor';
-    }
+    // Check if user is admin using the RPC function
+    const { data: adminCheck } = await supabase.rpc('is_admin');
+    isAdmin = adminCheck || false;
   }
 } catch (error) {
   console.error('Auth check error:', error);
@@ -63,30 +53,55 @@ try {
           </p>
         </div>
 
-        <!-- Error Message -->
-        {error && (
-          <div class="mb-8 bg-red-900/20 border border-red-700/50 rounded-xl p-6 backdrop-blur-sm">
-            <div class="flex items-center gap-3">
-              <span class="text-red-400 text-xl">⚠️</span>
-              <div>
-                <h3 class="text-red-100 font-semibold mb-1">
-                  {error === 'insufficient-permissions' ? 'Insufficient Permissions' : 'Authentication Error'}
-                </h3>
-                <p class="text-red-200 text-sm">
-                  {error === 'insufficient-permissions' 
-                    ? 'You need admin or editor access to view this page. Contact an administrator if you believe this is an error.'
-                    : 'There was an issue with your authentication. Please try signing in again.'
-                  }
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+               <!-- Success Message -->
+               {reset === 'success' && (
+                 <div class="mb-8 bg-green-900/20 border border-green-700/50 rounded-xl p-6 backdrop-blur-sm">
+                   <div class="flex items-center gap-3">
+                     <span class="text-green-400 text-xl">✅</span>
+                     <div>
+                       <h3 class="text-green-100 font-semibold mb-1">Password Updated Successfully!</h3>
+                       <p class="text-green-200 text-sm">
+                         Your password has been updated. You can now sign in with your new password.
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               )}
+
+               <!-- Error Message -->
+               {error && (
+                 <div class="mb-8 bg-red-900/20 border border-red-700/50 rounded-xl p-6 backdrop-blur-sm">
+                   <div class="flex items-center gap-3">
+                     <span class="text-red-400 text-xl">⚠️</span>
+                     <div>
+                       <h3 class="text-red-100 font-semibold mb-1">
+                         {error === 'insufficient-permissions' ? 'Insufficient Permissions' : 'Authentication Error'}
+                       </h3>
+                       <p class="text-red-200 text-sm">
+                         {error === 'insufficient-permissions' 
+                           ? 'You need admin or editor access to view this page. Contact an administrator if you believe this is an error.'
+                           : 'There was an issue with your authentication. Please try signing in again.'
+                         }
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               )}
 
         <!-- User Profile (if signed in) -->
         {user ? (
           <div class="mb-8">
             <UserProfile client:load />
+            
+            <!-- Sign Out Button -->
+            <div class="mt-6 mb-8">
+              <button 
+                id="signout-btn"
+                class="w-full bg-red-700 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+              >
+                Sign Out
+              </button>
+            </div>
             
             <!-- Admin/User specific actions -->
             <div class="mt-8 grid md:grid-cols-2 gap-4">
@@ -131,14 +146,21 @@ try {
               )}
             </div>
           </div>
-        ) : (
-          <!-- Unified Auth Form (if not signed in) -->
-          <div id="auth-forms">
-            <div class="max-w-md mx-auto">
-              <AuthForm mode="signin" client:load />
-            </div>
-          </div>
-        )}
+               ) : (
+                 <!-- Unified Auth Form (if not signed in) -->
+                 <div id="auth-forms">
+                   <div class="max-w-md mx-auto">
+                     <!-- Loading fallback -->
+                     <div id="auth-loading" class="bg-neutral-900/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-8 shadow-2xl">
+                       <div class="text-center">
+                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto mb-4"></div>
+                         <p class="text-neutral-300">Loading authentication...</p>
+                       </div>
+                     </div>
+                     <SimpleAuthForm mode="signin" client:load />
+                   </div>
+                 </div>
+               )}
 
       <!-- Benefits -->
       <div class="mt-16 bg-gradient-to-r from-amber-900/10 to-amber-800/10 border border-amber-700/30 rounded-2xl p-8 backdrop-blur-sm">
@@ -196,6 +218,38 @@ try {
 </Base>
 
 <script>
+  // Hide loading fallback when component loads
+  document.addEventListener('DOMContentLoaded', () => {
+    const loadingEl = document.getElementById('auth-loading');
+    if (loadingEl) {
+      // Hide loading after a short delay to allow component to load
+      setTimeout(() => {
+        loadingEl.style.display = 'none';
+      }, 1000);
+    }
+  });
+
+  // Handle sign out button
+  document.getElementById('signout-btn')?.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        // Redirect to auth page after successful sign out
+        window.location.href = '/auth';
+      } else {
+        console.error('Sign out failed');
+        alert('Sign out failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Sign out error:', error);
+      alert('Sign out failed. Please try again.');
+    }
+  });
+
   // Handle role-based redirects after authentication
   import { supabase } from '../lib/supabase';
 

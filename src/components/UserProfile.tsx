@@ -13,7 +13,7 @@ export default function UserProfile() {
 
   useEffect(() => {
     // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: any } }) => {
       setUser(user);
       if (user) {
         fetchProfile(user.id);
@@ -24,7 +24,7 @@ export default function UserProfile() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (_event: string, session: { user: any } | null) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
@@ -56,7 +56,12 @@ export default function UserProfile() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      try { await fetch('/api/auth/signout', { method: 'POST' }); } catch {}
+      window.location.href = '/';
+    }
   };
 
   if (loading) {

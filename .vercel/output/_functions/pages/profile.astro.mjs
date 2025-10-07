@@ -1,10 +1,10 @@
-import { c as createComponent, b as renderComponent, r as renderScript, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_DCtlZR10.mjs';
+import { c as createComponent, r as renderComponent, d as renderScript, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_BKIoqdNA.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_CLTBcQpW.mjs';
+import { $ as $$Base } from '../chunks/Base_Bd7Ja63m.mjs';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { useState, useEffect } from 'react';
-import { s as supabase } from '../chunks/supabase_rylPBTzj.mjs';
-import { U as UserManagement } from '../chunks/UserManagement_Bftlx0ze.mjs';
+import { s as supabase } from '../chunks/supabase_B6EMrqat.mjs';
+import { U as UserManagement } from '../chunks/UserManagement_BV7S7wYZ.mjs';
 export { renderers } from '../renderers.mjs';
 
 function ProfileCard({ showActions = true, className = "" }) {

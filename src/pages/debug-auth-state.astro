@@ -90,15 +90,12 @@ try {
       <pre>{JSON.stringify({ serverUser, serverIsAdmin, serverError }, null, 2)}</pre>
     </div>
 
-    <script>
+    <script type="module">
       // Check client-side auth state
       async function checkClientAuth() {
         try {
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabase = createClient(
-            'https://lebumzszhhjlpflqgity.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs'
-          );
+          const { getSupabase } = await import('/src/lib/supabase-browser');
+          const supabase = getSupabase();
 
           const { data: { user }, error: userError } = await supabase.auth.getUser();
           

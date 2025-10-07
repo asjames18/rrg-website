@@ -7,6 +7,7 @@
  * TODO: Consider adding dark/light theme toggle (currently dark-only)
  */
 import '../styles/global.css';
+import { supabaseServer } from '../lib/supabase-server';
 
 interface Props {
   title: string;
@@ -14,6 +15,24 @@ interface Props {
 }
 
 const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH' } = Astro.props;
+
+// Server-side: detect current session and user email for first paint
+let isSignedIn = false;
+let userEmail = '';
+let initialSession: { access_token: string; refresh_token: string } | null = null;
+
+try {
+  const s = supabaseServer(Astro.cookies);
+  const { data: sess } = await s.auth.getSession();
+  if (sess?.session) {
+    isSignedIn = true;
+    userEmail = sess.session.user?.email ?? '';
+    initialSession = {
+      access_token: sess.session.access_token,
+      refresh_token: sess.session.refresh_token,
+    };
+  }
+} catch {}
 ---
 
 <!DOCTYPE html>
@@ -65,10 +84,10 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
                 <li><a href="/books" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
                 
                 <!-- Auth Section -->
-                <li id="auth-nav-item" class="hidden">
+                <li id="auth-nav-item" class={isSignedIn ? '' : 'hidden'}>
                   <div id="user-menu" class="relative">
                     <button id="user-menu-button" class="flex items-center gap-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1 transition-colors">
-                      <span id="user-email" class="text-sm"></span>
+                      <span id="user-email" class="text-sm">{userEmail}</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
@@ -85,7 +104,7 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
                   </div>
                 </li>
                 
-                <li id="sign-in-nav-item">
+                <li id="sign-in-nav-item" class={isSignedIn ? 'hidden' : ''}>
                   <a href="/auth" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Sign In</a>
                 </li>
                 
@@ -105,10 +124,10 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
             <li><a href="/books" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
             
             <!-- Mobile Auth Section -->
-            <li id="mobile-auth-nav-item" class="hidden">
+            <li id="mobile-auth-nav-item" class={isSignedIn ? '' : 'hidden'}>
               <div class="py-2">
                 <div class="text-sm text-neutral-400 mb-2">Signed in as:</div>
-                <div id="mobile-user-email" class="text-amber-100 font-medium mb-3"></div>
+                <div id="mobile-user-email" class="text-amber-100 font-medium mb-3">{userEmail}</div>
                 <div class="space-y-2">
                   <a href="/profile" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Profile</a>
                   <button id="mobile-sign-out-btn" class="block w-full text-left py-2 text-neutral-300 hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Sign Out</button>
@@ -116,7 +135,7 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
               </div>
             </li>
             
-            <li id="mobile-sign-in-nav-item">
+            <li id="mobile-sign-in-nav-item" class={isSignedIn ? 'hidden' : ''}>
               <a href="/auth" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Sign In</a>
             </li>
             
@@ -158,7 +177,31 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
       </div>
     </footer>
 
-    <script>
+    {initialSession && (
+      <script is:inline>
+        // Bootstrap initial session from server to client once (object literal)
+        window.__RRG_INITIAL_SESSION = {JSON.stringify(initialSession)};
+      </script>
+    )}
+
+    <script type="module">
+      import { getSupabase } from '@/lib/supabase-browser';
+      const supabase = getSupabase();
+
+      // If server had a session but localStorage is empty, seed it now
+      try {
+        const initial = window.__RRG_INITIAL_SESSION;
+        if (initial && initial.access_token && initial.refresh_token) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            await supabase.auth.setSession({
+              access_token: initial.access_token,
+              refresh_token: initial.refresh_token,
+            });
+          }
+          try { delete window.__RRG_INITIAL_SESSION; } catch {}
+        }
+      } catch {}
       const toggle = document.getElementById('mobile-menu-toggle');
       const menu = document.getElementById('mobile-menu');
       
@@ -171,44 +214,37 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
       
       // Close mobile menu when clicking outside
       document.addEventListener('click', (e) => {
-        const target = e.target as Element;
+        const target = e.target;
         if (menu && !menu.contains(target) && !toggle?.contains(target)) {
           menu.classList.add('hidden');
           toggle?.setAttribute('aria-expanded', 'false');
         }
       });
 
-      // Auth state management
-      async function checkAuthState() {
-        console.log('🔍 Base layout: Starting auth check...');
-        try {
-          // Import Supabase client
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabaseUrl = 'https://lebumzszhhjlpflqgity.supabase.co';
-          const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs';
-          const supabase = createClient(supabaseUrl, supabaseKey);
+      // Auth state management uses verified identity
+      let __getUserInFlight = null;
+      async function getVerifiedUser() {
+        if (!__getUserInFlight) {
+          __getUserInFlight = supabase.auth
+            .getUser()
+            .then(({ data, error }) => (error ? null : (data?.user ?? null)))
+            .finally(() => { __getUserInFlight = null; });
+        }
+        return __getUserInFlight;
+      }
 
-          console.log('🔍 Base layout: Supabase client created');
-          const { data: { user }, error } = await supabase.auth.getUser();
-          
-          console.log('🔍 Base layout: Auth result:', { user: !!user, error });
-          
-          if (user) {
-            console.log('🔍 Base layout: User found, showing signed in state');
-            // User is signed in - show user menu
-            showSignedInState(user.email || '');
-          } else {
-            console.log('🔍 Base layout: No user, showing signed out state');
-            // User is not signed in - show sign in
-            showSignedOutState();
-          }
+      async function checkAuthState() {
+        try {
+          const user = await getVerifiedUser();
+          if (user) showSignedInState(user.email || '');
+          else showSignedOutState();
         } catch (error) {
           console.error('🔍 Base layout: Auth check failed:', error);
           showSignedOutState();
         }
       }
 
-      async function showSignedInState(email: string) {
+      async function showSignedInState(email) {
         console.log('🔍 Base layout: showSignedInState called with email:', email);
         
         // Desktop navigation
@@ -276,55 +312,92 @@ const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH
         }
       }
 
-      async function signOut() {
+      const doSignOut = async () => {
         try {
-          const response = await fetch('/api/auth/signout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          if (response.ok) {
-            showSignedOutState();
-            // Redirect to home page
-            window.location.href = '/';
-          } else {
-            console.error('Sign out failed');
-            alert('Sign out failed. Please try again.');
-          }
+          // 1) Clear browser session (localStorage)
+          await supabase.auth.signOut();
+          // 2) Ask server to clear cookies (best-effort)
+          try {
+            await fetch('/api/auth/signout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+          } catch {}
+          // 3) Update UI and redirect
+          const user = await getVerifiedUser();
+          if (!user) showSignedOutState();
+          window.location.href = '/';
         } catch (error) {
           console.error('Sign out failed:', error);
           alert('Sign out failed. Please try again.');
         }
-      }
+      };
 
-      // Event listeners
-      document.addEventListener('DOMContentLoaded', () => {
-        checkAuthState();
-        
-        // Desktop sign out button
-        const signOutBtn = document.getElementById('sign-out-btn');
-        signOutBtn?.addEventListener('click', signOut);
-        
-        // Mobile sign out button
-        const mobileSignOutBtn = document.getElementById('mobile-sign-out-btn');
-        mobileSignOutBtn?.addEventListener('click', signOut);
-        
-        // User menu dropdown toggle
-        const userMenuButton = document.getElementById('user-menu-button');
-        const userDropdown = document.getElementById('user-dropdown');
-        
-        userMenuButton?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          userDropdown?.classList.toggle('hidden');
+      // Run immediately (script is after DOM)
+      checkAuthState();
+      // react to future auth changes
+      {
+        // Avoid multiple concurrent subscriptions
+        try { window.__supabaseAuthSub?.unsubscribe?.(); } catch (err) {}
+        const { data } = supabase.auth.onAuthStateChange(async () => {
+          const user = await getVerifiedUser();
+          if (user) showSignedInState(user.email || '');
+          else showSignedOutState();
         });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-          const target = e.target as Element;
-          if (userDropdown && !userDropdown.contains(target) && !userMenuButton?.contains(target)) {
-            userDropdown.classList.add('hidden');
-          }
+        window.__supabaseAuthSub = data.subscription;
+        // cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+          try { window.__supabaseAuthSub?.unsubscribe?.(); } catch (err) {}
         });
+      }
+      
+      // Desktop sign out button
+      const signOutBtn = document.getElementById('sign-out-btn');
+      signOutBtn?.addEventListener('click', (e) => { e.preventDefault(); doSignOut(); });
+      
+      // Mobile sign out button
+      const mobileSignOutBtn = document.getElementById('mobile-sign-out-btn');
+      mobileSignOutBtn?.addEventListener('click', (e) => { e.preventDefault(); doSignOut(); });
+      
+      // --- User menu dropdown (robust toggle) ---
+      const userMenuButton = document.getElementById('user-menu-button');
+      const userDropdown = document.getElementById('user-dropdown');
+      const authNavItem = document.getElementById('auth-nav-item');
+      console.debug('Header menu wiring:', { userMenuButton: !!userMenuButton, userDropdown: !!userDropdown, authNavItem: !!authNavItem });
+      let userMenuOpen = false;
+      
+      function openUserMenu() {
+        if (!userDropdown) return;
+        userDropdown.classList.remove('hidden');
+        userDropdown.style.display = 'block';
+        userMenuButton?.setAttribute('aria-expanded', 'true');
+        userMenuOpen = true;
+      }
+      function closeUserMenu() {
+        if (!userDropdown) return;
+        userDropdown.classList.add('hidden');
+        userMenuButton?.setAttribute('aria-expanded', 'false');
+        userMenuOpen = false;
+      }
+      userMenuButton?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        userMenuOpen ? closeUserMenu() : openUserMenu();
+      });
+      // Fallback: clicking the whole auth item also toggles
+      authNavItem?.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target && target.closest && target.closest('#user-menu-button')) return; // handled above
+        if (!userDropdown) return;
+        // Only toggle when the menu is visible in header (avoid link clicks inside dropdown)
+        if (!userMenuOpen) openUserMenu();
+      });
+      userDropdown?.addEventListener('click', (e) => e.stopPropagation());
+      document.addEventListener('click', (e) => {
+        if (!userMenuOpen) return;
+        const t = e.target;
+        if (userDropdown?.contains(t) || userMenuButton?.contains(t)) return;
+        closeUserMenu();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && userMenuOpen) closeUserMenu();
       });
     </script>
   </body>

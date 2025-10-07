@@ -1,4 +1,4 @@
-import { s as supabaseServer } from '../../chunks/supabase-server_DNXtBe2A.mjs';
+import { s as supabaseServer } from '../../chunks/supabase-server_ssb-PSP4.mjs';
 export { renderers } from '../../renderers.mjs';
 
 const POST = async ({ request }) => {

@@ -4,6 +4,7 @@
  * Browser client for public operations (auth, reading published content)
  */
 import { createClient } from '@supabase/supabase-js';
+export { getSupabase } from './supabase-browser';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -14,17 +15,25 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// Singleton pattern to prevent multiple instances
+// Singleton pattern to prevent multiple instances (shared on window)
 let supabaseInstance: any = null;
 
 export const supabase = (() => {
-  if (typeof window !== 'undefined' && !supabaseInstance) {
+  if (typeof window === 'undefined') return null;
+  // Reuse if one already exists on window
+  const existing = (window as any).__supabaseClient;
+  if (existing) {
+    supabaseInstance = existing;
+    return supabaseInstance;
+  }
+  if (!supabaseInstance) {
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
       },
     });
+    (window as any).__supabaseClient = supabaseInstance;
   }
   return supabaseInstance;
 })();

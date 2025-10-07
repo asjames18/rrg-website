@@ -217,7 +217,7 @@ try {
   </div>
 </Base>
 
-<script>
+<script type="module">
   // Hide loading fallback when component loads
   document.addEventListener('DOMContentLoaded', () => {
     const loadingEl = document.getElementById('auth-loading');
@@ -251,7 +251,7 @@ try {
   });
 
   // Handle role-based redirects after authentication
-  import { supabase } from '../lib/supabase';
+  import { supabase } from '@/lib/supabase';
 
   // Get redirect URL from query params
   const urlParams = new URLSearchParams(window.location.search);

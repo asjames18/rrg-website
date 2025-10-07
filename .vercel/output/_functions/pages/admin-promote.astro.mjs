@@ -1,6 +1,6 @@
-import { c as createComponent, b as renderComponent, r as renderScript, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_DCtlZR10.mjs';
+import { c as createComponent, r as renderComponent, d as renderScript, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_BKIoqdNA.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_CLTBcQpW.mjs';
+import { $ as $$Base } from '../chunks/Base_Bd7Ja63m.mjs';
 export { renderers } from '../renderers.mjs';
 
 const $$AdminPromote = createComponent(async ($$result, $$props, $$slots) => {
@@ -8,7 +8,9 @@ const $$AdminPromote = createComponent(async ($$result, $$props, $$slots) => {
 Promote to Admin
 </h1> <p class="text-xl text-neutral-300">
 Promote a user to admin role by entering their email address.
-</p> </div> <div class="bg-neutral-900/50 backdrop-blur-sm border border-neutral-700/50 rounded-2xl p-8 shadow-2xl"> <form id="promote-form" class="space-y-6"> <div> <label for="email" class="block text-sm font-medium text-neutral-200 mb-2">
+</p> <div class="mt-4 bg-blue-900/20 border border-blue-700/50 rounded-lg p-4"> <p class="text-sm text-blue-200"> <strong>Note:</strong> You must be signed in as an admin to access this page.
+<a href="/auth" class="text-blue-400 hover:text-blue-300 underline">Sign in here</a> if you haven't already.
+</p> </div> </div> <div class="bg-neutral-900/50 backdrop-blur-sm border border-neutral-700/50 rounded-2xl p-8 shadow-2xl"> <form id="promote-form" class="space-y-6"> <div> <label for="email" class="block text-sm font-medium text-neutral-200 mb-2">
 User Email
 </label> <input type="email" id="email" required class="w-full px-4 py-3 bg-neutral-800/80 border border-neutral-600/50 rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200" placeholder="user@example.com"> </div> <div> <label for="admin-secret" class="block text-sm font-medium text-neutral-200 mb-2">
 Admin Secret

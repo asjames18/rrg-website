@@ -199,7 +199,7 @@ import UserManagement from '../components/UserManagement';
   </div>
 </Base>
 
-<script>
+<script type="module">
   // Tab switching functionality
   document.addEventListener('DOMContentLoaded', () => {
     const tabs = ['profile', 'activity', 'preferences', 'admin'];
@@ -233,10 +233,8 @@ import UserManagement from '../components/UserManagement';
 
   async function loadUserProfile() {
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = 'https://lebumzszhhjlpflqgity.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYnVtenN6aGhqbHBmbHFnaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0OTk5NjgsImV4cCI6MjA3NTA3NTk2OH0.2XeY7OXkEfXiG_qwlSRN5rNE2gbZde42v4KfTrmctSs';
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { getSupabase } = await import('/src/lib/supabase-browser');
+      const supabase = getSupabase();
 
       const { data: { user } } = await supabase.auth.getUser();
       
