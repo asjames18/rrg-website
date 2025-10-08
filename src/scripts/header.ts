@@ -45,9 +45,13 @@ function showSignedInState(email: string) {
   const authNavItem = document.getElementById('auth-nav-item');
   const signInNavItem = document.getElementById('sign-in-nav-item');
   const userEmail = document.getElementById('user-email');
+  const userDropdown = document.getElementById('user-dropdown');
+  const userMenuButton = document.getElementById('user-menu-button');
   authNavItem?.classList.remove('hidden');
   signInNavItem?.classList.add('hidden');
   if (userEmail) userEmail.textContent = email;
+  userDropdown?.classList.add('hidden');
+  userMenuButton?.setAttribute('aria-expanded', 'false');
 
   // admin links (demo rule)
   const adminLinks = document.getElementById('admin-links');
@@ -69,14 +73,24 @@ function showSignedOutState() {
   // desktop
   const authNavItem = document.getElementById('auth-nav-item');
   const signInNavItem = document.getElementById('sign-in-nav-item');
+  const userEmail = document.getElementById('user-email');
+  const adminLinks = document.getElementById('admin-links');
+  const userDropdown = document.getElementById('user-dropdown');
+  const userMenuButton = document.getElementById('user-menu-button');
   authNavItem?.classList.add('hidden');
   signInNavItem?.classList.remove('hidden');
+  if (userEmail) userEmail.textContent = '';
+  adminLinks?.classList.add('hidden');
+  userDropdown?.classList.add('hidden');
+  userMenuButton?.setAttribute('aria-expanded', 'false');
 
   // mobile
   const mAuth = document.getElementById('mobile-auth-nav-item');
   const mSign = document.getElementById('mobile-sign-in-nav-item');
+  const mEmail = document.getElementById('mobile-user-email');
   mAuth?.classList.add('hidden');
   mSign?.classList.remove('hidden');
+  if (mEmail) mEmail.textContent = '';
 }
 
 // initial check

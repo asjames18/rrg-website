@@ -3,12 +3,19 @@ import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import UniversalVideoEmbed from '../../components/UniversalVideoEmbed';
 
+export const prerender = true;
+
 export async function getStaticPaths() {
   const videos = await getCollection('videos');
-  return videos.map(video => ({
-    params: { slug: video.slug },
-    props: { video },
-  }));
+  return videos.map((video) => {
+    const rawSlug = video.data.slug ?? video.slug;
+    const slug = rawSlug.split('/').filter(Boolean).join('/');
+
+    return {
+      params: { slug },
+      props: { video },
+    };
+  });
 }
 
 const { video } = Astro.props;
