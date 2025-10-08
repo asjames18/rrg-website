@@ -11,6 +11,7 @@ const blog = defineCollection({
   type: 'content',
   schema: z.object({
     title: z.string(),
+    slug: z.string().optional(),
     tags: z.array(z.string()).default([]),
     summary: z.string(),
     publishedAt: z.date(),
@@ -22,6 +23,7 @@ const videos = defineCollection({
   type: 'content',
   schema: z.object({
     title: z.string(),
+    slug: z.string().optional(),
     platform: z.enum(['youtube', 'tiktok', 'instagram', 'facebook']),
     videoId: z.string(),
     series: z.array(z.string()).default([]),

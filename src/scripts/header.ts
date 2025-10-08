@@ -11,7 +11,7 @@ declare global {
 const supabase = getSupabase();
 
 // Seed the browser session from the server once (if needed)
-(async () => {
+const bootstrapSession = (async () => {
   try {
     const bootstrap = window.__RRG_INITIAL_SESSION;
     if (bootstrap?.access_token && bootstrap?.refresh_token) {
@@ -29,8 +29,17 @@ const supabase = getSupabase();
   }
 })();
 
+async function waitForBootstrap() {
+  try {
+    await bootstrapSession;
+  } catch {
+    /* noop */
+  }
+}
+
 let inflight: Promise<any> | null = null;
 async function getVerifiedUser() {
+  await waitForBootstrap();
   if (!inflight) {
     inflight = supabase.auth
       .getUser()
@@ -40,14 +49,27 @@ async function getVerifiedUser() {
   return inflight;
 }
 
+async function syncAuthUI(session?: { user?: { email?: string | null } | null } | null) {
+  if (session?.user?.email) {
+    showSignedInState(session.user.email);
+    return;
+  }
+  const u = await getVerifiedUser();
+  u ? showSignedInState(u.email || '') : showSignedOutState();
+}
+
 function showSignedInState(email: string) {
   // desktop
   const authNavItem = document.getElementById('auth-nav-item');
   const signInNavItem = document.getElementById('sign-in-nav-item');
   const userEmail = document.getElementById('user-email');
+  const userDropdown = document.getElementById('user-dropdown');
+  const userMenuButton = document.getElementById('user-menu-button');
   authNavItem?.classList.remove('hidden');
   signInNavItem?.classList.add('hidden');
   if (userEmail) userEmail.textContent = email;
+  userDropdown?.classList.add('hidden');
+  userMenuButton?.setAttribute('aria-expanded', 'false');
 
   // admin links (demo rule)
   const adminLinks = document.getElementById('admin-links');
@@ -69,25 +91,36 @@ function showSignedOutState() {
   // desktop
   const authNavItem = document.getElementById('auth-nav-item');
   const signInNavItem = document.getElementById('sign-in-nav-item');
+  const userEmail = document.getElementById('user-email');
+  const adminLinks = document.getElementById('admin-links');
+  const userDropdown = document.getElementById('user-dropdown');
+  const userMenuButton = document.getElementById('user-menu-button');
   authNavItem?.classList.add('hidden');
   signInNavItem?.classList.remove('hidden');
+  if (userEmail) userEmail.textContent = '';
+  adminLinks?.classList.add('hidden');
+  userDropdown?.classList.add('hidden');
+  userMenuButton?.setAttribute('aria-expanded', 'false');
 
   // mobile
   const mAuth = document.getElementById('mobile-auth-nav-item');
   const mSign = document.getElementById('mobile-sign-in-nav-item');
+  const mEmail = document.getElementById('mobile-user-email');
   mAuth?.classList.add('hidden');
   mSign?.classList.remove('hidden');
+  if (mEmail) mEmail.textContent = '';
 }
 
-// initial check
-getVerifiedUser().then((u) => u ? showSignedInState(u.email || '') : showSignedOutState());
+// initial check (wait until bootstrap completes so server session can hydrate)
+waitForBootstrap().finally(() => {
+  syncAuthUI();
+});
 
 // single subscription (and re-verify on changes)
 try { window.__supabaseAuthSub?.unsubscribe?.(); } catch {}
 {
-  const { data } = supabase.auth.onAuthStateChange(async () => {
-    const u = await getVerifiedUser();
-    u ? showSignedInState(u.email || '') : showSignedOutState();
+  const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    await syncAuthUI(session);
   });
   window.__supabaseAuthSub = data.subscription;
   window.addEventListener('beforeunload', () => {
