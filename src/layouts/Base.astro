@@ -7,7 +7,7 @@
  * TODO: Consider adding dark/light theme toggle (currently dark-only)
  */
 import '../styles/global.css';
-import { supabaseServer } from '../lib/supabase-server';
+import { supabaseServerReadOnly } from '../lib/supabase-server';
 
 interface Props {
   title: string;
@@ -22,7 +22,7 @@ let userEmail = '';
 let initialSession: { access_token: string; refresh_token: string } | null = null;
 
 try {
-  const s = supabaseServer(Astro.cookies);
+  const s = supabaseServerReadOnly(Astro.cookies);
   const { data: sess } = await s.auth.getSession();
   if (sess?.session) {
     isSignedIn = true;
@@ -179,226 +179,10 @@ try {
 
     {initialSession && (
       <script is:inline>
-        // Bootstrap initial session from server to client once (object literal)
-        window.__RRG_INITIAL_SESSION = {JSON.stringify(initialSession)};
+        window.__RRG_INITIAL_SESSION = JSON.parse('{JSON.stringify(initialSession)}');
       </script>
     )}
 
-    <script type="module">
-      import { getSupabase } from '@/lib/supabase-browser';
-      const supabase = getSupabase();
-
-      // If server had a session but localStorage is empty, seed it now
-      try {
-        const initial = window.__RRG_INITIAL_SESSION;
-        if (initial && initial.access_token && initial.refresh_token) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            await supabase.auth.setSession({
-              access_token: initial.access_token,
-              refresh_token: initial.refresh_token,
-            });
-          }
-          try { delete window.__RRG_INITIAL_SESSION; } catch {}
-        }
-      } catch {}
-      const toggle = document.getElementById('mobile-menu-toggle');
-      const menu = document.getElementById('mobile-menu');
-      
-      toggle?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!isExpanded));
-        menu?.classList.toggle('hidden');
-      });
-      
-      // Close mobile menu when clicking outside
-      document.addEventListener('click', (e) => {
-        const target = e.target;
-        if (menu && !menu.contains(target) && !toggle?.contains(target)) {
-          menu.classList.add('hidden');
-          toggle?.setAttribute('aria-expanded', 'false');
-        }
-      });
-
-      // Auth state management uses verified identity
-      let __getUserInFlight = null;
-      async function getVerifiedUser() {
-        if (!__getUserInFlight) {
-          __getUserInFlight = supabase.auth
-            .getUser()
-            .then(({ data, error }) => (error ? null : (data?.user ?? null)))
-            .finally(() => { __getUserInFlight = null; });
-        }
-        return __getUserInFlight;
-      }
-
-      async function checkAuthState() {
-        try {
-          const user = await getVerifiedUser();
-          if (user) showSignedInState(user.email || '');
-          else showSignedOutState();
-        } catch (error) {
-          console.error('🔍 Base layout: Auth check failed:', error);
-          showSignedOutState();
-        }
-      }
-
-      async function showSignedInState(email) {
-        console.log('🔍 Base layout: showSignedInState called with email:', email);
-        
-        // Desktop navigation
-        const authNavItem = document.getElementById('auth-nav-item');
-        const signInNavItem = document.getElementById('sign-in-nav-item');
-        const userEmail = document.getElementById('user-email');
-        const adminLinks = document.getElementById('admin-links');
-        
-        console.log('🔍 Base layout: Navigation elements found:', {
-          authNavItem: !!authNavItem,
-          signInNavItem: !!signInNavItem,
-          userEmail: !!userEmail,
-          adminLinks: !!adminLinks
-        });
-        
-        if (authNavItem && signInNavItem && userEmail) {
-          console.log('🔍 Base layout: Updating navigation elements...');
-          authNavItem.classList.remove('hidden');
-          signInNavItem.classList.add('hidden');
-          userEmail.textContent = email;
-          console.log('🔍 Base layout: Navigation updated successfully');
-        } else {
-          console.error('🔍 Base layout: Missing navigation elements!');
-        }
-
-        // Check if user is admin and show admin links
-        // For now, show admin links for your email to test
-        if (adminLinks) {
-          if (email === 'asjames18@proton.me') {
-            adminLinks.classList.remove('hidden');
-          } else {
-            adminLinks.classList.add('hidden');
-          }
-        }
-
-        // Mobile navigation
-        const mobileAuthNavItem = document.getElementById('mobile-auth-nav-item');
-        const mobileSignInNavItem = document.getElementById('mobile-sign-in-nav-item');
-        const mobileUserEmail = document.getElementById('mobile-user-email');
-        
-        if (mobileAuthNavItem && mobileSignInNavItem && mobileUserEmail) {
-          mobileAuthNavItem.classList.remove('hidden');
-          mobileSignInNavItem.classList.add('hidden');
-          mobileUserEmail.textContent = email;
-        }
-      }
-
-      function showSignedOutState() {
-        // Desktop navigation
-        const authNavItem = document.getElementById('auth-nav-item');
-        const signInNavItem = document.getElementById('sign-in-nav-item');
-        
-        if (authNavItem && signInNavItem) {
-          authNavItem.classList.add('hidden');
-          signInNavItem.classList.remove('hidden');
-        }
-
-        // Mobile navigation
-        const mobileAuthNavItem = document.getElementById('mobile-auth-nav-item');
-        const mobileSignInNavItem = document.getElementById('mobile-sign-in-nav-item');
-        
-        if (mobileAuthNavItem && mobileSignInNavItem) {
-          mobileAuthNavItem.classList.add('hidden');
-          mobileSignInNavItem.classList.remove('hidden');
-        }
-      }
-
-      const doSignOut = async () => {
-        try {
-          // 1) Clear browser session (localStorage)
-          await supabase.auth.signOut();
-          // 2) Ask server to clear cookies (best-effort)
-          try {
-            await fetch('/api/auth/signout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-          } catch {}
-          // 3) Update UI and redirect
-          const user = await getVerifiedUser();
-          if (!user) showSignedOutState();
-          window.location.href = '/';
-        } catch (error) {
-          console.error('Sign out failed:', error);
-          alert('Sign out failed. Please try again.');
-        }
-      };
-
-      // Run immediately (script is after DOM)
-      checkAuthState();
-      // react to future auth changes
-      {
-        // Avoid multiple concurrent subscriptions
-        try { window.__supabaseAuthSub?.unsubscribe?.(); } catch (err) {}
-        const { data } = supabase.auth.onAuthStateChange(async () => {
-          const user = await getVerifiedUser();
-          if (user) showSignedInState(user.email || '');
-          else showSignedOutState();
-        });
-        window.__supabaseAuthSub = data.subscription;
-        // cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-          try { window.__supabaseAuthSub?.unsubscribe?.(); } catch (err) {}
-        });
-      }
-      
-      // Desktop sign out button
-      const signOutBtn = document.getElementById('sign-out-btn');
-      signOutBtn?.addEventListener('click', (e) => { e.preventDefault(); doSignOut(); });
-      
-      // Mobile sign out button
-      const mobileSignOutBtn = document.getElementById('mobile-sign-out-btn');
-      mobileSignOutBtn?.addEventListener('click', (e) => { e.preventDefault(); doSignOut(); });
-      
-      // --- User menu dropdown (robust toggle) ---
-      const userMenuButton = document.getElementById('user-menu-button');
-      const userDropdown = document.getElementById('user-dropdown');
-      const authNavItem = document.getElementById('auth-nav-item');
-      console.debug('Header menu wiring:', { userMenuButton: !!userMenuButton, userDropdown: !!userDropdown, authNavItem: !!authNavItem });
-      let userMenuOpen = false;
-      
-      function openUserMenu() {
-        if (!userDropdown) return;
-        userDropdown.classList.remove('hidden');
-        userDropdown.style.display = 'block';
-        userMenuButton?.setAttribute('aria-expanded', 'true');
-        userMenuOpen = true;
-      }
-      function closeUserMenu() {
-        if (!userDropdown) return;
-        userDropdown.classList.add('hidden');
-        userMenuButton?.setAttribute('aria-expanded', 'false');
-        userMenuOpen = false;
-      }
-      userMenuButton?.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        userMenuOpen ? closeUserMenu() : openUserMenu();
-      });
-      // Fallback: clicking the whole auth item also toggles
-      authNavItem?.addEventListener('click', (e) => {
-        const target = e.target;
-        if (target && target.closest && target.closest('#user-menu-button')) return; // handled above
-        if (!userDropdown) return;
-        // Only toggle when the menu is visible in header (avoid link clicks inside dropdown)
-        if (!userMenuOpen) openUserMenu();
-      });
-      userDropdown?.addEventListener('click', (e) => e.stopPropagation());
-      document.addEventListener('click', (e) => {
-        if (!userMenuOpen) return;
-        const t = e.target;
-        if (userDropdown?.contains(t) || userMenuButton?.contains(t)) return;
-        closeUserMenu();
-      });
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && userMenuOpen) closeUserMenu();
-      });
-    </script>
+    <script type="module" src="/src/scripts/header.ts"></script>
   </body>
 </html>

@@ -14,3 +14,18 @@ export function supabaseServer(cookies: AstroCookies) {
     }
   );
 }
+
+// Read-only variant for layouts/partials where cookies cannot be modified
+export function supabaseServerReadOnly(cookies: AstroCookies) {
+  return createServerClient(
+    import.meta.env.PUBLIC_SUPABASE_URL!,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (k) => cookies.get(k)?.value,
+        set: () => {},
+        remove: () => {},
+      },
+    }
+  );
+}
