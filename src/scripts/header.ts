@@ -13,16 +13,21 @@ const supabase = getSupabase();
 // Seed the browser session from the server once (if needed)
 const bootstrapSession = (async () => {
   try {
-    const bootstrap = window.__RRG_INITIAL_SESSION;
+    // Get session data from body data attribute
+    const body = document.body;
+    const sessionData = body.getAttribute('data-initial-session');
+    const bootstrap = sessionData ? JSON.parse(sessionData) : null;
+    console.log('🔍 Auth Debug: Bootstrap session data:', bootstrap ? 'present' : 'missing');
     if (bootstrap?.access_token && bootstrap?.refresh_token) {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔍 Auth Debug: Current session before bootstrap:', session ? 'exists' : 'missing');
       if (!session) {
+        console.log('🔍 Auth Debug: Setting session from bootstrap');
         await supabase.auth.setSession({
           access_token: bootstrap.access_token,
           refresh_token: bootstrap.refresh_token,
         });
       }
-      try { delete window.__RRG_INITIAL_SESSION; } catch {}
     }
   } catch (err) {
     console.warn('Bootstrap session failed', err);
@@ -50,11 +55,14 @@ async function getVerifiedUser() {
 }
 
 async function syncAuthUI(session?: { user?: { email?: string | null } | null } | null) {
+  console.log('🔍 Auth Debug: syncAuthUI called with session:', session?.user?.email || 'no session');
   if (session?.user?.email) {
+    console.log('🔍 Auth Debug: Using session email:', session.user.email);
     showSignedInState(session.user.email);
     return;
   }
   const u = await getVerifiedUser();
+  console.log('🔍 Auth Debug: getVerifiedUser returned:', u?.email || 'no user');
   u ? showSignedInState(u.email || '') : showSignedOutState();
 }
 
@@ -113,6 +121,7 @@ function showSignedOutState() {
 
 // initial check (wait until bootstrap completes so server session can hydrate)
 waitForBootstrap().finally(() => {
+  console.log('🔍 Auth Debug: Bootstrap completed, syncing UI');
   syncAuthUI();
 });
 

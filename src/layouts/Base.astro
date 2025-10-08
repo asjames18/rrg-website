@@ -44,7 +44,7 @@ try {
     <link rel="icon" type="image/jpeg" href="/rrg-logo.jpg" />
     <title>{title} | Real & Raw Gospel</title>
   </head>
-  <body class="min-h-screen flex flex-col bg-black text-neutral-100">
+  <body class="min-h-screen flex flex-col bg-black text-neutral-100" data-initial-session={initialSession ? JSON.stringify(initialSession) : ''}>
     <header role="banner" class="sticky top-0 z-50 bg-neutral-950/95 backdrop-blur border-b border-neutral-800">
       <nav class="container mx-auto px-4 py-4" aria-label="Main navigation">
         <div class="flex items-center justify-between">
@@ -177,11 +177,6 @@ try {
       </div>
     </footer>
 
-    {initialSession && (
-      <script is:inline>
-        window.__RRG_INITIAL_SESSION = JSON.parse('{JSON.stringify(initialSession)}');
-      </script>
-    )}
 
     <script type="module" src="/src/scripts/header.ts"></script>
   </body>

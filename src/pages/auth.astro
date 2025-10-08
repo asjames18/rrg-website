@@ -96,7 +96,7 @@ try {
             <!-- Sign Out Button -->
             <div class="mt-6 mb-8">
               <button 
-                id="signout-btn"
+                id="sign-out-btn"
                 class="w-full bg-red-700 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
               >
                 Sign Out
@@ -230,7 +230,7 @@ try {
   });
 
   // Handle sign out button
-  document.getElementById('signout-btn')?.addEventListener('click', async () => {
+  document.getElementById('sign-out-btn')?.addEventListener('click', async () => {
     try {
       const response = await fetch('/api/auth/signout', {
         method: 'POST',
@@ -251,7 +251,7 @@ try {
   });
 
   // Handle role-based redirects after authentication
-  import { supabase } from '@/lib/supabase';
+  import { supabase } from '../lib/supabase-browser';
 
   // Get redirect URL from query params
   const urlParams = new URLSearchParams(window.location.search);

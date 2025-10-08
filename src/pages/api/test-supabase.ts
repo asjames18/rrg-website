@@ -5,10 +5,11 @@
 import type { APIRoute } from 'astro';
 import { supabaseServer } from '../../lib/supabase-server';
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ cookies }) => {
   try {
     // Test database connection
-    const { error, count } = await supabaseServer
+    const supabase = supabaseServer(cookies);
+    const { error, count } = await supabase
       .from('posts')
       .select('*', { count: 'exact', head: true });
 
