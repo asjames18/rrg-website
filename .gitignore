@@ -34,3 +34,5 @@ pnpm-debug.log*
 # Optional eslint cache
 .eslintcache
 .vercel
+src/data/bible/complete-bible-*.json
+bible-api/.next/

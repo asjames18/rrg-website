@@ -1,0 +1,127 @@
+---
+/**
+ * Bible API Test Page
+ * Visit: http://localhost:4323/bible-api-test
+ * 
+ * Tests the new Bible API integration
+ */
+import Layout from '../layouts/Base.astro';
+import BibleReaderAPI from '../components/BibleReaderAPI.tsx';
+---
+
+<Layout title="Bible API Test">
+  <main class="min-h-screen bg-black text-white">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-8 text-center">Bible API Integration Test</h1>
+      
+      <div class="mb-8 p-6 bg-neutral-900 rounded-lg">
+        <h2 class="text-xl font-semibold mb-4">API Endpoints Test</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h3 class="font-medium mb-2">Books API</h3>
+            <button 
+              id="test-books" 
+              class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm"
+            >
+              Test /api/bible/books
+            </button>
+            <pre id="books-result" class="mt-2 text-xs bg-neutral-800 p-2 rounded overflow-auto max-h-32"></pre>
+          </div>
+          
+          <div>
+            <h3 class="font-medium mb-2">Verse API</h3>
+            <button 
+              id="test-verse" 
+              class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm"
+            >
+              Test /api/bible/verse
+            </button>
+            <pre id="verse-result" class="mt-2 text-xs bg-neutral-800 p-2 rounded overflow-auto max-h-32"></pre>
+          </div>
+          
+          <div>
+            <h3 class="font-medium mb-2">Search API</h3>
+            <button 
+              id="test-search" 
+              class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm"
+            >
+              Test /api/bible/search
+            </button>
+            <pre id="search-result" class="mt-2 text-xs bg-neutral-800 p-2 rounded overflow-auto max-h-32"></pre>
+          </div>
+          
+          <div>
+            <h3 class="font-medium mb-2">Sacred Names</h3>
+            <button 
+              id="test-sacred" 
+              class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded text-sm"
+            >
+              Test Sacred Names
+            </button>
+            <pre id="sacred-result" class="mt-2 text-xs bg-neutral-800 p-2 rounded overflow-auto max-h-32"></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">Interactive Bible Reader</h2>
+        <BibleReaderAPI client:load />
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  // Test API endpoints
+  document.addEventListener('DOMContentLoaded', () => {
+    const testBooks = document.getElementById('test-books');
+    const testVerse = document.getElementById('test-verse');
+    const testSearch = document.getElementById('test-search');
+    const testSacred = document.getElementById('test-sacred');
+    
+    const booksResult = document.getElementById('books-result');
+    const verseResult = document.getElementById('verse-result');
+    const searchResult = document.getElementById('search-result');
+    const sacredResult = document.getElementById('sacred-result');
+
+    testBooks?.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/bible/books?group=canon');
+        const data = await response.json();
+        booksResult!.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        booksResult!.textContent = `Error: ${error}`;
+      }
+    });
+
+    testVerse?.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/bible/verse?ref=John%203:16');
+        const data = await response.json();
+        verseResult!.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        verseResult!.textContent = `Error: ${error}`;
+      }
+    });
+
+    testSearch?.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/bible/search?q=faith&in=canon&limit=5');
+        const data = await response.json();
+        searchResult!.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        searchResult!.textContent = `Error: ${error}`;
+      }
+    });
+
+    testSacred?.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/bible/verse?ref=John%203:16&sacredNames=true');
+        const data = await response.json();
+        sacredResult!.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        sacredResult!.textContent = `Error: ${error}`;
+      }
+    });
+  });
+</script>
