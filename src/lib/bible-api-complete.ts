@@ -42,6 +42,76 @@ const CANONICAL_BOOKS = [
   'Jude', 'Revelation'
 ];
 
+// Canonical chapter counts for each book (used for metadata and navigation)
+const CANONICAL_CHAPTER_COUNTS: Record<string, number> = {
+  Genesis: 50,
+  Exodus: 40,
+  Leviticus: 27,
+  Numbers: 36,
+  Deuteronomy: 34,
+  Joshua: 24,
+  Judges: 21,
+  Ruth: 4,
+  '1 Samuel': 31,
+  '2 Samuel': 24,
+  '1 Kings': 22,
+  '2 Kings': 25,
+  '1 Chronicles': 29,
+  '2 Chronicles': 36,
+  Ezra: 10,
+  Nehemiah: 13,
+  Esther: 10,
+  Job: 42,
+  Psalms: 150,
+  Proverbs: 31,
+  Ecclesiastes: 12,
+  'Song of Solomon': 8,
+  Isaiah: 66,
+  Jeremiah: 52,
+  Lamentations: 5,
+  Ezekiel: 48,
+  Daniel: 12,
+  Hosea: 14,
+  Joel: 3,
+  Amos: 9,
+  Obadiah: 1,
+  Jonah: 4,
+  Micah: 7,
+  Nahum: 3,
+  Habakkuk: 3,
+  Zephaniah: 3,
+  Haggai: 2,
+  Zechariah: 14,
+  Malachi: 4,
+  Matthew: 28,
+  Mark: 16,
+  Luke: 24,
+  John: 21,
+  Acts: 28,
+  Romans: 16,
+  '1 Corinthians': 16,
+  '2 Corinthians': 13,
+  Galatians: 6,
+  Ephesians: 6,
+  Philippians: 4,
+  Colossians: 4,
+  '1 Thessalonians': 5,
+  '2 Thessalonians': 3,
+  '1 Timothy': 6,
+  '2 Timothy': 4,
+  Titus: 3,
+  Philemon: 1,
+  Hebrews: 13,
+  James: 5,
+  '1 Peter': 5,
+  '2 Peter': 3,
+  '1 John': 5,
+  '2 John': 1,
+  '3 John': 1,
+  Jude: 1,
+  Revelation: 22
+};
+
 // Clean book aliases mapping
 const BOOK_ALIASES: Record<string, string> = {
   // Old Testament
@@ -156,51 +226,47 @@ function convertBibleData(): Book[] {
     // Check if we have sample data for this book
     const bookData = SAMPLE_BIBLE_DATA[bookName as keyof typeof SAMPLE_BIBLE_DATA];
     
-    if (bookData) {
-      console.log(`Processing book ${i + 1}: ${bookName}`);
-      
-      // Convert chapters
-      const chapters: Chapter[] = Object.entries(bookData.chapters).map(([chapterNum, verses]) => ({
-        verses: verses.map((verseText, index) => ({
-          v: index + 1,
-          t: verseText
-        }))
-      }));
-      
-      // Get aliases for this book
-      const aliases: string[] = [];
-      for (const [alias, canonical] of Object.entries(BOOK_ALIASES)) {
-        if (canonical === bookName) {
-          aliases.push(alias);
-        }
-      }
-      
-      const book: Book = {
-        id: bookName.toLowerCase().replace(/\s+/g, '-'),
-        name: bookName,
-        group: 'Canon',
-        chapters,
-        aliases,
-        orderIndex: i + 1
-      };
-      
-      books.push(book);
-      console.log(`Added ${book.name} with ${chapters.length} chapters and ${chapters.reduce((sum, ch) => sum + ch.verses.length, 0)} verses`);
-    } else {
-      // Create empty book for books we don't have data for
-      const book: Book = {
-        id: bookName.toLowerCase().replace(/\s+/g, '-'),
-        name: bookName,
-        group: 'Canon',
-        chapters: [],
-        aliases: [],
-        orderIndex: i + 1
-      };
-      
-      books.push(book);
-      console.log(`Added ${book.name} (no data available)`);
+  const chapterCount = CANONICAL_CHAPTER_COUNTS[bookName] || 0;
+  const resolvedChapters: Chapter[] = Array.from({ length: chapterCount }, (_, chapterIndex) => {
+    const rawChapter = bookData?.chapters?.[chapterIndex + 1] || [];
+
+    if (!Array.isArray(rawChapter) || rawChapter.length === 0) {
+      return { verses: [] };
+    }
+
+    return {
+      verses: rawChapter.map((verseText: string, verseIndex: number) => ({
+        v: verseIndex + 1,
+        t: verseText
+      }))
+    };
+  });
+
+  const aliases: string[] = [];
+  for (const [alias, canonical] of Object.entries(BOOK_ALIASES)) {
+    if (canonical === bookName) {
+      aliases.push(alias);
     }
   }
+
+  const book: Book = {
+    id: bookName.toLowerCase().replace(/\s+/g, '-'),
+    name: bookName,
+    group: 'Canon',
+    chapters: resolvedChapters,
+    aliases,
+    orderIndex: i + 1
+  };
+
+  books.push(book);
+
+  if (bookData) {
+    const totalVerses = resolvedChapters.reduce((sum, ch) => sum + ch.verses.length, 0);
+    console.log(`Added ${book.name} with ${resolvedChapters.length} chapters and ${totalVerses} verses`);
+  } else {
+    console.log(`Added ${book.name} with ${resolvedChapters.length} chapters (using placeholders)`);
+  }
+}
   
   console.log(`Conversion complete: ${books.length} books processed`);
   return books;
