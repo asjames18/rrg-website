@@ -6,7 +6,7 @@
  */
 
 import type { APIRoute } from 'astro';
-import { getBook, applySacredNames } from '../../../lib/bible-api-complete';
+import { getBook, getChapter, applySacredNames } from '../../../lib/bible-api-complete';
 import type { Book, Chapter } from '../../../lib/bible-api-complete';
 
 interface VersePayload {
@@ -152,26 +152,40 @@ export const GET: APIRoute = async ({ url }) => {
       });
     }
 
+    const chapterData = getChapter(book.id, chapterNumber);
+
+    if (!chapterData) {
+      return new Response(JSON.stringify({
+        error: {
+          code: 'CHAPTER_NOT_FOUND',
+          message: `Chapter not found: ${book.name} ${chapterNumber}`
+        }
+      }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     let source: 'local' | 'remote' = 'local';
     let verses: RawVerse[] | null = null;
 
-    const localChapter: Chapter | undefined = book.chapters[chapterNumber - 1];
+    const localChapter: Chapter = chapterData.chapter;
 
-    if (localChapter && localChapter.verses.length > 0) {
+    if (localChapter.verses.length > 0) {
       verses = localChapter.verses.map((verse) => ({
         number: verse.v,
         text: verse.t
       }));
     } else {
       source = 'remote';
-      verses = await fetchRemoteChapter(book, chapterNumber);
+      verses = await fetchRemoteChapter(chapterData.book, chapterNumber);
     }
 
     if (!verses || verses.length === 0) {
       return new Response(JSON.stringify({
         error: {
           code: 'CHAPTER_NOT_FOUND',
-          message: `Chapter not found: ${book.name} ${chapterNumber}`
+          message: `Chapter not found: ${chapterData.book.name} ${chapterNumber}`
         }
       }), {
         status: 404,
@@ -185,11 +199,11 @@ export const GET: APIRoute = async ({ url }) => {
     }));
 
     const response: ChapterResponse = {
-      reference: `${book.name} ${chapterNumber}`,
+      reference: `${chapterData.book.name} ${chapterNumber}`,
       book: {
-        id: book.id,
-        name: book.name,
-        group: book.group
+        id: chapterData.book.id,
+        name: chapterData.book.name,
+        group: chapterData.book.group
       },
       chapter: chapterNumber,
       verses: transformedVerses,
@@ -205,7 +219,7 @@ export const GET: APIRoute = async ({ url }) => {
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=1800, s-maxage=1800',
-        'ETag': `"chapter-${book.id}-${chapterNumber}-${sacredNames}-${source}"`
+        'ETag': `"chapter-${chapterData.book.id}-${chapterNumber}-${sacredNames}-${source}"`
       }
     });
   } catch (error) {

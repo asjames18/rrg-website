@@ -225,49 +225,49 @@ function convertBibleData(): Book[] {
     
     // Check if we have sample data for this book
     const bookData = SAMPLE_BIBLE_DATA[bookName as keyof typeof SAMPLE_BIBLE_DATA];
-    
-  const chapterCount = CANONICAL_CHAPTER_COUNTS[bookName] || 0;
-  const resolvedChapters: Chapter[] = Array.from({ length: chapterCount }, (_, chapterIndex) => {
-    const rawChapter = bookData?.chapters?.[chapterIndex + 1] || [];
 
-    if (!Array.isArray(rawChapter) || rawChapter.length === 0) {
-      return { verses: [] };
+    const chapterCount = CANONICAL_CHAPTER_COUNTS[bookName] || 0;
+    const resolvedChapters: Chapter[] = Array.from({ length: chapterCount }, (_, chapterIndex) => {
+      const rawChapter = bookData?.chapters?.[chapterIndex + 1] || [];
+
+      if (!Array.isArray(rawChapter) || rawChapter.length === 0) {
+        return { verses: [] };
+      }
+
+      return {
+        verses: rawChapter.map((verseText: string, verseIndex: number) => ({
+          v: verseIndex + 1,
+          t: verseText
+        }))
+      };
+    });
+
+    const aliases: string[] = [];
+    for (const [alias, canonical] of Object.entries(BOOK_ALIASES)) {
+      if (canonical === bookName) {
+        aliases.push(alias);
+      }
     }
 
-    return {
-      verses: rawChapter.map((verseText: string, verseIndex: number) => ({
-        v: verseIndex + 1,
-        t: verseText
-      }))
+    const book: Book = {
+      id: bookName.toLowerCase().replace(/\s+/g, '-'),
+      name: bookName,
+      group: 'Canon',
+      chapters: resolvedChapters,
+      aliases,
+      orderIndex: i + 1
     };
-  });
 
-  const aliases: string[] = [];
-  for (const [alias, canonical] of Object.entries(BOOK_ALIASES)) {
-    if (canonical === bookName) {
-      aliases.push(alias);
+    books.push(book);
+
+    if (bookData) {
+      const totalVerses = resolvedChapters.reduce((sum, ch) => sum + ch.verses.length, 0);
+      console.log(`Added ${book.name} with ${resolvedChapters.length} chapters and ${totalVerses} verses`);
+    } else {
+      console.log(`Added ${book.name} with ${resolvedChapters.length} chapters (using placeholders)`);
     }
   }
 
-  const book: Book = {
-    id: bookName.toLowerCase().replace(/\s+/g, '-'),
-    name: bookName,
-    group: 'Canon',
-    chapters: resolvedChapters,
-    aliases,
-    orderIndex: i + 1
-  };
-
-  books.push(book);
-
-  if (bookData) {
-    const totalVerses = resolvedChapters.reduce((sum, ch) => sum + ch.verses.length, 0);
-    console.log(`Added ${book.name} with ${resolvedChapters.length} chapters and ${totalVerses} verses`);
-  } else {
-    console.log(`Added ${book.name} with ${resolvedChapters.length} chapters (using placeholders)`);
-  }
-}
-  
   console.log(`Conversion complete: ${books.length} books processed`);
   return books;
 }
