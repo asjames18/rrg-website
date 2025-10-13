@@ -1,154 +1,88 @@
-# Real & Raw Gospel
+# Real & Raw Gospel Website
 
-A spiritually-focused training website for the remnant. No fluff, no compromise—pure truth from the Word of YAHUAH.
+A modern, responsive website for the Real & Raw Gospel ministry, built with Astro, Supabase, and Tailwind CSS.
 
-## Sacred Names
+## 🚀 Quick Start
 
-This website honors the sacred Names throughout:
-- **YAHUAH** - The Name of the Father
-- **YAHUSHA** / **YAHUSHA HAMASHIACH** - The Name of the Messiah
-- **RUACH HAQODESH** - The Holy Spirit
-- **EL ELYON** - The Most High
-- **YAH** - Shortened form of YAHUAH
-- **MASHIACH** - The Anointed One
+1. **Clone the repository**
+2. **Install dependencies**: `npm install`
+3. **Set up environment variables** (see `docs/ENVIRONMENT_SETUP.md`)
+4. **Run database migrations** (see `docs/sql/`)
+5. **Start development server**: `npm run dev`
 
-## Tech Stack
+## ✨ Features
 
-- **Astro** - Fast, modern static site framework
-- **Tailwind CSS** - Utility-first CSS framework
-- **MDX** - Markdown with JSX components
-- **React** - For interactive islands (Bible reader, media players)
-- **TypeScript** - Type-safe JavaScript
+### Content Management
+- **Blog Posts**: Markdown-based blog system with SEO optimization
+- **Videos**: Multi-platform support (YouTube, TikTok, Instagram, Facebook)
+- **Music**: Audio tracks and music videos with player integration
+- **Books**: Digital book content with reading interface
 
-## Project Structure
+### Admin Portal
+- **Unified Interface**: Single admin portal for all content management
+- **User Management**: Role-based access control (admin, editor, user)
+- **Content Editor**: Rich content editing with conditional fields
+- **Media Management**: File uploads and organization
 
-```
-/
-├── public/              # Static assets
-├── src/
-│   ├── components/      # React components
-│   │   ├── AudioPlayer.tsx
-│   │   ├── BibleReader.tsx
-│   │   └── UniversalVideoEmbed.tsx
-│   ├── data/            # JSON data files
-│   │   └── bible/
-│   │       └── kjv.sample.json
-│   ├── layouts/         # Astro layouts
-│   │   └── Base.astro
-│   ├── pages/           # File-based routing
-│   │   ├── index.astro
-│   │   ├── start-here.astro
-│   │   ├── walk-in-the-spirit.astro
-│   │   ├── prayer-and-fasting.astro
-│   │   ├── feasts.astro
-│   │   ├── spiritual-warfare.astro
-│   │   ├── identity-and-messiah.astro
-│   │   ├── end-times.astro
-│   │   ├── videos/
-│   │   ├── bible.astro
-│   │   ├── blog/
-│   │   ├── music/
-│   │   ├── books/
-│   │   └── privacy.astro
-│   └── styles/
-│       └── global.css
-├── astro.config.mjs
-├── tsconfig.json
-├── package.json
-└── README.md
-```
+### Technical Features
+- **Astro Framework**: Modern static site generation with SSR
+- **Supabase Backend**: Database, authentication, and real-time features
+- **Tailwind CSS**: Utility-first styling with dark theme
+- **TypeScript**: Type-safe development
+- **Responsive Design**: Mobile-first approach
 
-## Core Sections
+## 📚 Documentation
 
-1. **Start Here** - Introduction and foundation
-2. **Walk in the Spirit** - Daily consecration and obedience
-3. **Prayer & Fasting** - Spiritual disciplines
-4. **Feasts of YAH** - Biblical calendar and appointed times
-5. **Spiritual Warfare** - Authority and armor of YAHUAH
-6. **Identity & Mashiach** - Who you are in YAHUSHA
-7. **End-Times** - Prophetic understanding and preparation
-8. **Videos** - Teaching videos and testimonies
-9. **Bible** - Scripture reader with Sacred Names toggle
-10. **Blog** - Articles and teachings
-11. **Music** - Worship music honoring the sacred Names
-12. **Books** - Recommended reading (affiliate links)
-13. **Privacy** - Privacy policy
+- **Project Structure**: `docs/README.md`
+- **Environment Setup**: `docs/ENVIRONMENT_SETUP.md`
+- **Video CMS Guide**: `docs/VIDEO_CMS_GUIDE.md`
+- **Music CMS Guide**: `docs/MUSIC_CMS_GUIDE.md`
+- **Database Schema**: `docs/sql/CMS_SUPABASE_SCHEMA.sql`
 
-## Getting Started
+## 🛠️ Development
 
-### Prerequisites
+### Available Scripts
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run astro` - Run Astro CLI commands
 
-- Node.js 18+ 
-- npm or pnpm
+### Environment Variables
+See `docs/ENVIRONMENT_SETUP.md` for complete setup instructions.
 
-### Installation
+## 🎯 Content Types
 
-```bash
-# Install dependencies
-npm install
-# or
-pnpm install
-```
+### Blog Posts
+- Markdown content with rich editing
+- SEO optimization and meta tags
+- Tag system for organization
+- Publication scheduling
 
-### Development
+### Videos
+- Multi-platform support (YouTube, TikTok, Instagram, Facebook)
+- Series organization and topics
+- Scripture references integration
+- Teaching notes with markdown
 
-```bash
-# Start dev server
-npm run dev
-# or
-pnpm dev
-```
+### Music
+- Audio file support (MP3, WAV, OGG)
+- Music video embeds
+- Genre classification
+- Scripture integration
+- Audio player with track navigation
 
-The site will be available at `http://localhost:4321`
+## 🚀 Deployment
 
-### Build for Production
+1. **Build the project**: `npm run build`
+2. **Deploy to your hosting platform**
+3. **Configure environment variables**
+4. **Run database migrations**
+5. **Set up Supabase authentication**
 
-```bash
-# Build the static site
-npm run build
-# or
-pnpm build
+## 📞 Support
 
-# Preview the build
-npm run preview
-# or
-pnpm preview
-```
-
-## Components
-
-### BibleReader
-Interactive Bible reader with Sacred Names toggle. Allows users to switch between standard and sacred name translations.
-
-### UniversalVideoEmbed
-Supports YouTube, Vimeo, and direct video URLs. Automatically detects video source and creates appropriate embed.
-
-### AudioPlayer
-Custom audio player with play/pause, progress bar, and time display.
-
-## Development Standards
-
-- **TypeScript** for all React components
-- **Semantic HTML** for accessibility
-- **Tailwind utilities** for styling
-- **Sacred Name accuracy** in all content
-- **WCAG compliance** for accessibility
-
-## Future Enhancements
-
-- Full Bible data integration
-- Static search with Pagefind
-- Blog post system with MDX
-- Video library with categorization
-- Music player with playlists
-- Community features
-- Giving/donation integration
-- Private analytics (privacy-respecting)
+For questions or issues, please refer to the documentation in the `docs/` directory or create an issue in the repository.
 
 ## License
 
-All glory to YAHUAH.
-
----
-
-**Real & Raw Gospel** - Training the Remnant in the Ways of YAHUAH
+This project is for the Real & Raw Gospel ministry.
