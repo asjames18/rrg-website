@@ -1,0 +1,330 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { supabaseServer } from '../../../lib/supabase-server';
+
+// Check authentication
+const supabase = supabaseServer(Astro.cookies);
+const { data: { user } } = await supabase.auth.getUser();
+
+if (!user) {
+  return Astro.redirect('/auth?message=Please sign in to create content');
+}
+
+// Check if user has editor or admin role
+const { data: userRoles } = await supabase
+  .from('user_roles')
+  .select('role')
+  .eq('user_id', user.id);
+
+const isEditor = userRoles && userRoles.some(role => ['admin', 'editor'].includes(role.role));
+
+if (!isEditor) {
+  return Astro.redirect('/auth?message=You need editor permissions to create content');
+}
+---
+
+<Base title="New Blog Post - CMS">
+  <div class="min-h-screen bg-neutral-950">
+    <!-- Header -->
+    <header class="bg-neutral-900 border-b border-neutral-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center">
+            <a href="/cms" class="text-neutral-400 hover:text-amber-400 transition-colors mr-4">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+            </a>
+            <h1 class="text-2xl font-bold text-amber-100">New Blog Post</h1>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button 
+              id="save-draft"
+              class="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg transition-colors"
+            >
+              Save Draft
+            </button>
+            <button 
+              id="publish"
+              class="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Publish
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Blog Post Form -->
+      <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+        <form id="blog-form" class="space-y-6">
+          <!-- Title -->
+          <div>
+            <label for="title" class="block text-sm font-medium text-amber-100 mb-2">
+              Title *
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              required
+              class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              placeholder="Enter blog post title..."
+            />
+          </div>
+
+          <!-- Slug -->
+          <div>
+            <label for="slug" class="block text-sm font-medium text-amber-100 mb-2">
+              Slug *
+            </label>
+            <input
+              type="text"
+              id="slug"
+              name="slug"
+              required
+              class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              placeholder="url-friendly-slug"
+            />
+            <p class="text-xs text-neutral-400 mt-1">Auto-generated from title, but you can edit it</p>
+          </div>
+
+          <!-- Summary -->
+          <div>
+            <label for="summary" class="block text-sm font-medium text-amber-100 mb-2">
+              Summary *
+            </label>
+            <textarea
+              id="summary"
+              name="summary"
+              rows="3"
+              required
+              class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              placeholder="Brief summary of the blog post..."
+            ></textarea>
+          </div>
+
+          <!-- Body -->
+          <div>
+            <label for="body" class="block text-sm font-medium text-amber-100 mb-2">
+              Content *
+            </label>
+            <textarea
+              id="body"
+              name="body"
+              rows="12"
+              required
+              class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono text-sm"
+              placeholder="Write your blog post content in Markdown..."
+            ></textarea>
+            <p class="text-xs text-neutral-400 mt-1">Supports Markdown formatting</p>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <label for="tags" class="block text-sm font-medium text-amber-100 mb-2">
+              Tags
+            </label>
+            <input
+              type="text"
+              id="tags"
+              name="tags"
+              class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              placeholder="faith, prayer, bible, etc. (comma-separated)"
+            />
+          </div>
+
+          <!-- Options -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Featured -->
+            <div class="flex items-center">
+              <input
+                type="checkbox"
+                id="featured"
+                name="featured"
+                class="h-4 w-4 text-amber-600 focus:ring-amber-500 border-neutral-700 rounded bg-neutral-800"
+              />
+              <label for="featured" class="ml-2 text-sm text-amber-100">
+                Featured post
+              </label>
+            </div>
+
+            <!-- Status -->
+            <div>
+              <label for="status" class="block text-sm font-medium text-amber-100 mb-2">
+                Status
+              </label>
+              <select
+                id="status"
+                name="status"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="flex items-center justify-between pt-6 border-t border-neutral-700">
+            <div class="text-sm text-neutral-400">
+              <span id="save-status">Ready to save</span>
+            </div>
+            <div class="flex space-x-3">
+              <button
+                type="button"
+                id="save-draft-btn"
+                class="bg-neutral-700 hover:bg-neutral-600 text-neutral-200 px-6 py-2 rounded-lg transition-colors"
+              >
+                Save Draft
+              </button>
+              <button
+                type="submit"
+                id="publish-btn"
+                class="bg-amber-700 hover:bg-amber-600 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Publish
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // Auto-generate slug from title
+      const titleInput = document.getElementById('title') as HTMLInputElement;
+      const slugInput = document.getElementById('slug') as HTMLInputElement;
+      
+      if (titleInput && slugInput) {
+        titleInput.addEventListener('input', function() {
+          const title = this.value;
+          const slug = title
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '');
+          slugInput.value = slug;
+        });
+      }
+
+      // Form submission
+      const blogForm = document.getElementById('blog-form') as HTMLFormElement;
+      if (blogForm) {
+        blogForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          const formData = new FormData(this);
+          const data = {
+            title: formData.get('title') as string,
+            slug: formData.get('slug') as string,
+            summary: formData.get('summary') as string,
+            body: formData.get('body') as string,
+            tags: formData.get('tags') ? (formData.get('tags') as string).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [],
+            featured: formData.get('featured') === 'on',
+            status: formData.get('status') as string
+          };
+
+          const saveBtn = document.getElementById('publish-btn') as HTMLButtonElement;
+          const saveDraftBtn = document.getElementById('save-draft-btn') as HTMLButtonElement;
+          const statusEl = document.getElementById('save-status') as HTMLElement;
+
+          if (!saveBtn || !saveDraftBtn || !statusEl) return;
+
+          // Disable buttons and show loading
+          saveBtn.disabled = true;
+          saveDraftBtn.disabled = true;
+          saveBtn.textContent = 'Publishing...';
+          statusEl.textContent = 'Publishing...';
+
+          try {
+            const response = await fetch('/api/cms/blog', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              statusEl.textContent = 'Published successfully!';
+              statusEl.className = 'text-sm text-green-400';
+              
+              // Redirect to CMS dashboard after a short delay
+              setTimeout(() => {
+                window.location.href = '/cms';
+              }, 1500);
+            } else {
+              const error = await response.json();
+              statusEl.textContent = `Error: ${error.message || 'Failed to publish'}`;
+              statusEl.className = 'text-sm text-red-400';
+            }
+          } catch (error: any) {
+            statusEl.textContent = `Error: ${error.message}`;
+            statusEl.className = 'text-sm text-red-400';
+          } finally {
+            // Re-enable buttons
+            saveBtn.disabled = false;
+            saveDraftBtn.disabled = false;
+            saveBtn.textContent = 'Publish';
+          }
+        });
+      }
+
+      // Save draft functionality
+      const saveDraftBtn = document.getElementById('save-draft-btn') as HTMLButtonElement;
+      if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', async function() {
+          const form = document.getElementById('blog-form') as HTMLFormElement;
+          if (!form) return;
+          
+          const formData = new FormData(form);
+          const data = {
+            title: formData.get('title') as string,
+            slug: formData.get('slug') as string,
+            summary: formData.get('summary') as string,
+            body: formData.get('body') as string,
+            tags: formData.get('tags') ? (formData.get('tags') as string).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [],
+            featured: formData.get('featured') === 'on',
+            status: 'draft'
+          };
+
+          const statusEl = document.getElementById('save-status') as HTMLElement;
+          if (!statusEl) return;
+
+          this.disabled = true;
+          this.textContent = 'Saving...';
+          statusEl.textContent = 'Saving draft...';
+
+          try {
+            const response = await fetch('/api/cms/blog', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+              statusEl.textContent = 'Draft saved successfully!';
+              statusEl.className = 'text-sm text-green-400';
+            } else {
+              const error = await response.json();
+              statusEl.textContent = `Error: ${error.message || 'Failed to save draft'}`;
+              statusEl.className = 'text-sm text-red-400';
+            }
+          } catch (error: any) {
+            statusEl.textContent = `Error: ${error.message}`;
+            statusEl.className = 'text-sm text-red-400';
+          } finally {
+            this.disabled = false;
+            this.textContent = 'Save Draft';
+          }
+        });
+      }
+    </script>
+  </div>
+</Base>

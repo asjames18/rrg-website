@@ -6,7 +6,7 @@
  * TODO: Add pagination (10-20 posts per page)
  * TODO: Add RSS feed generation
  */
-import Base from '../../layouts/Base.astro';
+ import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
 
 const blogPosts = await getCollection('blog');
@@ -16,66 +16,164 @@ const sortedPosts = blogPosts.sort((a, b) =>
 ---
 
 <Base title="Blog">
-  <div class="container mx-auto px-4 py-12 md:py-16">
-    <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Blog</h1>
-    <p class="text-lg md:text-xl text-neutral-300 mb-12 max-w-3xl">
-      Articles, teachings, and insights for the remnant. No fluff—just truth from the Word of YAHUAH.
-    </p>
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Medium-style Header -->
+    <div class="mb-12">
+      <h1 class="text-3xl font-bold text-neutral-100 mb-4">Real & Raw Gospel</h1>
+      <p class="text-lg text-neutral-400">Training the remnant in the ways of YAHUAH</p>
+    </div>
 
     {sortedPosts.length > 0 ? (
-      <div class="space-y-6 max-w-4xl">
+      <div class="space-y-8">
         {sortedPosts.map((post) => (
-          <article class="bg-neutral-900 border border-neutral-800 rounded-lg p-6 md:p-8 hover:border-amber-700 transition-colors">
-            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-              <div class="flex-1">
-                <h2 class="text-2xl md:text-3xl font-bold mb-3 text-amber-100">
-                  <a 
-                    href={`/blog/${post.slug}`}
-                    class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
-                  >
-                    {post.data.title}
-                  </a>
-                </h2>
-                <p class="text-neutral-300 leading-relaxed mb-4">
-                  {post.data.summary}
-                </p>
-                <div class="flex flex-wrap items-center gap-4 text-sm text-neutral-500">
+          <article class="group">
+            <div class="flex items-start gap-4">
+              <!-- Author Avatar -->
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center">
+                  <span class="text-white text-sm font-bold">RRG</span>
+                </div>
+              </div>
+              
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 text-sm text-neutral-500 mb-2">
+                  <span>Real & Raw Gospel</span>
+                  <span>•</span>
                   <time datetime={post.data.publishedAt.toISOString()}>
                     {post.data.publishedAt.toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
                     })}
                   </time>
                   <span>•</span>
                   <span>{post.data.readingTime} min read</span>
                 </div>
+                
+                <h2 class="text-xl font-bold text-neutral-100 mb-3 group-hover:text-amber-200 transition-colors leading-tight">
+                  <a 
+                    href={`/blog/${post.slug}`}
+                    class="focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded"
+                  >
+                    {post.data.title}
+                  </a>
+                </h2>
+                
+                <p class="text-neutral-400 leading-relaxed mb-4 line-clamp-2">
+                  {post.data.summary}
+                </p>
+                
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    {post.data.tags.length > 0 && (
+                      <div class="flex gap-2">
+                        {post.data.tags.slice(0, 2).map((tag) => (
+                          <span class="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
+                            {tag}
+                          </span>
+                        ))}
+                        {post.data.tags.length > 2 && (
+                          <span class="text-xs text-neutral-500">+{post.data.tags.length - 2}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div class="flex items-center gap-2">
+                    <button class="p-2 hover:bg-neutral-800 rounded-full transition-colors">
+                      <svg class="w-4 h-4 text-neutral-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                      </svg>
+                    </button>
+                    <button class="p-2 hover:bg-neutral-800 rounded-full transition-colors">
+                      <svg class="w-4 h-4 text-neutral-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3 3 0 000-2.319l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            
-            {post.data.tags.length > 0 && (
-              <div class="flex flex-wrap gap-2">
-                {post.data.tags.map((tag) => (
-                  <span class="inline-block bg-amber-900/30 border border-amber-800 text-amber-200 text-xs font-medium px-3 py-1 rounded-full">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
           </article>
         ))}
       </div>
     ) : (
-      <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center">
-        <p class="text-neutral-400">No blog posts available yet. Check back soon for raw truth and real teaching.</p>
+      <div class="text-center py-16">
+        <div class="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg class="w-8 h-8 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-neutral-100 mb-3">Coming Soon</h3>
+        <p class="text-neutral-400 mb-6 max-w-md mx-auto">Raw truth and real teaching are on the way. Check back soon for articles that will challenge, equip, and prepare the remnant.</p>
+        <a href="/start-here" class="inline-block bg-amber-600 hover:bg-amber-700 text-white font-semibold px-6 py-3 rounded-full transition-colors">
+          Start Your Training
+        </a>
       </div>
     )}
 
-    <div class="mt-12 bg-amber-900/20 border border-amber-800/50 rounded-lg p-6 max-w-4xl">
-      <p class="text-neutral-300 text-sm">
-        <strong class="text-amber-100">Want to contribute?</strong> If you have a teaching, testimony, or word from YAHUAH 
-        that aligns with our mission, we'd love to hear from you. All content must honor the sacred Names and be rooted in Scripture.
-      </p>
+    <!-- Newsletter Signup -->
+    <div class="mt-16 bg-gradient-to-r from-amber-900/30 to-amber-800/30 border border-amber-700/50 rounded-xl p-8 max-w-4xl mx-auto">
+      <div class="text-center">
+        <h3 class="text-2xl font-bold text-amber-100 mb-4">Stay Connected</h3>
+        <p class="text-neutral-300 mb-6">
+          Get the latest teachings, testimonies, and training directly in your inbox. No spam—just raw truth for the remnant.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+          <input 
+            type="email" 
+            placeholder="Enter your email" 
+            class="flex-1 px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+          />
+          <button class="bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
+            Subscribe
+          </button>
+        </div>
+        <p class="text-xs text-neutral-500 mt-3">
+          We respect your privacy. Unsubscribe at any time.
+        </p>
+      </div>
+    </div>
+
+    <!-- Contribution CTA -->
+    <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8 max-w-4xl mx-auto">
+      <div class="text-center">
+        <h3 class="text-xl font-bold text-amber-100 mb-4">Want to Contribute?</h3>
+        <p class="text-neutral-300 mb-6">
+          If you have a teaching, testimony, or word from YAHUAH that aligns with our mission, we'd love to hear from you. 
+          All content must honor the sacred Names and be rooted in Scripture.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/contact" class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
+            Submit Content
+          </a>
+          <a href="/start-here" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors">
+            Start Training
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Continue Your Training -->
+    <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8">
+      <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Continue Your Training</h3>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a href="/start-here" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Start Here</h4>
+          <p class="text-neutral-400 text-sm">Begin your journey with the 7-Day Reset</p>
+        </a>
+        
+        <a href="/videos" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Videos</h4>
+          <p class="text-neutral-400 text-sm">Watch powerful teachings and testimonies</p>
+        </a>
+        
+        <a href="/music" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Music</h4>
+          <p class="text-neutral-400 text-sm">Worship and honor the sacred Names</p>
+        </a>
+      </div>
     </div>
   </div>
 </Base>

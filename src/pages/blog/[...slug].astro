@@ -29,66 +29,128 @@ const formattedDate = post.data.publishedAt.toLocaleDateString('en-US', {
 
 <Base title={post.data.title} description={post.data.summary}>
   <article class="container mx-auto px-4 py-12 md:py-16 max-w-4xl">
+    <!-- Breadcrumb -->
+    <nav class="mb-8" aria-label="Breadcrumb">
+      <ol class="flex items-center space-x-2 text-sm text-neutral-500">
+        <li><a href="/" class="hover:text-amber-400 transition-colors">Home</a></li>
+        <li><span class="text-neutral-600">/</span></li>
+        <li><a href="/blog" class="hover:text-amber-400 transition-colors">Blog</a></li>
+        <li><span class="text-neutral-600">/</span></li>
+        <li class="text-amber-400">{post.data.title}</li>
+      </ol>
+    </nav>
+
     <!-- Header -->
-    <header class="mb-8 md:mb-12">
-      <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">
-        {post.data.title}
-      </h1>
-      
-      <p class="text-lg md:text-xl text-neutral-300 mb-6 leading-relaxed">
-        {post.data.summary}
-      </p>
-      
-      <div class="flex flex-wrap items-center gap-4 text-sm text-neutral-500 pb-6 border-b border-neutral-800">
-        <time datetime={post.data.publishedAt.toISOString()}>
-          {formattedDate}
-        </time>
-        <span>•</span>
-        <span>{post.data.readingTime} min read</span>
+    <header class="mb-12">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl md:text-6xl font-bold mb-6 text-amber-100 leading-tight">
+          {post.data.title}
+        </h1>
+        
+        <p class="text-xl md:text-2xl text-neutral-300 mb-8 leading-relaxed max-w-3xl mx-auto">
+          {post.data.summary}
+        </p>
+        
+        <div class="flex flex-wrap items-center justify-center gap-6 text-sm text-neutral-400 mb-8">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 2L3 7v11a1 1 0 001 1h12a1 1 0 001-1V7l-7-5z"/>
+            </svg>
+            <time datetime={post.data.publishedAt.toISOString()}>
+              {formattedDate}
+            </time>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+              <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>{post.data.readingTime} min read</span>
+          </div>
+          {post.data.tags.length > 0 && (
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+              </svg>
+              <span>{post.data.tags.length} topics</span>
+            </div>
+          )}
+        </div>
         
         {post.data.tags.length > 0 && (
-          <>
-            <span>•</span>
-            <div class="flex flex-wrap gap-2">
-              {post.data.tags.map((tag) => (
-                <span class="inline-block bg-amber-900/30 border border-amber-800 text-amber-200 text-xs font-medium px-3 py-1 rounded-full">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </>
+          <div class="flex flex-wrap justify-center gap-3 mb-8">
+            {post.data.tags.map((tag) => (
+              <span class="inline-block bg-amber-900/30 border border-amber-800 text-amber-200 text-sm font-medium px-4 py-2 rounded-full hover:bg-amber-900/40 transition-colors">
+                {tag}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </header>
 
     <!-- MDX Content -->
-    <div class="prose prose-lg prose-invert max-w-none">
+    <div class="prose prose-lg prose-invert max-w-none prose-headings:text-amber-100 prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-neutral-300 prose-p:leading-relaxed prose-strong:text-amber-200 prose-strong:font-semibold prose-a:text-amber-400 prose-a:no-underline hover:prose-a:text-amber-300 prose-blockquote:border-l-amber-700 prose-blockquote:bg-amber-900/20 prose-blockquote:border-amber-800 prose-blockquote:text-neutral-300 prose-ul:text-neutral-300 prose-ol:text-neutral-300 prose-li:text-neutral-300">
       <Content />
     </div>
 
-    <!-- Footer / CTA -->
-    <footer class="mt-12 pt-8 border-t border-neutral-800">
-      <div class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-6 md:p-8">
-        <h3 class="text-xl font-bold text-amber-100 mb-3">Share This Message</h3>
-        <p class="text-neutral-300 mb-4">
-          If this teaching blessed you, share it with others who need to hear the raw truth of YAHUAH's Word.
-        </p>
-        <div class="flex gap-3">
-          <a 
-            href="/blog" 
-            class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
-          >
-            ← Back to Blog
-          </a>
-          <a 
-            href="/start-here" 
-            class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
-          >
-            Get Started
-          </a>
+    <!-- Author & Share Section -->
+    <div class="mt-16 pt-8 border-t border-neutral-800">
+      <div class="bg-gradient-to-r from-neutral-900 to-neutral-950 border border-neutral-800 rounded-xl p-8">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-amber-700 rounded-full flex items-center justify-center">
+              <span class="text-white font-bold text-lg">RRG</span>
+            </div>
+            <div>
+              <h4 class="text-lg font-bold text-amber-100">Real & Raw Gospel</h4>
+              <p class="text-neutral-400 text-sm">Training the remnant in the ways of YAHUAH</p>
+            </div>
+          </div>
+          
+          <div class="flex gap-3">
+            <button class="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+              <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3 3 0 000-2.319l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
+              </svg>
+              Share
+            </button>
+            <button class="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+              <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+              </svg>
+              Save
+            </button>
+          </div>
+        </div>
+        
+        <div class="text-center">
+          <h3 class="text-xl font-bold text-amber-100 mb-3">Share This Message</h3>
+          <p class="text-neutral-300 mb-6">
+            If this teaching blessed you, share it with others who need to hear the raw truth of YAHUAH's Word.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a 
+              href="/blog" 
+              class="inline-flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+              Back to Blog
+            </a>
+            <a 
+              href="/start-here" 
+              class="inline-flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+              Start Your Training
+            </a>
+          </div>
         </div>
       </div>
-    </footer>
+    </div>
   </article>
 </Base>
-

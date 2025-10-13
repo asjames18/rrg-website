@@ -3,7 +3,7 @@
  * Shows user's activity, engagement stats, and recent actions
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase-browser';
 
 interface ActivityItem {
   id: string;
@@ -39,7 +39,7 @@ export default function UserActivity() {
       setLoading(true);
       
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getSupabase().auth.getUser();
       if (!user) return;
 
       // TODO: Implement real activity tracking

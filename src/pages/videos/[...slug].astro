@@ -1,65 +1,73 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import UniversalVideoEmbed from '../../components/UniversalVideoEmbed';
+import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 
-export const prerender = true;
+export const prerender = false; // Changed to false for dynamic content
 
 export async function getStaticPaths() {
-  const videos = await getCollection('videos');
-  return videos.map((video) => {
-    const rawSlug = video.data.slug ?? video.slug;
-    const slug = rawSlug.split('/').filter(Boolean).join('/');
-
-    return {
-      params: { slug },
+  try {
+    const result = await SupabaseCMSAPI.getContent({
+      type: 'video',
+      status: 'published',
+      limit: 100
+    });
+    
+    return result.content.map((video) => ({
+      params: { slug: video.slug },
       props: { video },
-    };
-  });
+    }));
+  } catch (error) {
+    console.error('Error loading videos for static paths:', error);
+    return [];
+  }
 }
 
 const { video } = Astro.props;
-const { Content } = await video.render();
 
-const formattedDate = video.data.publishedAt.toLocaleDateString('en-US', {
+const formattedDate = new Date(video.published_at || video.created_at).toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
 });
 
-const hasBody = video.body && video.body.trim().length > 0;
+const hasBody = video.body_md && video.body_md.trim().length > 0;
 ---
 
-<Base title={video.data.title} description={`Watch: ${video.data.title}`}>
+<Base title={video.title} description={`Watch: ${video.title}`}>
   <article class="container mx-auto px-4 py-12 md:py-16 max-w-5xl">
     <!-- Header -->
     <header class="mb-8">
       <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">
-        {video.data.title}
+        {video.title}
       </h1>
       
       <div class="flex flex-wrap items-center gap-4 text-sm text-neutral-500 mb-6">
-        <time datetime={video.data.publishedAt.toISOString()}>
+        <time datetime={new Date(video.published_at || video.created_at).toISOString()}>
           {formattedDate}
         </time>
         
-        {video.data.series.length > 0 && (
+        {video.metadata?.series && video.metadata.series.length > 0 && (
           <>
             <span>•</span>
             <span class="text-amber-400">
-              Series: {video.data.series.join(', ')}
+              Series: {Array.isArray(video.metadata.series) ? video.metadata.series.join(', ') : video.metadata.series}
             </span>
           </>
         )}
       </div>
 
-      {video.data.topics.length > 0 && (
+      {video.metadata?.topics && video.metadata.topics.length > 0 && (
         <div class="flex flex-wrap gap-2 mb-4">
-          {video.data.topics.map((topic) => (
+          {Array.isArray(video.metadata.topics) ? video.metadata.topics.map((topic) => (
             <span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-sm px-3 py-1.5 rounded">
               {topic}
             </span>
-          ))}
+          )) : (
+            <span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-sm px-3 py-1.5 rounded">
+              {video.metadata.topics}
+            </span>
+          )}
         </div>
       )}
     </header>
@@ -67,32 +75,36 @@ const hasBody = video.body && video.body.trim().length > 0;
     <!-- Video Embed -->
     <div class="mb-8 md:mb-12">
       <UniversalVideoEmbed 
-        platform={video.data.platform}
-        videoId={video.data.videoId}
-        title={video.data.title}
+        platform={video.metadata?.platform || 'youtube'}
+        videoId={video.metadata?.videoId || ''}
+        title={video.title}
         client:load
       />
     </div>
 
     <!-- Scripture References -->
-    {video.data.scriptures.length > 0 && (
+    {video.metadata?.scriptures && video.metadata.scriptures.length > 0 && (
       <div class="mb-8 bg-amber-900/20 border border-amber-800/50 rounded-lg p-6">
         <h2 class="text-lg font-bold text-amber-100 mb-3">Scripture References</h2>
         <div class="flex flex-wrap gap-2">
-          {video.data.scriptures.map((scripture) => (
+          {Array.isArray(video.metadata.scriptures) ? video.metadata.scriptures.map((scripture) => (
             <span class="inline-block bg-neutral-900 border border-amber-800 text-amber-200 text-sm font-medium px-3 py-1.5 rounded">
               {scripture}
             </span>
-          ))}
+          )) : (
+            <span class="inline-block bg-neutral-900 border border-amber-800 text-amber-200 text-sm font-medium px-3 py-1.5 rounded">
+              {video.metadata.scriptures}
+            </span>
+          )}
         </div>
       </div>
     )}
 
-    <!-- MDX Content (Teaching Notes) -->
+    <!-- Teaching Notes Content -->
     {hasBody && (
       <div class="prose prose-lg prose-invert max-w-none mb-8">
         <h2 class="text-2xl font-bold text-amber-100 mb-4">Teaching Notes</h2>
-        <Content />
+        <div set:html={video.body_md} />
       </div>
     )}
 

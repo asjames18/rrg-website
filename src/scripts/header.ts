@@ -10,6 +10,73 @@ declare global {
 
 const supabase = getSupabase();
 
+// Check user role and show/hide admin links
+async function checkUserRoleAndShowAdminLinks(email: string) {
+  try {
+    // First get the user to get their ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let isAdmin = false;
+    
+    // Try profiles table first
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile && !profileError) {
+        isAdmin = profile.role === 'admin' || profile.role === 'editor';
+      } else {
+        console.warn('Profile query failed, trying user_roles table:', profileError);
+        
+        // Fallback: try user_roles table
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+
+        if (userRoles && userRoles.length > 0 && !rolesError) {
+          isAdmin = userRoles[0].role === 'admin' || userRoles[0].role === 'editor';
+        } else {
+          console.warn('User roles query also failed:', rolesError);
+          isAdmin = false;
+        }
+      }
+    } catch (queryError) {
+      console.warn('Role check query error:', queryError);
+      isAdmin = false;
+    }
+    
+    // Desktop admin links
+    const adminLinks = document.getElementById('admin-links');
+    if (adminLinks) {
+      if (isAdmin) {
+        adminLinks.classList.remove('hidden');
+      } else {
+        adminLinks.classList.add('hidden');
+      }
+    }
+
+    // Mobile admin links
+    const mobileAdminLinks = document.getElementById('mobile-admin-links');
+    if (mobileAdminLinks) {
+      if (isAdmin) {
+        mobileAdminLinks.classList.remove('hidden');
+      } else {
+        mobileAdminLinks.classList.add('hidden');
+      }
+    }
+  } catch (error) {
+    console.warn('Error checking user role:', error);
+    // Hide admin links on error
+    document.getElementById('admin-links')?.classList.add('hidden');
+    document.getElementById('mobile-admin-links')?.classList.add('hidden');
+  }
+}
+
 // Seed the browser session from the server once (if needed)
 const bootstrapSession = (async () => {
   try {
@@ -79,12 +146,8 @@ function showSignedInState(email: string) {
   userDropdown?.classList.add('hidden');
   userMenuButton?.setAttribute('aria-expanded', 'false');
 
-  // admin links (demo rule)
-  const adminLinks = document.getElementById('admin-links');
-  if (adminLinks) {
-    if (email === 'asjames18@proton.me') adminLinks.classList.remove('hidden');
-    else adminLinks.classList.add('hidden');
-  }
+  // Check user role and show admin links
+  checkUserRoleAndShowAdminLinks(email);
 
   // mobile
   const mAuth = document.getElementById('mobile-auth-nav-item');

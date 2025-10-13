@@ -1,41 +1,15 @@
 /**
  * Supabase Client Configuration
  * 
- * Browser client for public operations (auth, reading published content)
+ * Re-exports from supabase-browser to avoid conflicts
  */
-import { createClient } from '@supabase/supabase-js';
-export { getSupabase } from './supabase-browser';
+export { getSupabase, supabaseBrowser } from './supabase-browser';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Missing Supabase environment variables. Please check your .env file.'
-  );
-}
-
-// Singleton pattern to prevent multiple instances (shared on window)
-let supabaseInstance: any = null;
-
+// For backward compatibility, create a default export
 export const supabase = (() => {
   if (typeof window === 'undefined') return null;
-  // Reuse if one already exists on window
-  const existing = (window as any).__supabaseClient;
-  if (existing) {
-    supabaseInstance = existing;
-    return supabaseInstance;
-  }
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      },
-    });
-    (window as any).__supabaseClient = supabaseInstance;
-  }
-  return supabaseInstance;
+  // Use dynamic import for browser compatibility
+  return null; // Will be set by the component
 })();
 
 /**

@@ -28,9 +28,14 @@ try {
   if (authUser) {
     user = authUser;
     
-    // Check if user is admin using the RPC function
-    const { data: adminCheck } = await supabase.rpc('is_admin');
-    isAdmin = adminCheck || false;
+    // Check if user is admin by querying user_roles table directly
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', authUser.id)
+      .eq('role', 'admin');
+    
+    isAdmin = Boolean(userRoles && userRoles.length > 0);
   }
 } catch (error) {
   console.error('Auth check error:', error);
@@ -75,14 +80,43 @@ try {
                      <span class="text-red-400 text-xl">⚠️</span>
                      <div>
                        <h3 class="text-red-100 font-semibold mb-1">
-                         {error === 'insufficient-permissions' ? 'Insufficient Permissions' : 'Authentication Error'}
+                         {error === 'insufficient-permissions' ? 'Insufficient Permissions' : 
+                          error === 'auth-failed' ? 'Authentication Failed' :
+                          error === 'role-check-failed' ? 'Role Check Failed' :
+                          error === 'session-expired' ? 'Session Expired' :
+                          error === 'auth-refresh-failed' ? 'Session Refresh Failed' :
+                          error === 'database-error' ? 'Database Error' :
+                          error === 'server-error' ? 'Server Error' :
+                          'Authentication Error'}
                        </h3>
                        <p class="text-red-200 text-sm">
                          {error === 'insufficient-permissions' 
                            ? 'You need admin or editor access to view this page. Contact an administrator if you believe this is an error.'
+                           : error === 'auth-failed'
+                           ? 'There was an issue with your authentication. Please try signing in again.'
+                           : error === 'role-check-failed'
+                           ? 'Unable to verify your user role. Please try signing in again or contact support.'
+                           : error === 'session-expired'
+                           ? 'Your session has expired. Please sign in again.'
+                           : error === 'auth-refresh-failed'
+                           ? 'Unable to refresh your session. Please sign in again.'
+                           : error === 'database-error'
+                           ? 'Database connection issue. Please try again in a moment.'
+                           : error === 'server-error'
+                           ? 'Server error occurred. Please try again or contact support.'
                            : 'There was an issue with your authentication. Please try signing in again.'
                          }
                        </p>
+                       {error !== 'insufficient-permissions' && (
+                         <div class="mt-3">
+                           <button 
+                             onclick="window.location.reload()" 
+                             class="text-red-300 hover:text-red-100 text-sm underline"
+                           >
+                             Try Again
+                           </button>
+                         </div>
+                       )}
                      </div>
                    </div>
                  </div>
@@ -232,32 +266,53 @@ try {
   // Handle sign out button
   document.getElementById('sign-out-btn')?.addEventListener('click', async () => {
     try {
+      // Clear client-side state first
+      if (typeof window !== 'undefined') {
+        // Clear Supabase client
+        if (window.__supabaseClient) {
+          await window.__supabaseClient.auth.signOut();
+          delete window.__supabaseClient;
+        }
+        
+        // Clear all storage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear all cookies
+        document.cookie.split(';').forEach(function(c) {
+          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+        });
+      }
+      
+      // Call server-side sign out
       const response = await fetch('/api/auth/signout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       
       if (response.ok) {
-        // Redirect to auth page after successful sign out
-        window.location.href = '/auth';
+        // Force redirect to auth page
+        window.location.href = '/auth?message=signed-out';
       } else {
         console.error('Sign out failed');
         alert('Sign out failed. Please try again.');
       }
     } catch (error) {
       console.error('Sign out error:', error);
-      alert('Sign out failed. Please try again.');
+      // Force redirect even if API fails
+      window.location.href = '/auth?message=signed-out';
     }
   });
 
   // Handle role-based redirects after authentication
-  import { supabase } from '../lib/supabase-browser';
+  import { getSupabase } from '../lib/supabase-browser';
 
   // Get redirect URL from query params
   const urlParams = new URLSearchParams(window.location.search);
   const redirectTo = urlParams.get('redirect') || '/';
 
   // Listen for auth changes
+  const supabase = getSupabase();
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (session?.user && event === 'SIGNED_IN') {
       try {

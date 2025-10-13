@@ -78,7 +78,7 @@ try {
                 <li><a href="/" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Home</a></li>
                 <li><a href="/start-here" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Start Here</a></li>
                 <li><a href="/videos" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Videos</a></li>
-                <li><a href="/bible" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Bible</a></li>
+                <!-- <li><a href="/bible" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Bible</a></li> -->
                 <li><a href="/blog" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
                 <li><a href="/music" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
                 <li><a href="/books" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
@@ -96,8 +96,9 @@ try {
                       <a href="/profile" class="block px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">Profile</a>
                       <div id="admin-links" class="hidden">
                         <div class="border-t border-neutral-700 my-2"></div>
+                        <a href="/cms" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">CMS Dashboard</a>
                         <a href="/admin-dashboard" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">Admin Dashboard</a>
-                        <a href="/admin" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">Content Management</a>
+                        <a href="/admin" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">User Management</a>
                       </div>
                       <button id="sign-out-btn" class="block w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-700 hover:text-red-400 transition-colors">Sign Out</button>
                     </div>
@@ -118,7 +119,7 @@ try {
             <li><a href="/" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Home</a></li>
             <li><a href="/start-here" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Start Here</a></li>
             <li><a href="/videos" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Videos</a></li>
-            <li><a href="/bible" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Bible</a></li>
+            <!-- <li><a href="/bible" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Bible</a></li> -->
             <li><a href="/blog" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
             <li><a href="/music" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
             <li><a href="/books" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
@@ -128,6 +129,12 @@ try {
               <div class="py-2">
                 <div class="text-sm text-neutral-400 mb-2">Signed in as:</div>
                 <div id="mobile-user-email" class="text-amber-100 font-medium mb-3">{userEmail}</div>
+                <div id="mobile-admin-links" class="hidden">
+                  <div class="border-t border-neutral-700 my-2"></div>
+                  <a href="/cms" class="block py-2 text-amber-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">CMS Dashboard</a>
+                  <a href="/admin-dashboard" class="block py-2 text-amber-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Admin Dashboard</a>
+                  <a href="/admin" class="block py-2 text-amber-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">User Management</a>
+                </div>
                 <div class="space-y-2">
                   <a href="/profile" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Profile</a>
                   <button id="mobile-sign-out-btn" class="block w-full text-left py-2 text-neutral-300 hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Sign Out</button>

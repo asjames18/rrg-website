@@ -3,7 +3,7 @@
  * Handles loading states and errors better
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase-browser';
 
 interface SimpleAuthFormProps {
   mode: 'signin' | 'signup' | 'reset';
@@ -23,11 +23,22 @@ export default function SimpleAuthForm({ mode }: SimpleAuthFormProps) {
     console.log('SimpleAuthForm: Initializing...');
     
     // Check if Supabase is available
-    if (typeof window !== 'undefined' && supabase) {
-      console.log('SimpleAuthForm: Supabase client available');
-      setIsInitialized(true);
+    if (typeof window !== 'undefined') {
+      try {
+        const supabase = getSupabase();
+        if (supabase) {
+          console.log('SimpleAuthForm: Supabase client available');
+          setIsInitialized(true);
+        } else {
+          console.error('SimpleAuthForm: Supabase client not available');
+          setMessage({ type: 'error', text: 'Authentication service not available. Please refresh the page.' });
+        }
+      } catch (error) {
+        console.error('SimpleAuthForm: Error getting Supabase client:', error);
+        setMessage({ type: 'error', text: 'Authentication service not available. Please refresh the page.' });
+      }
     } else {
-      console.error('SimpleAuthForm: Supabase client not available');
+      console.error('SimpleAuthForm: Not in browser environment');
       setMessage({ type: 'error', text: 'Authentication service not available. Please refresh the page.' });
     }
   }, []);

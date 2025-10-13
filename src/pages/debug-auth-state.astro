@@ -94,7 +94,7 @@ try {
       // Check client-side auth state
       async function checkClientAuth() {
         try {
-          const { getSupabase } = await import('/src/lib/supabase-browser');
+          const { getSupabase } = await import('../lib/supabase-browser');
           const supabase = getSupabase();
 
           const { data: { user }, error: userError } = await supabase.auth.getUser();

@@ -1,0 +1,29 @@
+---
+import { supabaseServer } from '../../../lib/supabase-server';
+
+// Check authentication and role
+const supabase = supabaseServer(Astro.cookies);
+const { data: { user } } = await supabase.auth.getUser();
+
+if (!user) {
+  return Astro.redirect('/auth?message=Please sign in to access the CMS');
+}
+
+// Check if user has editor or admin role
+const { data: userRoles } = await supabase
+  .from('user_roles')
+  .select('role')
+  .eq('user_id', user.id);
+
+const isAdmin = userRoles && userRoles.some(role => role.role === 'admin');
+const isEditor = userRoles && userRoles.some(role => ['admin', 'editor'].includes(role.role));
+
+if (!isEditor) {
+  return Astro.redirect('/auth?message=You need editor permissions to access the CMS');
+}
+
+const { id } = Astro.params;
+
+// Redirect to admin portal with content ID parameter
+return Astro.redirect(`/admin?edit=${id}`);
+---

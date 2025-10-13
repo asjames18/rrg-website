@@ -3,7 +3,7 @@
  * Displays user profile information in a card format
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase-browser';
 import type { Profile } from '../lib/supabase';
 
 interface ProfileCardProps {
@@ -18,6 +18,7 @@ export default function ProfileCard({ showActions = true, className = '' }: Prof
 
   useEffect(() => {
     // Get initial user
+    const supabase = getSupabase();
     supabase.auth.getUser().then(({ data: { user } }: { data: { user: any } }) => {
       setUser(user);
       if (user) {
@@ -62,6 +63,7 @@ export default function ProfileCard({ showActions = true, className = '' }: Prof
 
   const handleSignOut = async () => {
     try {
+      const supabase = getSupabase();
       await supabase.auth.signOut();
     } finally {
       try { await fetch('/api/auth/signout', { method: 'POST' }); } catch {}

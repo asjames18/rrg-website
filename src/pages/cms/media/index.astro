@@ -1,0 +1,469 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { supabaseServer } from '../../../lib/supabase-server';
+
+// Check authentication
+const supabase = supabaseServer(Astro.cookies);
+const { data: { user } } = await supabase.auth.getUser();
+
+if (!user) {
+  return Astro.redirect('/auth?message=Please sign in to access the media library');
+}
+
+// Check if user has editor or admin role
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('role')
+  .eq('id', user.id)
+  .single();
+
+if (!profile || !['admin', 'editor'].includes(profile.role)) {
+  return Astro.redirect('/auth?message=You need editor permissions to access the media library');
+}
+---
+
+<Base title="Media Library - CMS">
+  <div class="min-h-screen bg-neutral-950">
+    <!-- Header -->
+    <header class="bg-neutral-900 border-b border-neutral-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center">
+            <a href="/cms" class="text-neutral-400 hover:text-amber-400 transition-colors mr-4">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+            </a>
+            <h1 class="text-2xl font-bold text-amber-100">Media Library</h1>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button 
+              id="upload-btn"
+              class="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Upload Files
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Filters and Search -->
+      <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
+        <div class="flex flex-col md:flex-row gap-4">
+          <div class="flex-1">
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Search media files..."
+              class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-neutral-200 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            />
+          </div>
+          <div class="flex gap-4">
+            <select
+              id="type-filter"
+              class="bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-neutral-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            >
+              <option value="">All Types</option>
+              <option value="image">Images</option>
+              <option value="video">Videos</option>
+              <option value="audio">Audio</option>
+              <option value="document">Documents</option>
+            </select>
+            <select
+              id="sort-filter"
+              class="bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-neutral-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name">Name A-Z</option>
+              <option value="size">Size</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Area -->
+      <div 
+        id="upload-area"
+        class="border-2 border-dashed border-neutral-700 rounded-xl p-12 text-center hover:border-amber-500 transition-colors cursor-pointer mb-6"
+      >
+        <svg class="w-16 h-16 text-neutral-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+        <h3 class="text-xl font-bold text-amber-100 mb-2">Upload Media Files</h3>
+        <p class="text-neutral-400 mb-4">Drag and drop files here, or click to browse</p>
+        <p class="text-sm text-neutral-500">Supports images, videos, audio, and documents up to 10MB each</p>
+        <input
+          type="file"
+          id="file-input"
+          multiple
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+          class="hidden"
+        />
+      </div>
+
+      <!-- Media Grid -->
+      <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-bold text-amber-100">Media Files</h2>
+          <div class="flex items-center space-x-4">
+            <button 
+              id="grid-view"
+              class="p-2 bg-amber-700 text-white rounded-lg"
+              title="Grid View"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+              </svg>
+            </button>
+            <button 
+              id="list-view"
+              class="p-2 bg-neutral-800 text-neutral-400 hover:text-neutral-200 rounded-lg"
+              title="List View"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Media Grid -->
+        <div id="media-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <!-- Media items will be loaded here -->
+          <div class="text-center py-8 col-span-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
+            <p class="text-neutral-400 mt-2">Loading media files...</p>
+          </div>
+        </div>
+
+        <!-- Load More -->
+        <div class="mt-6 text-center">
+          <button 
+            id="load-more"
+            class="bg-amber-700 hover:bg-amber-600 text-white px-6 py-2 rounded-lg transition-colors"
+            style="display: none;"
+          >
+            Load More
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Progress Modal -->
+  <div id="upload-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 max-w-md w-full mx-4">
+      <h3 class="text-lg font-bold text-amber-100 mb-4">Uploading Files</h3>
+      <div id="upload-progress" class="space-y-3">
+        <!-- Progress items will be added here -->
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button 
+          id="close-upload"
+          class="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Media Library JavaScript
+    let currentOffset = 0;
+    const limit = 24;
+    let currentFilters = {
+      search: '',
+      type: '',
+      sort: 'newest'
+    };
+
+    // Load media files
+    async function loadMedia(append = false) {
+      try {
+        const params = new URLSearchParams({
+          limit: limit.toString(),
+          offset: currentOffset.toString(),
+          ...currentFilters
+        });
+
+        const response = await fetch(`/api/cms/media?${params}`);
+        const data = await response.json();
+
+        const mediaGrid = document.getElementById('media-grid');
+        
+        if (!append) {
+          mediaGrid.innerHTML = '';
+        }
+
+        if (data.media.length === 0 && currentOffset === 0) {
+          mediaGrid.innerHTML = `
+            <div class="col-span-full text-center py-12">
+              <svg class="w-16 h-16 text-neutral-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <h3 class="text-lg font-medium text-neutral-300 mb-2">No media files found</h3>
+              <p class="text-neutral-400 mb-4">Upload your first media file to get started.</p>
+            </div>
+          `;
+          return;
+        }
+
+        data.media.forEach(item => {
+          const mediaItem = document.createElement('div');
+          mediaItem.className = 'bg-neutral-800 border border-neutral-700 rounded-lg p-3 hover:border-amber-700 transition-colors cursor-pointer group';
+          
+          const fileIcon = getFileIcon(item.media_type);
+          const fileSize = formatFileSize(item.file_size);
+          
+          mediaItem.innerHTML = `
+            <div class="aspect-square bg-neutral-700 rounded-lg mb-3 flex items-center justify-center group-hover:bg-neutral-600 transition-colors">
+              ${item.media_type === 'image' ? 
+                `<img src="${item.file_url}" alt="${item.alt_text || item.original_name}" class="w-full h-full object-cover rounded-lg" />` :
+                `<div class="text-4xl">${fileIcon}</div>`
+              }
+            </div>
+            <div class="space-y-1">
+              <h4 class="text-sm font-medium text-amber-100 truncate" title="${item.original_name}">
+                ${item.original_name}
+              </h4>
+              <p class="text-xs text-neutral-400">${fileSize}</p>
+              <p class="text-xs text-neutral-500">${new Date(item.created_at).toLocaleDateString()}</p>
+            </div>
+            <div class="mt-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button 
+                onclick="copyUrl('${item.file_url}')"
+                class="flex-1 bg-neutral-700 hover:bg-neutral-600 text-neutral-200 px-2 py-1 rounded text-xs transition-colors"
+                title="Copy URL"
+              >
+                Copy
+              </button>
+              <button 
+                onclick="deleteMedia('${item.id}')"
+                class="flex-1 bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded text-xs transition-colors"
+                title="Delete"
+              >
+                Delete
+              </button>
+            </div>
+          `;
+          
+          mediaGrid.appendChild(mediaItem);
+        });
+
+        // Show/hide load more button
+        const loadMoreBtn = document.getElementById('load-more');
+        if (data.pagination.hasMore) {
+          loadMoreBtn.style.display = 'block';
+          loadMoreBtn.onclick = () => {
+            currentOffset += limit;
+            loadMedia(true);
+          };
+        } else {
+          loadMoreBtn.style.display = 'none';
+        }
+
+      } catch (error) {
+        console.error('Error loading media:', error);
+        document.getElementById('media-grid').innerHTML = `
+          <div class="col-span-full text-center py-8">
+            <p class="text-red-400">Error loading media files. Please try again.</p>
+          </div>
+        `;
+      }
+    }
+
+    // Get file icon based on type
+    function getFileIcon(type) {
+      const icons = {
+        image: '🖼️',
+        video: '🎥',
+        audio: '🎵',
+        document: '📄'
+      };
+      return icons[type] || '📄';
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Copy URL to clipboard
+    function copyUrl(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        // Show toast notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-700 text-white px-4 py-2 rounded-lg z-50';
+        toast.textContent = 'URL copied to clipboard!';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      });
+    }
+
+    // Delete media
+    async function deleteMedia(id) {
+      if (!confirm('Are you sure you want to delete this media file?')) return;
+      
+      try {
+        const response = await fetch(`/api/cms/media?id=${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          loadMedia(false);
+        } else {
+          alert('Error deleting media file');
+        }
+      } catch (error) {
+        console.error('Error deleting media:', error);
+        alert('Error deleting media file');
+      }
+    }
+
+    // File upload handling
+    function setupFileUpload() {
+      const uploadArea = document.getElementById('upload-area');
+      const fileInput = document.getElementById('file-input');
+      const uploadBtn = document.getElementById('upload-btn');
+
+      // Click to upload
+      uploadArea.addEventListener('click', () => fileInput.click());
+      uploadBtn.addEventListener('click', () => fileInput.click());
+
+      // File input change
+      fileInput.addEventListener('change', handleFileUpload);
+
+      // Drag and drop
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('border-amber-500', 'bg-amber-900/10');
+      });
+
+      uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('border-amber-500', 'bg-amber-900/10');
+      });
+
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('border-amber-500', 'bg-amber-900/10');
+        const files = Array.from(e.dataTransfer.files);
+        handleFileUpload({ target: { files } });
+      });
+    }
+
+    // Handle file upload
+    async function handleFileUpload(event) {
+      const files = Array.from(event.target.files);
+      if (files.length === 0) return;
+
+      // Show upload modal
+      const modal = document.getElementById('upload-modal');
+      const progressContainer = document.getElementById('upload-progress');
+      modal.style.display = 'flex';
+
+      // Create progress items
+      progressContainer.innerHTML = files.map(file => `
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-neutral-300">${file.name}</span>
+          <div class="flex items-center space-x-2">
+            <div class="w-24 bg-neutral-700 rounded-full h-2">
+              <div class="bg-amber-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <span class="text-xs text-neutral-400">0%</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Upload files
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const progressBar = progressContainer.children[i].querySelector('.bg-amber-500');
+        const progressText = progressContainer.children[i].querySelector('.text-xs');
+
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percentComplete = (e.loaded / e.total) * 100;
+              progressBar.style.width = `${percentComplete}%`;
+              progressText.textContent = `${Math.round(percentComplete)}%`;
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+              progressBar.classList.remove('bg-amber-500');
+              progressBar.classList.add('bg-green-500');
+              progressText.textContent = 'Complete';
+            } else {
+              progressBar.classList.remove('bg-amber-500');
+              progressBar.classList.add('bg-red-500');
+              progressText.textContent = 'Failed';
+            }
+          });
+
+          xhr.open('POST', '/api/cms/upload');
+          xhr.send(formData);
+
+        } catch (error) {
+          console.error('Error uploading file:', error);
+          progressBar.classList.remove('bg-amber-500');
+          progressBar.classList.add('bg-red-500');
+          progressText.textContent = 'Failed';
+        }
+      }
+
+      // Close modal after uploads
+      document.getElementById('close-upload').addEventListener('click', () => {
+        modal.style.display = 'none';
+        loadMedia(false);
+        fileInput.value = '';
+      });
+    }
+
+    // Filter handling
+    function setupFilters() {
+      const searchInput = document.getElementById('search-input');
+      const typeFilter = document.getElementById('type-filter');
+      const sortFilter = document.getElementById('sort-filter');
+
+      searchInput.addEventListener('input', (e) => {
+        currentFilters.search = e.target.value;
+        currentOffset = 0;
+        loadMedia(false);
+      });
+
+      typeFilter.addEventListener('change', (e) => {
+        currentFilters.type = e.target.value;
+        currentOffset = 0;
+        loadMedia(false);
+      });
+
+      sortFilter.addEventListener('change', (e) => {
+        currentFilters.sort = e.target.value;
+        currentOffset = 0;
+        loadMedia(false);
+      });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadMedia();
+      setupFileUpload();
+      setupFilters();
+    });
+  </script>
+</Base>

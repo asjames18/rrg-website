@@ -1,19 +1,27 @@
 ---
 /**
- * Videos Index Page
- * 
- * TODO: Add series/topic filtering
- * TODO: Add video grid/list view toggle
- * TODO: Add load-more or pagination for performance
+ * Videos Index Page - Now reads from Supabase CMS
  */
 import Base from '../../layouts/Base.astro';
 import UniversalVideoEmbed from '../../components/UniversalVideoEmbed';
-import { getCollection } from 'astro:content';
+import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 
-const videoContent = await getCollection('videos');
-const sortedVideos = videoContent.sort((a, b) => 
-  b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
-);
+// Get video content from Supabase CMS
+let videos = [];
+try {
+  const result = await SupabaseCMSAPI.getContent({
+    type: 'video',
+    status: 'published',
+    limit: 50,
+    sortBy: 'published_at',
+    sortOrder: 'desc'
+  });
+  videos = result.content || [];
+} catch (error) {
+  console.error('Error loading videos from CMS:', error);
+  // Fallback to empty array if CMS fails
+  videos = [];
+}
 ---
 
 <Base title="Videos">
@@ -23,14 +31,14 @@ const sortedVideos = videoContent.sort((a, b) =>
       Watch powerful teachings, testimonies, and training from the remnant. No fluff—just raw truth.
     </p>
     
-    {sortedVideos.length > 0 ? (
+    {videos.length > 0 ? (
       <div class="grid md:grid-cols-2 gap-8 max-w-6xl">
-        {sortedVideos.map((video) => (
+        {videos.map((video) => (
           <article class="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden hover:border-amber-700 transition-colors">
             <UniversalVideoEmbed 
-              platform={video.data.platform}
-              videoId={video.data.videoId}
-              title={video.data.title}
+              platform={video.metadata?.platform || 'youtube'}
+              videoId={video.metadata?.videoId || ''}
+              title={video.title}
               client:load
             />
             <div class="p-6">
@@ -39,27 +47,39 @@ const sortedVideos = videoContent.sort((a, b) =>
                   href={`/videos/${video.slug}`}
                   class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
                 >
-                  {video.data.title}
+                  {video.title}
                 </a>
               </h2>
               
-              {video.data.series.length > 0 && (
+              {video.metadata?.series && video.metadata.series.length > 0 && (
                 <p class="text-sm text-amber-400 mb-2">
-                  Series: {video.data.series.join(', ')}
+                  Series: {Array.isArray(video.metadata.series) ? video.metadata.series.join(', ') : video.metadata.series}
                 </p>
               )}
               
-              <div class="flex flex-wrap gap-2 mb-3">
-                {video.data.topics.map((topic) => (
-                  <span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs px-2 py-1 rounded">
-                    {topic}
-                  </span>
-                ))}
-              </div>
+              {video.metadata?.topics && video.metadata.topics.length > 0 && (
+                <div class="flex flex-wrap gap-2 mb-3">
+                  {Array.isArray(video.metadata.topics) ? video.metadata.topics.map((topic) => (
+                    <span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs px-2 py-1 rounded">
+                      {topic}
+                    </span>
+                  )) : (
+                    <span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs px-2 py-1 rounded">
+                      {video.metadata.topics}
+                    </span>
+                  )}
+                </div>
+              )}
               
-              {video.data.scriptures.length > 0 && (
+              {video.metadata?.scriptures && video.metadata.scriptures.length > 0 && (
                 <p class="text-xs text-neutral-500">
-                  Scriptures: {video.data.scriptures.join(', ')}
+                  Scriptures: {Array.isArray(video.metadata.scriptures) ? video.metadata.scriptures.join(', ') : video.metadata.scriptures}
+                </p>
+              )}
+              
+              {video.summary && (
+                <p class="text-sm text-neutral-400 mt-3">
+                  {video.summary}
                 </p>
               )}
             </div>
@@ -69,6 +89,7 @@ const sortedVideos = videoContent.sort((a, b) =>
     ) : (
       <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center">
         <p class="text-neutral-400">No videos available yet. Check back soon for teachings and testimonies.</p>
+        <p class="text-sm text-neutral-500 mt-2">Videos are managed through the <a href="/admin" class="text-amber-400 hover:text-amber-300">Admin Portal</a>.</p>
       </div>
     )}
 
@@ -77,6 +98,27 @@ const sortedVideos = videoContent.sort((a, b) =>
         <strong class="text-amber-100">Note:</strong> More video content coming soon. 
         This page will feature teachings on spiritual warfare, the Feasts of YAHUAH, end-times prophecy, and more.
       </p>
+    </div>
+
+    <!-- Continue Your Training -->
+    <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8">
+      <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Continue Your Training</h3>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a href="/start-here" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Start Here</h4>
+          <p class="text-neutral-400 text-sm">Begin your journey with the 7-Day Reset</p>
+        </a>
+        
+        <a href="/spiritual-warfare" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Spiritual Warfare</h4>
+          <p class="text-neutral-400 text-sm">Put on the armor and close spiritual doorways</p>
+        </a>
+        
+        <a href="/feasts" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Feasts of YAH</h4>
+          <p class="text-neutral-400 text-sm">Honor the appointed times and understand prophecy</p>
+        </a>
+      </div>
     </div>
   </div>
 </Base>

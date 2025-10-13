@@ -3,7 +3,7 @@
  * Shows user info and sign out option
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase-browser';
 import type { Profile } from '../lib/supabase';
 
 export default function UserProfile() {
@@ -13,6 +13,7 @@ export default function UserProfile() {
 
   useEffect(() => {
     // Get initial user
+    const supabase = getSupabase();
     supabase.auth.getUser().then(({ data: { user } }: { data: { user: any } }) => {
       setUser(user);
       if (user) {
@@ -40,16 +41,57 @@ export default function UserProfile() {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const supabase = getSupabase();
+      
+      // Try profiles table first
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      setProfile(data);
+      if (profileData && !profileError) {
+        setProfile(profileData);
+      } else {
+        console.warn('Profile query failed, trying user_roles table:', profileError);
+        
+        // Fallback: try user_roles table
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId);
+
+        if (userRoles && userRoles.length > 0 && !rolesError) {
+          // Create a minimal profile object from user_roles data
+          setProfile({
+            id: userId,
+            email: user?.email || '',
+            display_name: user?.user_metadata?.full_name || user?.email || '',
+            role: userRoles[0].role,
+            created_at: new Date().toISOString()
+          });
+        } else {
+          console.warn('User roles query also failed:', rolesError);
+          // Set a default profile if both queries fail
+          setProfile({
+            id: userId,
+            email: user?.email || '',
+            display_name: user?.user_metadata?.full_name || user?.email || '',
+            role: 'user',
+            created_at: new Date().toISOString()
+          });
+        }
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // Set a default profile on error
+      setProfile({
+        id: userId,
+        email: user?.email || '',
+        display_name: user?.user_metadata?.full_name || user?.email || '',
+        role: 'user',
+        created_at: new Date().toISOString()
+      });
     } finally {
       setLoading(false);
     }
@@ -57,6 +99,7 @@ export default function UserProfile() {
 
   const handleSignOut = async () => {
     try {
+      const supabase = getSupabase();
       await supabase.auth.signOut();
     } finally {
       try { await fetch('/api/auth/signout', { method: 'POST' }); } catch {}

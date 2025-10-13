@@ -3,7 +3,7 @@
  * Real-time content analytics for admin dashboard
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase-browser';
 
 interface ContentStats {
   blogPosts: number;
@@ -37,7 +37,7 @@ export default function ContentStats() {
         fetch('/api/content-stats?type=videos'),
         fetch('/api/content-stats?type=books'),
         fetch('/api/content-stats?type=music'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true })
+        getSupabase().from('profiles').select('*', { count: 'exact', head: true })
       ]);
 
       const blogData = await blogResult.json();

@@ -3,7 +3,7 @@
  * Handles sign up, sign in, and password reset
  */
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase-browser';
 
 interface AuthFormProps {
   mode: 'signin' | 'signup' | 'reset';
@@ -39,7 +39,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           return;
         }
 
-        const { error } = await supabase.auth.signUp({
+        const { error } = await getSupabase().auth.signUp({
           email,
           password,
         });
@@ -51,7 +51,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           text: 'Check your email for the confirmation link!'
         });
       } else if (currentMode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error } = await getSupabase().auth.signInWithPassword({
           email,
           password,
         });
@@ -65,7 +65,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
         onSuccess?.();
       } else if (currentMode === 'reset') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        const { error } = await getSupabase().auth.resetPasswordForEmail(email);
 
         if (error) throw error;
 

@@ -3,7 +3,7 @@
  * For admins to view and manage user roles
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase-browser';
 
 interface User {
   id: string;
@@ -48,7 +48,7 @@ export default function UserManagement() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Authorization': `Bearer ${(await getSupabase().auth.getSession()).data.session?.access_token}`,
         },
         body: JSON.stringify({ userId, role: newRole }),
       });

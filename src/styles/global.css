@@ -1,7 +1,9 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Custom Theme - War Room Palette */
-@theme {
+:root {
   --color-bg: #0b0b0c;
   --color-ink: #ffffff;
   --color-parchment: #d5c7a1;
