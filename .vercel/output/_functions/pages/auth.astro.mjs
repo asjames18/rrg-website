@@ -1,6 +1,6 @@
 import { c as createComponent, a as createAstro, e as renderTemplate, d as renderComponent, af as maybeRenderHead, aq as Fragment$1 } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_pSiMxjTU.mjs';
+import { $ as $$Base } from '../chunks/Base_D7yHQtjk.mjs';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useState, useEffect } from 'react';
 import { g as getSupabase } from '../chunks/supabase-browser_Cda5YnzV.mjs';

@@ -81,7 +81,7 @@ try {
                 <li><a href="/start-here" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Start Here</a></li>
                 <li><a href="/videos" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Videos</a></li>
                 <li><a href="/blog" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
-                <li><a href="/music" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
+                <!-- <li><a href="/music" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li> -->
                 <li><a href="/books" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
                 
                 <!-- Auth Section -->
@@ -121,7 +121,7 @@ try {
             <li><a href="/start-here" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Start Here</a></li>
             <li><a href="/videos" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Videos</a></li>
             <li><a href="/blog" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
-            <li><a href="/music" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
+           <!-- <li><a href="/music" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li> -->
             <li><a href="/books" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
             
             <!-- Mobile Auth Section -->
@@ -186,5 +186,32 @@ try {
 
 
     <script type="module" src="/src/scripts/header.ts"></script>
+    
+    <!-- Fallback: Ensure mobile menu always works even if module fails to load -->
+    <script is:inline>
+      // Mobile menu toggle - inline to ensure it always works
+      (function() {
+        const toggle = document.getElementById('mobile-menu-toggle');
+        const menu = document.getElementById('mobile-menu');
+        
+        if (toggle && menu) {
+          toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', String(!isExpanded));
+            menu.classList.toggle('hidden');
+          });
+          
+          // Close menu when clicking outside
+          document.addEventListener('click', function(e) {
+            const target = e.target;
+            if (menu && !menu.contains(target) && !toggle.contains(target)) {
+              menu.classList.add('hidden');
+              toggle.setAttribute('aria-expanded', 'false');
+            }
+          });
+        }
+      })();
+    </script>
   </body>
 </html>
