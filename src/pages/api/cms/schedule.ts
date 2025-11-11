@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { logger } from '../../../lib/logger';
+
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -61,7 +63,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
   } catch (error) {
-    console.error('Error scheduling content:', error);
+    logger.error('Error scheduling content:', error);
     return new Response(JSON.stringify({ 
       error: 'Scheduling failed',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -134,7 +136,7 @@ export const GET: APIRoute = async ({ request, url }) => {
     });
 
   } catch (error) {
-    console.error('Error fetching scheduled content:', error);
+    logger.error('Error fetching scheduled content:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch scheduled content',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -175,7 +177,7 @@ export const DELETE: APIRoute = async ({ request, url }) => {
     });
 
   } catch (error) {
-    console.error('Error cancelling schedule:', error);
+    logger.error('Error cancelling schedule:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to cancel schedule',
       message: error instanceof Error ? error.message : 'Unknown error'

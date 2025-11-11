@@ -1,4 +1,6 @@
 /**
+import { logger } from '../../lib/logger';
+
  * API Route: Promote User Role
  * POST /api/promote-user
  * 
@@ -83,7 +85,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
 
   } catch (error) {
-    console.error('Promote user failed:', error);
+    logger.error('Promote user failed:', error);
     return new Response(
       JSON.stringify({
         success: false,

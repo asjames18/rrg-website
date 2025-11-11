@@ -4,6 +4,7 @@
  */
 
 import { supabaseAdmin } from '../supabase-admin';
+import { logger } from '../logger';
 
 export interface ContentItem {
   id: string;
@@ -140,7 +141,7 @@ export class SupabaseCMSAPI {
 
       return stats;
     } catch (error) {
-      console.error('Error fetching CMS stats:', error);
+      logger.error('Error fetching CMS stats:', error);
       throw error;
     }
   }
@@ -235,7 +236,7 @@ export class SupabaseCMSAPI {
         }
       };
     } catch (error) {
-      console.error('Error fetching content:', error);
+      logger.error('Error fetching content:', error);
       throw error;
     }
   }
@@ -260,7 +261,7 @@ export class SupabaseCMSAPI {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching content by ID:', error);
+      logger.error('Error fetching content by ID:', error);
       throw error;
     }
   }
@@ -285,7 +286,7 @@ export class SupabaseCMSAPI {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating content:', error);
+      logger.error('Error creating content:', error);
       throw error;
     }
   }
@@ -311,7 +312,7 @@ export class SupabaseCMSAPI {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating content:', error);
+      logger.error('Error updating content:', error);
       throw error;
     }
   }
@@ -330,7 +331,7 @@ export class SupabaseCMSAPI {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting content:', error);
+      logger.error('Error deleting content:', error);
       throw error;
     }
   }
@@ -350,7 +351,7 @@ export class SupabaseCMSAPI {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      logger.error('Error fetching tags:', error);
       throw error;
     }
   }
@@ -371,7 +372,7 @@ export class SupabaseCMSAPI {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating tag:', error);
+      logger.error('Error creating tag:', error);
       throw error;
     }
   }
@@ -444,7 +445,7 @@ export class SupabaseCMSAPI {
         }
       };
     } catch (error) {
-      console.error('Error fetching media:', error);
+      logger.error('Error fetching media:', error);
       throw error;
     }
   }
@@ -469,7 +470,7 @@ export class SupabaseCMSAPI {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching activities:', error);
+      logger.error('Error fetching activities:', error);
       throw error;
     }
   }
@@ -488,7 +489,7 @@ export class SupabaseCMSAPI {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error bulk updating content:', error);
+      logger.error('Error bulk updating content:', error);
       throw error;
     }
   }
@@ -507,7 +508,7 @@ export class SupabaseCMSAPI {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error bulk deleting content:', error);
+      logger.error('Error bulk deleting content:', error);
       throw error;
     }
   }

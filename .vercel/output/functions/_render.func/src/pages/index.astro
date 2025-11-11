@@ -26,9 +26,6 @@ import Base from '../layouts/Base.astro';
         <a href="/start-here" class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-8 py-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black transition-colors">
           Start Here
         </a>
-        <a href="/bible" class="inline-block bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-amber-100 font-semibold px-8 py-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black transition-colors">
-          Read the Bible
-        </a>
       </div>
     </div>
   </section>
@@ -77,10 +74,6 @@ import Base from '../layouts/Base.astro';
           <p class="text-neutral-400">Watch powerful teachings and testimonies from the remnant.</p>
         </a>
         
-        <a href="/bible" class="group block p-6 bg-neutral-900 rounded-lg shadow-md hover:shadow-xl hover:shadow-amber-900/20 transition-all border border-neutral-800 hover:border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
-          <h3 class="text-xl font-bold mb-3 text-amber-100 group-hover:text-amber-200 transition-colors">Bible Reader</h3>
-          <p class="text-neutral-400">Read Scripture with Sacred Names. Toggle between versions.</p>
-        </a>
       </div>
     </div>
   </section>
@@ -91,9 +84,40 @@ import Base from '../layouts/Base.astro';
       <p class="text-lg md:text-xl text-neutral-300 max-w-2xl mx-auto mb-8">
         The hour is late. The remnant is being called. Will you answer?
       </p>
-      <a href="/start-here" class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-8 py-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black transition-colors">
-        Begin Your Training
-      </a>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+        <a href="/start-here" class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-8 py-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black transition-colors">
+          Begin Your Training
+        </a>
+        <a href="/videos" class="inline-block bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-amber-100 font-semibold px-8 py-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black transition-colors">
+          Watch Teachings
+        </a>
+      </div>
+      
+      <!-- Quick Access to Key Content -->
+      <div class="max-w-4xl mx-auto">
+        <h3 class="text-xl font-bold text-amber-100 mb-6">Quick Access</h3>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <a href="/walk-in-the-spirit" class="group block p-4 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+            <h4 class="text-sm font-bold text-amber-100 group-hover:text-amber-200 mb-1">Walk in the Spirit</h4>
+            <p class="text-neutral-400 text-xs">Daily self-check</p>
+          </a>
+          
+          <a href="/prayer-and-fasting" class="group block p-4 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+            <h4 class="text-sm font-bold text-amber-100 group-hover:text-amber-200 mb-1">Prayer & Fasting</h4>
+            <p class="text-neutral-400 text-xs">Spiritual weapons</p>
+          </a>
+          
+          <a href="/feasts" class="group block p-4 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+            <h4 class="text-sm font-bold text-amber-100 group-hover:text-amber-200 mb-1">Feasts of YAH</h4>
+            <p class="text-neutral-400 text-xs">Appointed times</p>
+          </a>
+          
+          <a href="/end-times" class="group block p-4 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+            <h4 class="text-sm font-bold text-amber-100 group-hover:text-amber-200 mb-1">End-Times</h4>
+            <p class="text-neutral-400 text-xs">Watch & work</p>
+          </a>
+        </div>
+      </div>
     </div>
   </section>
 </Base>

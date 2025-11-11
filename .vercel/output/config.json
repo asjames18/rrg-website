@@ -24,19 +24,55 @@
 			"dest": "_render"
 		},
 		{
-			"src": "^/admin-dashboard/?$",
+			"src": "^/api/admin/analytics/content/([^/]+?)/?$",
 			"dest": "_render"
 		},
 		{
-			"src": "^/admin-login/?$",
+			"src": "^/api/admin/analytics/overview/?$",
 			"dest": "_render"
 		},
 		{
-			"src": "^/admin-promote/?$",
+			"src": "^/api/admin/analytics/trending/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/content/bulk-action/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/dashboard/stats/?$",
 			"dest": "_render"
 		},
 		{
 			"src": "^/api/admin/grant-admin/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/settings/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/users/bulk-action/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/users/export/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/users/([^/]+?)/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/users/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/workflow/change-state/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/admin/workflow/history/([^/]+?)/?$",
 			"dest": "_render"
 		},
 		{
@@ -53,6 +89,66 @@
 		},
 		{
 			"src": "^/api/auth/signup/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/activity/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/blog/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/books/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/bulk/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/content/([^/]+?)/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/content/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/media/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/music/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/relationships/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/schedule/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/stats/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/tags/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/upload/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/users/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/cms/videos/?$",
 			"dest": "_render"
 		},
 		{
@@ -84,6 +180,18 @@
 			"dest": "_render"
 		},
 		{
+			"src": "^/api/user/activity/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/user/change-password/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/user/preferences/?$",
+			"dest": "_render"
+		},
+		{
 			"src": "^/api/verify-db/?$",
 			"dest": "_render"
 		},
@@ -93,10 +201,6 @@
 		},
 		{
 			"src": "^/auth/?$",
-			"dest": "_render"
-		},
-		{
-			"src": "^/bible/?$",
 			"dest": "_render"
 		},
 		{
@@ -112,7 +216,35 @@
 			"dest": "_render"
 		},
 		{
-			"src": "^/debug-auth-state/?$",
+			"src": "^/books(?:/(.*?))?/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/cms/blog/new/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/cms/books/new/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/cms/edit/([^/]+?)/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/cms/media/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/cms/music/new/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/cms/videos/new/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/cms/?$",
 			"dest": "_render"
 		},
 		{
@@ -148,15 +280,15 @@
 			"dest": "_render"
 		},
 		{
+			"src": "^/rss\\.xml/?$",
+			"dest": "_render"
+		},
+		{
 			"src": "^/spiritual-warfare/?$",
 			"dest": "_render"
 		},
 		{
 			"src": "^/start-here/?$",
-			"dest": "_render"
-		},
-		{
-			"src": "^/test-minimal/?$",
 			"dest": "_render"
 		},
 		{

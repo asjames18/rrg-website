@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseServer } from '../../../lib/supabase-server';
+import { logger } from '../../../lib/logger';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -42,6 +43,37 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
+    // Verify file content matches MIME type (magic number check)
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const fileSignature = Array.from(uint8Array.slice(0, 12))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase();
+
+    // File signature validation
+    const signatures: Record<string, string[]> = {
+      'image/jpeg': ['FFD8FF'],
+      'image/png': ['89504E47'],
+      'image/gif': ['47494638'],
+      'image/webp': ['52494646'], // RIFF...WEBP (simplified check)
+      'application/pdf': ['255044462D'], // %PDF-
+    };
+
+    const expectedSignatures = signatures[file.type];
+    if (expectedSignatures) {
+      const matches = expectedSignatures.some(sig => fileSignature.startsWith(sig));
+      if (!matches) {
+        logger.warn(`File signature mismatch for ${file.name}: expected ${file.type}, got signature ${fileSignature}`);
+        return new Response(JSON.stringify({ 
+          error: 'File content does not match declared type' 
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
@@ -64,7 +96,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      logger.error('Upload error:', uploadError);
       return new Response(JSON.stringify({ 
         error: 'Failed to upload file',
         message: uploadError.message
@@ -92,7 +124,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         width = image.naturalWidth;
         height = image.naturalHeight;
       } catch (error) {
-        console.warn('Could not get image dimensions:', error);
+        logger.warn('Could not get image dimensions:', error);
       }
     }
 
@@ -120,7 +152,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .single();
 
     if (dbError) {
-      console.error('Database error:', dbError);
+      logger.error('Database error:', dbError);
       return new Response(JSON.stringify({ 
         error: 'Failed to save file metadata',
         message: dbError.message
@@ -140,7 +172,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    logger.error('Upload error:', error);
     return new Response(JSON.stringify({ 
       error: 'Upload failed',
       message: error instanceof Error ? error.message : 'Unknown error'

@@ -1,0 +1,284 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BookCard from '../../components/BookCard';
+import { getBookCoverUrl, formatRating, getLevelLabel, getLevelBadgeColor, getCategoryIcon } from '../../lib/book-utils';
+
+export async function getStaticPaths() {
+  const bookEntries = await getCollection('books');
+  return bookEntries.map(entry => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+type Props = {
+  entry: CollectionEntry<'books'>;
+};
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const book = entry.data;
+
+// Get related books (same category or topics)
+const allBooks = await getCollection('books');
+const relatedBooks = allBooks
+  .filter(b => b.slug !== entry.slug)
+  .map(b => {
+    let relevanceScore = 0;
+    
+    // Same category gets highest score
+    if (book.category === b.data.category) {
+      relevanceScore += 10;
+    }
+    
+    // Matching topics
+    if (book.topics && b.data.topics) {
+      const matchingTopics = book.topics.filter(t => b.data.topics.includes(t));
+      relevanceScore += matchingTopics.length * 5;
+    }
+    
+    // Same author
+    if (book.author === b.data.author) {
+      relevanceScore += 3;
+    }
+    
+    return { ...b, relevanceScore };
+  })
+  .filter(b => b.relevanceScore > 0)
+  .sort((a, b) => b.relevanceScore - a.relevanceScore)
+  .slice(0, 3);
+
+const coverUrl = getBookCoverUrl(book.isbn, 'L');
+---
+
+<Base title={book.title} description={book.whyRecommended || `${book.title} by ${book.author}`}>
+  <article class="container mx-auto px-4 py-12 md:py-16 max-w-6xl">
+    <div class="grid md:grid-cols-[300px_1fr] gap-8 md:gap-12 mb-12">
+      {/* Book Cover */}
+      <div class="md:sticky md:top-8 md:self-start">
+        <div class="bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-lg overflow-hidden mb-4 aspect-[2/3] flex items-center justify-center">
+          {coverUrl ? (
+            <img
+              src={coverUrl}
+              alt={`${book.title} cover`}
+              class="w-full h-full object-cover"
+              loading="eager"
+            />
+          ) : (
+            <div class="text-center p-6">
+              <svg class="w-24 h-24 mx-auto mb-4 text-amber-700" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>
+              </svg>
+              <p class="text-sm text-neutral-500">Book Cover</p>
+            </div>
+          )}
+        </div>
+
+        {/* Purchase buttons */}
+        <div class="space-y-3">
+          <a 
+            href={book.affiliate.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center justify-center gap-2 bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black w-full"
+          >
+            <span>{book.affiliate.label}</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+          
+          {book.alternativeLinks && book.alternativeLinks.length > 0 && book.alternativeLinks.map((link) => (
+            <a 
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors w-full"
+            >
+              <span>{link.label}</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          ))}
+        </div>
+
+        <p class="text-xs text-neutral-500 text-center mt-4">
+          via {book.affiliate.merchant}
+        </p>
+
+        {/* Book details */}
+        <div class="mt-6 p-4 bg-neutral-900 border border-neutral-800 rounded-lg space-y-2 text-sm">
+          {book.publishedYear && (
+            <div class="flex justify-between">
+              <span class="text-neutral-500">Published:</span>
+              <span class="text-neutral-300">{book.publishedYear}</span>
+            </div>
+          )}
+          {book.publisher && (
+            <div class="flex justify-between">
+              <span class="text-neutral-500">Publisher:</span>
+              <span class="text-neutral-300">{book.publisher}</span>
+            </div>
+          )}
+          {book.pages && (
+            <div class="flex justify-between">
+              <span class="text-neutral-500">Pages:</span>
+              <span class="text-neutral-300">{book.pages}</span>
+            </div>
+          )}
+          {book.isbn && (
+            <div class="flex justify-between">
+              <span class="text-neutral-500">ISBN:</span>
+              <span class="text-neutral-300 text-xs">{book.isbn}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Book Content */}
+      <div>
+        <header class="mb-8">
+          <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">
+            {book.title}
+          </h1>
+          
+          <p class="text-xl text-neutral-400 mb-4">by {book.author}</p>
+
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            {book.rating && (
+              <div class="text-amber-400 text-lg">
+                {formatRating(book.rating)}
+              </div>
+            )}
+            <span class={`text-sm px-3 py-1.5 rounded border ${getLevelBadgeColor(book.level)}`}>
+              {getLevelLabel(book.level)}
+            </span>
+            <span class="text-sm bg-neutral-800 border border-neutral-700 text-neutral-300 px-3 py-1.5 rounded">
+              {getCategoryIcon(book.category)} {book.category}
+            </span>
+            {book.featured && (
+              <span class="text-sm bg-amber-900/30 border border-amber-800 text-amber-200 px-3 py-1.5 rounded">
+                ★ Essential Reading
+              </span>
+            )}
+          </div>
+
+          {book.whyRecommended && (
+            <div class="p-6 bg-amber-900/20 border border-amber-800/50 rounded-lg mb-6">
+              <h2 class="text-lg font-bold text-amber-100 mb-3">Why We Recommend This Book</h2>
+              <p class="text-amber-100 leading-relaxed">
+                {book.whyRecommended}
+              </p>
+            </div>
+          )}
+
+          {book.topics.length > 0 && (
+            <div class="mb-6">
+              <h3 class="text-sm font-semibold text-neutral-500 mb-2">TOPICS COVERED</h3>
+              <div class="flex flex-wrap gap-2">
+                {book.topics.map((topic) => (
+                  <span class="inline-block bg-amber-900/30 border border-amber-800 text-amber-200 text-sm px-3 py-1.5 rounded">
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {book.warnings && (
+            <div class="p-4 bg-red-900/20 border border-red-800/50 rounded-lg mb-6">
+              <h3 class="text-sm font-bold text-red-200 mb-2">⚠️ Note</h3>
+              <p class="text-sm text-red-200/80">
+                {book.warnings}
+              </p>
+            </div>
+          )}
+        </header>
+
+        {/* Book description (MDX content) */}
+        <div class="prose prose-lg prose-invert max-w-none">
+          <Content />
+        </div>
+      </div>
+    </div>
+
+    {/* Share Buttons */}
+    <div class="mt-12 pt-8 border-t border-neutral-800">
+      <h3 class="text-lg font-bold text-amber-100 mb-4">Share This Book</h3>
+      <div class="flex gap-3">
+        <button 
+          onclick={`navigator.share ? navigator.share({title: '${book.title}', url: window.location.href}) : navigator.clipboard.writeText(window.location.href)`}
+          class="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-700 text-neutral-300 hover:text-amber-200 rounded-lg transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+          <span>Share</span>
+        </button>
+        <button 
+          onclick={`navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!'))`}
+          class="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-700 text-neutral-300 hover:text-amber-200 rounded-lg transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span>Copy Link</span>
+        </button>
+      </div>
+    </div>
+
+    {/* Related Books */}
+    {relatedBooks.length > 0 && (
+      <div class="mt-12 pt-8 border-t border-neutral-800">
+        <h3 class="text-2xl font-bold text-amber-100 mb-6">Related Books</h3>
+        <div class="grid md:grid-cols-3 gap-6">
+          {relatedBooks.map((relatedBook) => (
+            <BookCard book={relatedBook} viewMode="grid" client:load />
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Footer / Continue Training */}
+    <footer class="mt-12 pt-8 border-t border-neutral-800">
+      <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-6 md:p-8">
+        <h3 class="text-xl font-bold text-amber-100 mb-3">Continue Your Training</h3>
+        <p class="text-neutral-300 mb-4">
+          Keep growing in your walk with YAHUSHA. Explore more resources and teachings.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a 
+            href="/books" 
+            class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
+          >
+            ← All Books
+          </a>
+          <a 
+            href="/videos" 
+            class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
+          >
+            Watch Videos
+          </a>
+          <a 
+            href="/blog" 
+            class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
+          >
+            Read the Blog
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    {/* Affiliate Disclosure */}
+    <div class="mt-8 bg-amber-900/20 border border-amber-800/50 rounded-lg p-4">
+      <p class="text-neutral-300 text-xs text-center">
+        <span class="text-amber-100 font-semibold">★ Affiliate Disclosure:</span> 
+        When you purchase through our links, we may earn a commission at no extra cost to you. 
+        This helps support the ministry and keeps resources free.
+      </p>
+    </div>
+  </article>
+</Base>
+

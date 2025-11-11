@@ -30,8 +30,6 @@ async function checkUserRoleAndShowAdminLinks(email: string) {
       if (profile && !profileError) {
         isAdmin = profile.role === 'admin' || profile.role === 'editor';
       } else {
-        console.warn('Profile query failed, trying user_roles table:', profileError);
-        
         // Fallback: try user_roles table
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
@@ -41,12 +39,10 @@ async function checkUserRoleAndShowAdminLinks(email: string) {
         if (userRoles && userRoles.length > 0 && !rolesError) {
           isAdmin = userRoles[0].role === 'admin' || userRoles[0].role === 'editor';
         } else {
-          console.warn('User roles query also failed:', rolesError);
           isAdmin = false;
         }
       }
     } catch (queryError) {
-      console.warn('Role check query error:', queryError);
       isAdmin = false;
     }
     
@@ -70,7 +66,6 @@ async function checkUserRoleAndShowAdminLinks(email: string) {
       }
     }
   } catch (error) {
-    console.warn('Error checking user role:', error);
     // Hide admin links on error
     document.getElementById('admin-links')?.classList.add('hidden');
     document.getElementById('mobile-admin-links')?.classList.add('hidden');
@@ -84,12 +79,9 @@ const bootstrapSession = (async () => {
     const body = document.body;
     const sessionData = body.getAttribute('data-initial-session');
     const bootstrap = sessionData ? JSON.parse(sessionData) : null;
-    console.log('🔍 Auth Debug: Bootstrap session data:', bootstrap ? 'present' : 'missing');
     if (bootstrap?.access_token && bootstrap?.refresh_token) {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔍 Auth Debug: Current session before bootstrap:', session ? 'exists' : 'missing');
       if (!session) {
-        console.log('🔍 Auth Debug: Setting session from bootstrap');
         await supabase.auth.setSession({
           access_token: bootstrap.access_token,
           refresh_token: bootstrap.refresh_token,
@@ -97,7 +89,7 @@ const bootstrapSession = (async () => {
       }
     }
   } catch (err) {
-    console.warn('Bootstrap session failed', err);
+    // Silently fail bootstrap
   }
 })();
 
@@ -122,14 +114,11 @@ async function getVerifiedUser() {
 }
 
 async function syncAuthUI(session?: { user?: { email?: string | null } | null } | null) {
-  console.log('🔍 Auth Debug: syncAuthUI called with session:', session?.user?.email || 'no session');
   if (session?.user?.email) {
-    console.log('🔍 Auth Debug: Using session email:', session.user.email);
     showSignedInState(session.user.email);
     return;
   }
   const u = await getVerifiedUser();
-  console.log('🔍 Auth Debug: getVerifiedUser returned:', u?.email || 'no user');
   u ? showSignedInState(u.email || '') : showSignedOutState();
 }
 
@@ -184,7 +173,6 @@ function showSignedOutState() {
 
 // initial check (wait until bootstrap completes so server session can hydrate)
 waitForBootstrap().finally(() => {
-  console.log('🔍 Auth Debug: Bootstrap completed, syncing UI');
   syncAuthUI();
 });
 

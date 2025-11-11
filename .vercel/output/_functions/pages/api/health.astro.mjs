@@ -27,7 +27,7 @@ async function GET() {
       }
     });
   } catch (error) {
-    console.error("Health check failed:", error);
+    logger.error("Health check failed:", error);
     return new Response(JSON.stringify({
       ok: false,
       status: "error",

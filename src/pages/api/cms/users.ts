@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { logger } from '../../../lib/logger';
+
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 
 export const GET: APIRoute = async ({ request, cookies }) => {
@@ -42,7 +44,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       .order('created_at', { ascending: false });
 
     if (profilesError) {
-      console.error('Error fetching users:', profilesError);
+      logger.error('Error fetching users:', profilesError);
       return new Response(JSON.stringify({ error: 'Failed to fetch users' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -64,7 +66,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     });
 
   } catch (error) {
-    console.error('Users API error:', error);
+    logger.error('Users API error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -121,7 +123,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       .eq('user_id', userId);
 
     if (profileError || userRoleError) {
-      console.error('Error updating user role:', profileError || userRoleError);
+      logger.error('Error updating user role:', profileError || userRoleError);
       return new Response(JSON.stringify({ error: 'Failed to update user role' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -134,7 +136,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     });
 
   } catch (error) {
-    console.error('Update user role error:', error);
+    logger.error('Update user role error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

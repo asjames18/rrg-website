@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { logger } from '../../../lib/logger';
+
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -125,7 +127,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
   } catch (error) {
-    console.error('Error processing bulk operation:', error);
+    logger.error('Error processing bulk operation:', error);
     return new Response(JSON.stringify({ 
       error: 'Bulk operation failed',
       message: error instanceof Error ? error.message : 'Unknown error'

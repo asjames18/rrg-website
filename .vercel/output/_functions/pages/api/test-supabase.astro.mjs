@@ -1,9 +1,10 @@
-import { s as supabaseServer } from '../../chunks/supabase-server_ssb-PSP4.mjs';
+import { s as supabaseServer } from '../../chunks/supabase-server_CrvNcPIF.mjs';
 export { renderers } from '../../renderers.mjs';
 
-const GET = async () => {
+const GET = async ({ cookies }) => {
   try {
-    const { error, count } = await supabaseServer.from("posts").select("*", { count: "exact", head: true });
+    const supabase = supabaseServer(cookies);
+    const { error, count } = await supabase.from("posts").select("*", { count: "exact", head: true });
     if (error) {
       return new Response(JSON.stringify({
         success: false,

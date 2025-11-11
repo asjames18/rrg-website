@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { SupabaseCMSAPI } from '../../../lib/cms/supabase-cms-api';
+import { logger } from '../../../lib/logger';
 
 export const GET: APIRoute = async ({ url }) => {
   try {
@@ -27,7 +28,7 @@ export const GET: APIRoute = async ({ url }) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching media:', error);
+    logger.error('Error fetching media:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch media',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -61,7 +62,7 @@ export const DELETE: APIRoute = async ({ url }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error deleting media:', error);
+    logger.error('Error deleting media:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to delete media',
       message: error instanceof Error ? error.message : 'Unknown error'

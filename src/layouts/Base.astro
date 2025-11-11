@@ -2,7 +2,6 @@
 /**
  * Base Layout Component
  * 
- * TODO: Add Pagefind search integration in header (https://pagefind.app)
  * TODO: Add newsletter signup form in footer (with privacy-first email service)
  * TODO: Consider adding dark/light theme toggle (currently dark-only)
  */
@@ -56,6 +55,9 @@ try {
               src="/rrg-logo.jpg" 
               alt="RRG Logo - Lion with Flame Crown" 
               class="h-12 w-12 object-contain"
+              width="48"
+              height="48"
+              loading="lazy"
             />
             <span class="text-xl font-bold text-amber-100 group-hover:text-amber-200 transition-colors hidden sm:block">
               Real & Raw Gospel
@@ -78,7 +80,6 @@ try {
                 <li><a href="/" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Home</a></li>
                 <li><a href="/start-here" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Start Here</a></li>
                 <li><a href="/videos" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Videos</a></li>
-                <!-- <li><a href="/bible" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Bible</a></li> -->
                 <li><a href="/blog" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
                 <li><a href="/music" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
                 <li><a href="/books" class="text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>
@@ -119,7 +120,6 @@ try {
             <li><a href="/" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Home</a></li>
             <li><a href="/start-here" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Start Here</a></li>
             <li><a href="/videos" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Videos</a></li>
-            <!-- <li><a href="/bible" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Bible</a></li> -->
             <li><a href="/blog" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Blog</a></li>
             <li><a href="/music" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Music</a></li>
             <li><a href="/books" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Books</a></li>

@@ -14,8 +14,17 @@ const blog = defineCollection({
     slug: z.string().optional(),
     tags: z.array(z.string()).default([]),
     summary: z.string(),
+    excerpt: z.string().optional(),
     publishedAt: z.date(),
+    updatedAt: z.date().optional(),
     readingTime: z.number().int().min(1),
+    author: z.string().default('Real & Raw Gospel'),
+    authorBio: z.string().optional(),
+    featured: z.boolean().default(false),
+    category: z.string().default('General'),
+    coverImage: z.string().optional(),
+    scriptures: z.array(z.string()).default([]),
+    relatedPosts: z.array(z.string()).default([]),
   }),
 });
 
@@ -38,13 +47,29 @@ const books = defineCollection({
   schema: z.object({
     title: z.string(),
     author: z.string(),
+    isbn: z.string().optional(),
+    rating: z.number().min(1).max(5).optional(),
+    level: z.enum(['beginner', 'intermediate', 'advanced']).default('intermediate'),
+    category: z.string().default('General'),
+    publishedYear: z.number().optional(),
+    publisher: z.string().optional(),
+    pages: z.number().optional(),
+    whyRecommended: z.string().optional(),
+    warnings: z.string().optional(),
     affiliate: z.object({
       label: z.string(),
       url: z.string(),
       merchant: z.string(),
     }),
+    alternativeLinks: z.array(z.object({
+      label: z.string(),
+      url: z.string(),
+      merchant: z.string(),
+    })).optional().default([]),
     topics: z.array(z.string()).default([]),
     slug: z.string().optional(),
+    featured: z.boolean().default(false),
+    addedDate: z.date().optional(),
   }),
 });
 

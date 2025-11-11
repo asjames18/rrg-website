@@ -1,82 +1,466 @@
 ---
 /**
- * Videos Index Page
- * 
- * TODO: Add series/topic filtering
- * TODO: Add video grid/list view toggle
- * TODO: Add load-more or pagination for performance
+ * Videos Index Page - Enhanced with filtering, search, pagination
  */
 import Base from '../../layouts/Base.astro';
-import UniversalVideoEmbed from '../../components/UniversalVideoEmbed';
-import { getCollection } from 'astro:content';
+import VideoCard from '../../components/VideoCard';
+import VideoFilters from '../../components/VideoFilters';
+import VideoSkeleton from '../../components/VideoSkeleton';
+import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 
-const videoContent = await getCollection('videos');
-const sortedVideos = videoContent.sort((a, b) => 
-  b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
-);
+// Get video content from Supabase CMS
+let videos: any[] = [];
+let error: any = null;
+try {
+  const result = await SupabaseCMSAPI.getContent({
+    type: 'video',
+    status: 'published',
+    limit: 200, // Fetch more for client-side filtering
+    sortBy: 'published_at',
+    sortOrder: 'desc'
+  });
+  videos = result.content || [];
+} catch (e) {
+  error = e;
+  videos = [];
+}
+
+// Get URL parameters for initial state
+const searchParams = Astro.url.searchParams;
+const initialPage = parseInt(searchParams.get('page') || '1', 10);
+const initialViewMode = (searchParams.get('view') || 'grid') as 'grid' | 'list';
+const initialSearch = searchParams.get('q') || '';
+const initialSeries = searchParams.get('series')?.split(',').filter(Boolean) || [];
+const initialTopics = searchParams.get('topics')?.split(',').filter(Boolean) || [];
+const initialPlatforms = searchParams.get('platforms')?.split(',').filter(Boolean) || [];
+const initialSort = (searchParams.get('sort') || 'newest') as 'newest' | 'oldest' | 'title-asc' | 'title-desc';
+
+// Check for series grouping
+const groupBySeries = searchParams.get('groupBy') === 'series';
+
+// Extract unique series for grouping
+const allSeries = Array.from(new Set(
+  videos.flatMap(v => v.metadata?.series || [])
+)).sort();
 ---
 
 <Base title="Videos">
   <div class="container mx-auto px-4 py-12 md:py-16">
-    <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Videos</h1>
-    <p class="text-lg md:text-xl text-neutral-300 mb-12 max-w-3xl">
-      Watch powerful teachings, testimonies, and training from the remnant. No fluff—just raw truth.
-    </p>
-    
-    {sortedVideos.length > 0 ? (
-      <div class="grid md:grid-cols-2 gap-8 max-w-6xl">
-        {sortedVideos.map((video) => (
-          <article class="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden hover:border-amber-700 transition-colors">
-            <UniversalVideoEmbed 
-              platform={video.data.platform}
-              videoId={video.data.videoId}
-              title={video.data.title}
-              client:load
-            />
-            <div class="p-6">
-              <h2 class="text-xl font-bold mb-2 text-amber-100">
-                <a 
-                  href={`/videos/${video.slug}`}
-                  class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
-                >
-                  {video.data.title}
-                </a>
-              </h2>
-              
-              {video.data.series.length > 0 && (
-                <p class="text-sm text-amber-400 mb-2">
-                  Series: {video.data.series.join(', ')}
-                </p>
-              )}
-              
-              <div class="flex flex-wrap gap-2 mb-3">
-                {video.data.topics.map((topic) => (
-                  <span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs px-2 py-1 rounded">
-                    {topic}
-                  </span>
-                ))}
-              </div>
-              
-              {video.data.scriptures.length > 0 && (
-                <p class="text-xs text-neutral-500">
-                  Scriptures: {video.data.scriptures.join(', ')}
-                </p>
-              )}
-            </div>
-          </article>
-        ))}
+    <div class="mb-12">
+      <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Videos</h1>
+      <p class="text-lg md:text-xl text-neutral-300 mb-6 max-w-3xl">
+        Watch powerful teachings, testimonies, and training from the remnant. No fluff—just raw truth.
+      </p>
+    </div>
+
+    {error ? (
+      <div class="bg-red-900/20 border border-red-800/50 rounded-lg p-8 text-center">
+        <p class="text-red-400 mb-4">Error loading videos. Please try again later.</p>
+        <button 
+          onclick="window.location.reload()"
+          class="px-6 py-3 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors"
+        >
+          Retry
+        </button>
       </div>
     ) : (
-      <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center">
-        <p class="text-neutral-400">No videos available yet. Check back soon for teachings and testimonies.</p>
+      <div id="videos-app" 
+        data-videos={JSON.stringify(videos)}
+        data-initial-page={initialPage}
+        data-initial-view-mode={initialViewMode}
+        data-initial-search={initialSearch}
+        data-initial-series={JSON.stringify(initialSeries)}
+        data-initial-topics={JSON.stringify(initialTopics)}
+        data-initial-platforms={JSON.stringify(initialPlatforms)}
+        data-initial-sort={initialSort}
+        data-group-by-series={groupBySeries}
+      >
+        <div class="space-y-8">
+          {/* Filters will be rendered by React */}
+          <div id="filters-container"></div>
+
+          {/* Series grouping toggle */}
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-2 text-neutral-300 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  id="group-by-series"
+                  class="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-amber-700 focus:ring-amber-500 focus:ring-offset-neutral-950"
+                />
+                <span>Group by Series</span>
+              </label>
+            </div>
+            <div id="results-count" class="text-sm text-neutral-500"></div>
+          </div>
+
+          {/* Videos grid/list */}
+          <div id="videos-container">
+            {/* Loading skeleton shown initially */}
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <VideoSkeleton count={6} viewMode="grid" client:only="react" />
+            </div>
+          </div>
+
+          {/* Pagination */}
+          <div id="pagination-container"></div>
+        </div>
       </div>
     )}
 
-    <div class="mt-12 bg-amber-900/20 border border-amber-800/50 rounded-lg p-6 max-w-3xl">
-      <p class="text-neutral-300">
-        <strong class="text-amber-100">Note:</strong> More video content coming soon. 
-        This page will feature teachings on spiritual warfare, the Feasts of YAHUAH, end-times prophecy, and more.
-      </p>
+    {/* Continue Your Training section */}
+    <div class="mt-16 bg-neutral-950 border border-neutral-800 rounded-lg p-8">
+      <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Continue Your Training</h3>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a href="/start-here" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Start Here</h4>
+          <p class="text-neutral-400 text-sm">Begin your journey with the 7-Day Reset</p>
+        </a>
+        
+        <a href="/spiritual-warfare" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Spiritual Warfare</h4>
+          <p class="text-neutral-400 text-sm">Put on the armor and close spiritual doorways</p>
+        </a>
+        
+        <a href="/feasts" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Feasts of YAH</h4>
+          <p class="text-neutral-400 text-sm">Honor the appointed times and understand prophecy</p>
+        </a>
+      </div>
     </div>
   </div>
+
+  <script>
+    import VideoCard from '../../components/VideoCard';
+    import VideoFilters from '../../components/VideoFilters';
+    import type { FilterState, SortOption } from '../../components/VideoFilters';
+    import { createRoot } from 'react-dom/client';
+    import { createElement } from 'react';
+
+    // Get the app container
+    const appContainer = document.getElementById('videos-app');
+    if (!appContainer) throw new Error('Videos app container not found');
+
+    // Parse initial data
+    const videos = JSON.parse(appContainer.dataset.videos || '[]');
+    const initialPage = parseInt(appContainer.dataset.initialPage || '1', 10);
+    const initialViewMode = (appContainer.dataset.initialViewMode || 'grid') as 'grid' | 'list';
+    const initialSearch = appContainer.dataset.initialSearch || '';
+    const initialSeries = JSON.parse(appContainer.dataset.initialSeries || '[]');
+    const initialTopics = JSON.parse(appContainer.dataset.initialTopics || '[]');
+    const initialPlatforms = JSON.parse(appContainer.dataset.initialPlatforms || '[]');
+    const initialSort = (appContainer.dataset.initialSort || 'newest') as SortOption;
+    const groupBySeries = appContainer.dataset.groupBySeries === 'true';
+
+    // State
+    let currentPage = initialPage;
+    let viewMode = initialViewMode;
+    let searchTerm = initialSearch;
+    let filters: FilterState = {
+      series: initialSeries,
+      topics: initialTopics,
+      platforms: initialPlatforms,
+    };
+    let sortBy: SortOption = initialSort;
+    let groupBySeriesEnabled = groupBySeries;
+
+    const videosPerPage = 12;
+
+    // Update URL with current state
+    function updateURL() {
+      const params = new URLSearchParams();
+      if (currentPage > 1) params.set('page', String(currentPage));
+      if (viewMode !== 'grid') params.set('view', viewMode);
+      if (searchTerm) params.set('q', searchTerm);
+      if (filters.series.length > 0) params.set('series', filters.series.join(','));
+      if (filters.topics.length > 0) params.set('topics', filters.topics.join(','));
+      if (filters.platforms.length > 0) params.set('platforms', filters.platforms.join(','));
+      if (sortBy !== 'newest') params.set('sort', sortBy);
+      if (groupBySeriesEnabled) params.set('groupBy', 'series');
+      
+      const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
+      window.history.pushState({}, '', newURL);
+    }
+
+    // Filter and sort videos
+    function getFilteredVideos() {
+      let filtered = [...videos];
+
+      // Apply search
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        filtered = filtered.filter(v => 
+          v.title.toLowerCase().includes(search) ||
+          (v.summary || '').toLowerCase().includes(search) ||
+          (v.metadata?.topics || []).some((t: string) => t.toLowerCase().includes(search))
+        );
+      }
+
+      // Apply filters
+      if (filters.series.length > 0) {
+        filtered = filtered.filter(v =>
+          v.metadata?.series?.some((s: string) => filters.series.includes(s))
+        );
+      }
+
+      if (filters.topics.length > 0) {
+        filtered = filtered.filter(v =>
+          v.metadata?.topics?.some((t: string) => filters.topics.includes(t))
+        );
+      }
+
+      if (filters.platforms.length > 0) {
+        filtered = filtered.filter(v =>
+          filters.platforms.includes(v.metadata?.platform || 'youtube')
+        );
+      }
+
+      // Apply sorting
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'newest':
+            return new Date(b.published_at || b.created_at).getTime() - 
+                   new Date(a.published_at || a.created_at).getTime();
+          case 'oldest':
+            return new Date(a.published_at || a.created_at).getTime() - 
+                   new Date(b.published_at || b.created_at).getTime();
+          case 'title-asc':
+            return a.title.localeCompare(b.title);
+          case 'title-desc':
+            return b.title.localeCompare(a.title);
+          default:
+            return 0;
+        }
+      });
+
+      return filtered;
+    }
+
+    // Render videos
+    function renderVideos() {
+      const filtered = getFilteredVideos();
+      const totalPages = Math.ceil(filtered.length / videosPerPage);
+      
+      // Reset to page 1 if current page is out of bounds
+      if (currentPage > totalPages) {
+        currentPage = Math.max(1, totalPages);
+      }
+
+      const startIndex = (currentPage - 1) * videosPerPage;
+      const endIndex = startIndex + videosPerPage;
+      const paginatedVideos = filtered.slice(startIndex, endIndex);
+
+      // Update results count
+      const resultsCount = document.getElementById('results-count');
+      if (resultsCount) {
+        resultsCount.textContent = `${filtered.length} video${filtered.length !== 1 ? 's' : ''}`;
+      }
+
+      // Render videos
+      const container = document.getElementById('videos-container');
+      if (!container) return;
+
+      if (groupBySeriesEnabled && filters.series.length === 0) {
+        // Group by series
+        const seriesGroups = new Map<string, any[]>();
+        paginatedVideos.forEach(video => {
+          const videoSeries = video.metadata?.series || ['Uncategorized'];
+          videoSeries.forEach((s: string) => {
+            if (!seriesGroups.has(s)) {
+              seriesGroups.set(s, []);
+            }
+            seriesGroups.get(s)!.push(video);
+          });
+        });
+
+        container.innerHTML = '';
+        seriesGroups.forEach((seriesVideos, seriesName) => {
+          const seriesSection = document.createElement('div');
+          seriesSection.className = 'mb-12';
+          
+          const seriesTitle = document.createElement('h2');
+          seriesTitle.className = 'text-2xl font-bold text-amber-100 mb-6';
+          seriesTitle.textContent = seriesName;
+          seriesSection.appendChild(seriesTitle);
+
+          const seriesGrid = document.createElement('div');
+          seriesGrid.className = viewMode === 'grid' 
+            ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6'
+            : 'space-y-4';
+
+          seriesVideos.forEach(video => {
+            const videoDiv = document.createElement('div');
+            const root = createRoot(videoDiv);
+            root.render(createElement(VideoCard, { video, viewMode }));
+            seriesGrid.appendChild(videoDiv);
+          });
+
+          seriesSection.appendChild(seriesGrid);
+          container.appendChild(seriesSection);
+        });
+      } else {
+        // Regular grid/list
+        container.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.className = viewMode === 'grid' 
+          ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6'
+          : 'space-y-4';
+
+        if (paginatedVideos.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full bg-neutral-900 border border-neutral-800 rounded-lg p-12 text-center">
+              <svg class="w-16 h-16 text-neutral-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <p class="text-neutral-400 text-lg mb-2">No videos found</p>
+              <p class="text-neutral-500 text-sm">Try adjusting your filters or search terms</p>
+            </div>
+          `;
+        } else {
+          paginatedVideos.forEach(video => {
+            const videoDiv = document.createElement('div');
+            const root = createRoot(videoDiv);
+            root.render(createElement(VideoCard, { video, viewMode }));
+            grid.appendChild(videoDiv);
+          });
+        }
+
+        container.appendChild(grid);
+      }
+
+      // Render pagination
+      renderPagination(totalPages);
+      updateURL();
+    }
+
+    // Render pagination
+    function renderPagination(totalPages: number) {
+      const container = document.getElementById('pagination-container');
+      if (!container || totalPages <= 1) {
+        if (container) container.innerHTML = '';
+        return;
+      }
+
+      const pagesToShow = new Set<number>();
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages) {
+          pagesToShow.add(i);
+        } else {
+          const diff = Math.abs(i - currentPage);
+          if (diff <= 1) {
+            pagesToShow.add(i);
+          }
+        }
+      }
+
+      let paginationHTML = '<nav class="flex items-center justify-center gap-2" aria-label="Video pagination">';
+      
+      // Previous button
+      if (currentPage > 1) {
+        paginationHTML += `
+          <button data-page="${currentPage - 1}" class="pagination-btn px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition-colors">
+            Previous
+          </button>
+        `;
+      }
+
+      // Page numbers
+      paginationHTML += '<div class="flex gap-2">';
+      for (let page = 1; page <= totalPages; page++) {
+        if (pagesToShow.has(page)) {
+          const isActive = page === currentPage;
+          paginationHTML += `
+            <button 
+              data-page="${page}"
+              class="pagination-btn px-4 py-2 rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-amber-700 text-white'
+                  : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300'
+              }"
+              ${isActive ? 'aria-current="page"' : ''}
+            >
+              ${page}
+            </button>
+          `;
+        } else {
+          const prevPage = currentPage - 2;
+          const nextPage = currentPage + 2;
+          if (page === prevPage || page === nextPage) {
+            paginationHTML += '<span class="px-2 text-neutral-500">...</span>';
+          }
+        }
+      }
+      paginationHTML += '</div>';
+
+      // Next button
+      if (currentPage < totalPages) {
+        paginationHTML += `
+          <button data-page="${currentPage + 1}" class="pagination-btn px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition-colors">
+            Next
+          </button>
+        `;
+      }
+
+      paginationHTML += '</nav>';
+      container.innerHTML = paginationHTML;
+
+      // Add click handlers
+      container.querySelectorAll('.pagination-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const page = parseInt((e.target as HTMLElement).dataset.page || '1', 10);
+          currentPage = page;
+          renderVideos();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
+    // Render filters
+    const filtersContainer = document.getElementById('filters-container');
+    if (filtersContainer) {
+      const root = createRoot(filtersContainer);
+      root.render(
+        createElement(VideoFilters, {
+          videos,
+          onFilterChange: (newFilters: FilterState) => {
+            filters = newFilters;
+            currentPage = 1;
+            renderVideos();
+          },
+          onSearchChange: (search: string) => {
+            searchTerm = search;
+            currentPage = 1;
+            renderVideos();
+          },
+          onSortChange: (sort: SortOption) => {
+            sortBy = sort;
+            renderVideos();
+          },
+          onViewModeChange: (mode: 'grid' | 'list') => {
+            viewMode = mode;
+            renderVideos();
+          },
+          viewMode,
+        })
+      );
+    }
+
+    // Group by series toggle
+    const groupToggle = document.getElementById('group-by-series');
+    if (groupToggle) {
+      (groupToggle as HTMLInputElement).checked = groupBySeriesEnabled;
+      groupToggle.addEventListener('change', (e) => {
+        groupBySeriesEnabled = (e.target as HTMLInputElement).checked;
+        renderVideos();
+      });
+    }
+
+    // Initial render
+    renderVideos();
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      window.location.reload();
+    });
+  </script>
 </Base>

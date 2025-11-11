@@ -1,6 +1,6 @@
-import { c as createComponent, r as renderComponent, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_BKIoqdNA.mjs';
+import { c as createComponent, d as renderComponent, e as renderTemplate, af as maybeRenderHead } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_Bd7Ja63m.mjs';
+import { $ as $$Base } from '../chunks/Base_BI6EUuN9.mjs';
 export { renderers } from '../renderers.mjs';
 
 const $$WalkInTheSpirit = createComponent(($$result, $$props, $$slots) => {
@@ -13,7 +13,7 @@ Ask yourself these three questions every morning and evening:
 </p> </div> <h2>The Fruit Will Follow</h2> <p class="text-neutral-300">
 When you truly walk by the Spirit, His fruit will manifest: love, joy, peace, patience, kindness, goodness, faithfulness, gentleness, and self-control. 
         You won't have to force it—it's the natural result of abiding in Him.
-</p> </div> </div> ` })}`;
+</p> <!-- Next Steps --> <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8"> <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Strengthen Your Walk</h3> <div class="grid md:grid-cols-2 gap-6"> <a href="/prayer-and-fasting" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Prayer & Fasting</h4> <p class="text-neutral-400 text-sm">Sharpen your spiritual senses through prayer and fasting</p> </a> <a href="/spiritual-warfare" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Spiritual Warfare</h4> <p class="text-neutral-400 text-sm">Put on the armor and close spiritual doorways</p> </a> </div> </div> </div> </div> ` })}`;
 }, "/Users/asjames18/Development/RRG Website/src/pages/walk-in-the-spirit.astro", void 0);
 
 const $$file = "/Users/asjames18/Development/RRG Website/src/pages/walk-in-the-spirit.astro";

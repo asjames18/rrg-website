@@ -270,7 +270,7 @@ if (!isEditor) {
         document.getElementById('draft-content').textContent = stats.total.drafts;
         document.getElementById('featured-content').textContent = stats.total.featured;
       } catch (error) {
-        console.error('Error loading stats:', error);
+        
       }
     }
 
@@ -375,7 +375,7 @@ if (!isEditor) {
 
         currentOffset = offset;
       } catch (error) {
-        console.error('Error loading content:', error);
+        
         document.getElementById('content-list').innerHTML = `
           <div class="text-center py-8">
             <p class="text-red-400">Error loading content. Please try again.</p>
@@ -417,7 +417,7 @@ if (!isEditor) {
           </div>
         `).join('');
       } catch (error) {
-        console.error('Error loading activity:', error);
+        
         const activityList = document.getElementById('recent-activity');
         activityList.innerHTML = '<p class="text-neutral-400 text-sm">Unable to load activity</p>';
       }
@@ -447,7 +447,7 @@ if (!isEditor) {
           alert('Error deleting content');
         }
       } catch (error) {
-        console.error('Error deleting content:', error);
+        
         alert('Error deleting content');
       }
     }

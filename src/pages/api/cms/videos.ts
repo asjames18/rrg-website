@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { logger } from '../../../lib/logger';
+
 import { supabaseServer } from '../../../lib/supabase-server';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -60,7 +62,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .single();
 
     if (error) {
-      console.error('Error creating video:', error);
+      logger.error('Error creating video:', error);
       return new Response(JSON.stringify({ error: 'Failed to create video' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -77,7 +79,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
   } catch (error: any) {
-    console.error('Video creation error:', error);
+    logger.error('Video creation error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

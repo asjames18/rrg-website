@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { logger } from '../../../lib/logger';
+
 import { getCollection } from 'astro:content';
 
 export const GET: APIRoute = async ({ request, url }) => {
@@ -131,7 +133,7 @@ export const GET: APIRoute = async ({ request, url }) => {
     });
 
   } catch (error) {
-    console.error('Error fetching content relationships:', error);
+    logger.error('Error fetching content relationships:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch relationships',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -190,7 +192,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
   } catch (error) {
-    console.error('Error creating relationship:', error);
+    logger.error('Error creating relationship:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to create relationship',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -231,7 +233,7 @@ export const DELETE: APIRoute = async ({ request, url }) => {
     });
 
   } catch (error) {
-    console.error('Error deleting relationship:', error);
+    logger.error('Error deleting relationship:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to delete relationship',
       message: error instanceof Error ? error.message : 'Unknown error'

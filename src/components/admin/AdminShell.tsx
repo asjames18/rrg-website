@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import MediaPicker from './MediaPicker';
 import SupabaseContentEditor from '../cms/SupabaseContentEditor';
+import Dashboard from './Dashboard';
+import ContentAnalytics from './ContentAnalytics';
+import SettingsPanel from './SettingsPanel';
 
 interface AdminShellProps {
   userRole?: string;
@@ -9,7 +12,7 @@ interface AdminShellProps {
 }
 
 export default function AdminShell({ userRole, userName, userEmail }: AdminShellProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'analytics' | 'media' | 'users'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'analytics' | 'media' | 'users' | 'settings'>('dashboard');
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -24,7 +27,7 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
     
     // Check for hash navigation
     const hash = window.location.hash.replace('#', '');
-    if (hash && ['dashboard', 'content', 'analytics', 'media', 'users'].includes(hash)) {
+    if (hash && ['dashboard', 'content', 'analytics', 'media', 'users', 'settings'].includes(hash)) {
       setActiveTab(hash as any);
       return;
     }
@@ -60,7 +63,8 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
     { id: 'content', label: 'Content', icon: '📝', description: 'Create and manage content' },
     { id: 'analytics', label: 'Analytics', icon: '📈', description: 'Performance and insights' },
     { id: 'media', label: 'Media', icon: '📁', description: 'Upload and manage files' },
-    { id: 'users', label: 'Users', icon: '👥', description: 'Manage team access' }
+    { id: 'users', label: 'Users', icon: '👥', description: 'Manage team access' },
+    { id: 'settings', label: 'Settings', icon: '⚙️', description: 'System configuration' }
   ] as const;
 
   // Show loading state until hydrated
@@ -191,19 +195,34 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
         )}
 
         {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && <DashboardTab />}
+        {activeTab === 'dashboard' && (
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-12">
+            <Dashboard />
+          </div>
+        )}
 
         {/* Content Tab - MDX Editor */}
         {activeTab === 'content' && <ContentTab />}
 
         {/* Analytics Tab */}
-        {activeTab === 'analytics' && <AnalyticsTab />}
+        {activeTab === 'analytics' && (
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-12">
+            <ContentAnalytics />
+          </div>
+        )}
 
         {/* Media Tab */}
         {activeTab === 'media' && <MediaTab />}
 
         {/* Users Tab */}
         {activeTab === 'users' && <UsersTab />}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-12">
+            <SettingsPanel />
+          </div>
+        )}
       </main>
     </div>
   );

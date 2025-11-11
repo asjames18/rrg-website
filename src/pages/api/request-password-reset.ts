@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { logger } from '../../lib/logger';
+
 import { createClient } from '@supabase/supabase-js';
 
 export const POST: APIRoute = async ({ request }) => {
@@ -29,7 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     if (error) {
-      console.error('Password reset error:', error);
+      logger.error('Password reset error:', error);
       return new Response(JSON.stringify({ error: error.message }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -41,7 +43,7 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Password reset API error:', error);
+    logger.error('Password reset API error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }

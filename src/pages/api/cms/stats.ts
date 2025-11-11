@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { SupabaseCMSAPI } from '../../../lib/cms/supabase-cms-api';
+import { logger } from '../../../lib/logger';
 
 export const GET: APIRoute = async () => {
   try {
@@ -9,11 +10,11 @@ export const GET: APIRoute = async () => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'
       }
     });
   } catch (error) {
-    console.error('Error fetching CMS stats:', error);
+    logger.error('Error fetching CMS stats:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch statistics',
       message: error instanceof Error ? error.message : 'Unknown error'

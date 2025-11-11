@@ -38,7 +38,7 @@ try {
     isAdmin = Boolean(userRoles && userRoles.length > 0);
   }
 } catch (error) {
-  console.error('Auth check error:', error);
+  
 }
 ---
 
@@ -294,11 +294,11 @@ try {
         // Force redirect to auth page
         window.location.href = '/auth?message=signed-out';
       } else {
-        console.error('Sign out failed');
+        
         alert('Sign out failed. Please try again.');
       }
     } catch (error) {
-      console.error('Sign out error:', error);
+      
       // Force redirect even if API fails
       window.location.href = '/auth?message=signed-out';
     }
@@ -341,7 +341,7 @@ try {
           }
         }, 1500);
       } catch (error) {
-        console.error('Error checking user role:', error);
+        
         // Fallback redirect
         setTimeout(() => {
           window.location.href = redirectTo;

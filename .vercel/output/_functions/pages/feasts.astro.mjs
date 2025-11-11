@@ -1,6 +1,6 @@
-import { c as createComponent, r as renderComponent, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_BKIoqdNA.mjs';
+import { c as createComponent, d as renderComponent, e as renderTemplate, af as maybeRenderHead } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_Bd7Ja63m.mjs';
+import { $ as $$Base } from '../chunks/Base_BI6EUuN9.mjs';
 export { renderers } from '../renderers.mjs';
 
 const $$Feasts = createComponent(($$result, $$props, $$slots) => {
@@ -13,7 +13,7 @@ The Feasts of YAHUAH are not "Jewish holidays"—they are His appointed times, g
 These are not optional traditions. They are prophetic blueprints revealing YAHUAH's redemptive plan. 
         The Spring Feasts were fulfilled in YAHUSHA's first coming. The Fall Feasts will be fulfilled in His return. 
         Study them. Observe them. Let them shape your understanding of what's coming.
-</p> </div> </div> ` })}`;
+</p> <!-- Related Content --> <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8"> <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Deepen Your Understanding</h3> <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"> <a href="/end-times" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">End-Times</h4> <p class="text-neutral-400 text-sm">Understand the prophetic timeline and what's coming</p> </a> <a href="/identity-and-messiah" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Identity & Mashiach</h4> <p class="text-neutral-400 text-sm">Know who you are in YAHUSHA HAMASHIACH</p> </a> <a href="/videos" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Videos</h4> <p class="text-neutral-400 text-sm">Watch teachings on the Feasts and prophecy</p> </a> </div> </div> </div> </div> ` })}`;
 }, "/Users/asjames18/Development/RRG Website/src/pages/feasts.astro", void 0);
 
 const $$file = "/Users/asjames18/Development/RRG Website/src/pages/feasts.astro";

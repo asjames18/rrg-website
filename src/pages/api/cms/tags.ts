@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { SupabaseCMSAPI } from '../../../lib/cms/supabase-cms-api';
+import { logger } from '../../../lib/logger';
 
 export const GET: APIRoute = async () => {
   try {
@@ -13,7 +14,7 @@ export const GET: APIRoute = async () => {
       }
     });
   } catch (error) {
-    console.error('Error fetching tags:', error);
+    logger.error('Error fetching tags:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch tags',
       message: error instanceof Error ? error.message : 'Unknown error'

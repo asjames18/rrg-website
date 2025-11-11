@@ -1,77 +1,91 @@
 ---
+/**
+ * Books Index Page - Enhanced with filtering, search, multiple view modes
+ */
 import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
+import BookCard from '../../components/BookCard';
+import BookFilters from '../../components/BookFilters';
 
 const bookContent = await getCollection('books');
+
+// Get URL parameters for initial state
+const searchParams = Astro.url.searchParams;
+const initialViewMode = (searchParams.get('view') || 'grid') as 'grid' | 'list' | 'detailed';
+const initialSearch = searchParams.get('q') || '';
+const initialTopics = searchParams.get('topics')?.split(',').filter(Boolean) || [];
+const initialCategories = searchParams.get('categories')?.split(',').filter(Boolean) || [];
+const initialAuthors = searchParams.get('authors')?.split(',').filter(Boolean) || [];
+const initialLevels = searchParams.get('levels')?.split(',').filter(Boolean) || [];
+const initialSort = (searchParams.get('sort') || 'newest') as 'newest' | 'title-asc' | 'title-desc' | 'author' | 'rating';
+
+// Check for category grouping
+const groupByCategory = searchParams.get('groupBy') === 'category';
 ---
 
 <Base title="Recommended Books">
   <div class="container mx-auto px-4 py-12 md:py-16">
-    <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Recommended Books</h1>
-    <p class="text-lg md:text-xl text-neutral-300 mb-12 max-w-3xl">
-      Essential reading for the remnant. These resources align with biblical truth and help train believers in righteousness.
-    </p>
-    
-    {bookContent.length > 0 ? (
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {bookContent.map((book) => (
-          <article class="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden hover:border-amber-700 transition-colors flex flex-col">
-            {/* Book Cover Placeholder */}
-            <div class="bg-gradient-to-br from-neutral-800 to-neutral-900 h-64 flex items-center justify-center border-b border-neutral-800">
-              <div class="text-center p-6">
-                <svg class="w-16 h-16 mx-auto mb-4 text-amber-700" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>
-                </svg>
-                <p class="text-sm text-neutral-500">Book Cover</p>
-              </div>
+    <div class="mb-12">
+      <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Recommended Books</h1>
+      <p class="text-lg md:text-xl text-neutral-300 mb-6 max-w-3xl">
+        Essential reading for the remnant. These resources align with biblical truth and help train believers in righteousness.
+      </p>
+    </div>
+
+    <div id="books-app" 
+      data-books={JSON.stringify(bookContent)}
+      data-initial-view-mode={initialViewMode}
+      data-initial-search={initialSearch}
+      data-initial-topics={JSON.stringify(initialTopics)}
+      data-initial-categories={JSON.stringify(initialCategories)}
+      data-initial-authors={JSON.stringify(initialAuthors)}
+      data-initial-levels={JSON.stringify(initialLevels)}
+      data-initial-sort={initialSort}
+      data-group-by-category={groupByCategory}
+    >
+      <div class="space-y-8">
+        {/* Filters will be rendered by React */}
+        <div id="filters-container"></div>
+
+        {/* Category grouping toggle */}
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2 text-neutral-300 cursor-pointer">
+              <input 
+                type="checkbox" 
+                id="group-by-category"
+                class="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-amber-700 focus:ring-amber-500 focus:ring-offset-neutral-950"
+              />
+              <span>Group by Category</span>
+            </label>
+          </div>
+          <div id="results-count" class="text-sm text-neutral-500"></div>
+        </div>
+
+        {/* Books grid/list */}
+        <div id="books-container">
+          {/* Initial render */}
+          {bookContent.length > 0 ? (
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {bookContent.map((book) => (
+                <BookCard book={book} viewMode="grid" client:load />
+              ))}
             </div>
-            
-            {/* Book Info */}
-            <div class="p-6 flex-1 flex flex-col">
-              <h2 class="text-xl font-bold mb-2 text-amber-100">
-                <a 
-                  href={`/books/${book.data.slug || book.slug}`}
-                  class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
-                >
-                  {book.data.title}
-                </a>
-              </h2>
-              <p class="text-sm text-neutral-400 mb-3">by {book.data.author}</p>
-              
-              {book.data.topics.length > 0 && (
-                <div class="flex flex-wrap gap-2 mb-4">
-                  {book.data.topics.map((topic) => (
-                    <span class="inline-block bg-amber-900/30 border border-amber-800 text-amber-200 text-xs px-2 py-1 rounded">
-                      {topic}
-                    </span>
-                  ))}
-                </div>
-              )}
-              
-              <a 
-                href={book.data.affiliate.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center justify-center gap-2 bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 mt-auto"
-              >
-                <span>{book.data.affiliate.label}</span>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-              <p class="text-xs text-neutral-500 mt-2 text-center">via {book.data.affiliate.merchant}</p>
+          ) : (
+            <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-12 text-center">
+              <svg class="w-16 h-16 text-neutral-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <p class="text-neutral-400 text-lg mb-2">No books available yet.</p>
+              <p class="text-neutral-500 text-sm">Check back soon for recommended resources.</p>
             </div>
-          </article>
-        ))}
+          )}
+        </div>
       </div>
-    ) : (
-      <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center mb-12">
-        <p class="text-neutral-400">No books available yet. Check back soon for recommended resources.</p>
-      </div>
-    )}
+    </div>
 
     {/* Affiliate Disclosure */}
-    <div class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-6 max-w-3xl mx-auto">
+    <div class="mt-16 bg-amber-900/20 border border-amber-800/50 rounded-lg p-6 max-w-3xl mx-auto">
       <p class="text-neutral-300 text-sm text-center">
         <span class="text-amber-100 font-semibold">★ Links may support the mission at no extra cost.</span><br />
         When you purchase through affiliate links, we may receive a small commission. 
@@ -79,4 +93,257 @@ const bookContent = await getCollection('books');
       </p>
     </div>
   </div>
+
+  <script>
+    import BookCard from '../../components/BookCard';
+    import BookFilters from '../../components/BookFilters';
+    import type { FilterState, SortOption } from '../../components/BookFilters';
+    import { createRoot } from 'react-dom/client';
+    import { createElement } from 'react';
+
+    // Get the app container
+    const appContainer = document.getElementById('books-app');
+    if (!appContainer) throw new Error('Books app container not found');
+
+    // Parse initial data
+    const books = JSON.parse(appContainer.dataset.books || '[]');
+    const initialViewMode = (appContainer.dataset.initialViewMode || 'grid') as 'grid' | 'list' | 'detailed';
+    const initialSearch = appContainer.dataset.initialSearch || '';
+    const initialTopics = JSON.parse(appContainer.dataset.initialTopics || '[]');
+    const initialCategories = JSON.parse(appContainer.dataset.initialCategories || '[]');
+    const initialAuthors = JSON.parse(appContainer.dataset.initialAuthors || '[]');
+    const initialLevels = JSON.parse(appContainer.dataset.initialLevels || '[]');
+    const initialSort = (appContainer.dataset.initialSort || 'newest') as SortOption;
+    const groupByCategory = appContainer.dataset.groupByCategory === 'true';
+
+    // State
+    let viewMode = initialViewMode;
+    let searchTerm = initialSearch;
+    let filters: FilterState = {
+      topics: initialTopics,
+      categories: initialCategories,
+      authors: initialAuthors,
+      levels: initialLevels,
+    };
+    let sortBy: SortOption = initialSort;
+    let groupByCategoryEnabled = groupByCategory;
+
+    // Update URL with current state
+    function updateURL() {
+      const params = new URLSearchParams();
+      if (viewMode !== 'grid') params.set('view', viewMode);
+      if (searchTerm) params.set('q', searchTerm);
+      if (filters.topics.length > 0) params.set('topics', filters.topics.join(','));
+      if (filters.categories.length > 0) params.set('categories', filters.categories.join(','));
+      if (filters.authors.length > 0) params.set('authors', filters.authors.join(','));
+      if (filters.levels.length > 0) params.set('levels', filters.levels.join(','));
+      if (sortBy !== 'newest') params.set('sort', sortBy);
+      if (groupByCategoryEnabled) params.set('groupBy', 'category');
+      
+      const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
+      window.history.pushState({}, '', newURL);
+    }
+
+    // Filter and sort books
+    function getFilteredBooks() {
+      let filtered = [...books];
+
+      // Apply search
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        filtered = filtered.filter((b: any) => 
+          b.data.title.toLowerCase().includes(search) ||
+          b.data.author.toLowerCase().includes(search) ||
+          (b.data.topics || []).some((t: string) => t.toLowerCase().includes(search)) ||
+          (b.data.whyRecommended || '').toLowerCase().includes(search)
+        );
+      }
+
+      // Apply filters
+      if (filters.topics.length > 0) {
+        filtered = filtered.filter((b: any) =>
+          b.data.topics?.some((t: string) => filters.topics.includes(t))
+        );
+      }
+
+      if (filters.categories.length > 0) {
+        filtered = filtered.filter((b: any) =>
+          filters.categories.includes(b.data.category)
+        );
+      }
+
+      if (filters.authors.length > 0) {
+        filtered = filtered.filter((b: any) =>
+          filters.authors.includes(b.data.author)
+        );
+      }
+
+      if (filters.levels.length > 0) {
+        filtered = filtered.filter((b: any) =>
+          filters.levels.includes(b.data.level)
+        );
+      }
+
+      // Apply sorting
+      filtered.sort((a: any, b: any) => {
+        switch (sortBy) {
+          case 'title-asc':
+            return a.data.title.localeCompare(b.data.title);
+          case 'title-desc':
+            return b.data.title.localeCompare(a.data.title);
+          case 'author':
+            return a.data.author.localeCompare(b.data.author);
+          case 'rating':
+            return (b.data.rating || 0) - (a.data.rating || 0);
+          case 'newest':
+          default:
+            const aDate = a.data.addedDate ? new Date(a.data.addedDate).getTime() : 0;
+            const bDate = b.data.addedDate ? new Date(b.data.addedDate).getTime() : 0;
+            return bDate - aDate;
+        }
+      });
+
+      // Put featured books first
+      filtered.sort((a: any, b: any) => {
+        if (a.data.featured && !b.data.featured) return -1;
+        if (!a.data.featured && b.data.featured) return 1;
+        return 0;
+      });
+
+      return filtered;
+    }
+
+    // Render books
+    function renderBooks() {
+      const filtered = getFilteredBooks();
+
+      // Update results count
+      const resultsCount = document.getElementById('results-count');
+      if (resultsCount) {
+        resultsCount.textContent = `${filtered.length} book${filtered.length !== 1 ? 's' : ''}`;
+      }
+
+      // Render books
+      const container = document.getElementById('books-container');
+      if (!container) return;
+
+      if (groupByCategoryEnabled && filters.categories.length === 0) {
+        // Group by category
+        const categoryGroups = new Map<string, any[]>();
+        filtered.forEach(book => {
+          const category = book.data.category || 'General';
+          if (!categoryGroups.has(category)) {
+            categoryGroups.set(category, []);
+          }
+          categoryGroups.get(category)!.push(book);
+        });
+
+        container.innerHTML = '';
+        categoryGroups.forEach((categoryBooks, categoryName) => {
+          const categorySection = document.createElement('div');
+          categorySection.className = 'mb-12';
+          
+          const categoryTitle = document.createElement('h2');
+          categoryTitle.className = 'text-2xl font-bold text-amber-100 mb-6';
+          categoryTitle.textContent = categoryName;
+          categorySection.appendChild(categoryTitle);
+
+          const categoryGrid = document.createElement('div');
+          categoryGrid.className = viewMode === 'grid' 
+            ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6'
+            : viewMode === 'list'
+            ? 'space-y-4'
+            : 'space-y-6';
+
+          categoryBooks.forEach(book => {
+            const bookDiv = document.createElement('div');
+            const root = createRoot(bookDiv);
+            root.render(createElement(BookCard, { book, viewMode }));
+            categoryGrid.appendChild(bookDiv);
+          });
+
+          categorySection.appendChild(categoryGrid);
+          container.appendChild(categorySection);
+        });
+      } else {
+        // Regular grid/list
+        container.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.className = viewMode === 'grid' 
+          ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6'
+          : viewMode === 'list'
+          ? 'space-y-4'
+          : 'space-y-6';
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full bg-neutral-900 border border-neutral-800 rounded-lg p-12 text-center">
+              <svg class="w-16 h-16 text-neutral-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <p class="text-neutral-400 text-lg mb-2">No books found</p>
+              <p class="text-neutral-500 text-sm">Try adjusting your filters or search terms</p>
+            </div>
+          `;
+        } else {
+          filtered.forEach(book => {
+            const bookDiv = document.createElement('div');
+            const root = createRoot(bookDiv);
+            root.render(createElement(BookCard, { book, viewMode }));
+            grid.appendChild(bookDiv);
+          });
+        }
+
+        container.appendChild(grid);
+      }
+
+      updateURL();
+    }
+
+    // Render filters
+    const filtersContainer = document.getElementById('filters-container');
+    if (filtersContainer) {
+      const root = createRoot(filtersContainer);
+      root.render(
+        createElement(BookFilters, {
+          books,
+          onFilterChange: (newFilters: FilterState) => {
+            filters = newFilters;
+            renderBooks();
+          },
+          onSearchChange: (search: string) => {
+            searchTerm = search;
+            renderBooks();
+          },
+          onSortChange: (sort: SortOption) => {
+            sortBy = sort;
+            renderBooks();
+          },
+          onViewModeChange: (mode: 'grid' | 'list' | 'detailed') => {
+            viewMode = mode;
+            renderBooks();
+          },
+          viewMode,
+        })
+      );
+    }
+
+    // Group by category toggle
+    const groupToggle = document.getElementById('group-by-category');
+    if (groupToggle) {
+      (groupToggle as HTMLInputElement).checked = groupByCategoryEnabled;
+      groupToggle.addEventListener('change', (e) => {
+        groupByCategoryEnabled = (e.target as HTMLInputElement).checked;
+        renderBooks();
+      });
+    }
+
+    // Initial render
+    renderBooks();
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      window.location.reload();
+    });
+  </script>
 </Base>

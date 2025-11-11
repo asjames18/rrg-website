@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { SupabaseCMSAPI } from '../../../../lib/cms/supabase-cms-api';
+import { logger } from '../../../../lib/logger';
 
 export const GET: APIRoute = async ({ params }) => {
   try {
@@ -29,7 +30,7 @@ export const GET: APIRoute = async ({ params }) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching content:', error);
+    logger.error('Error fetching content:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch content',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -62,7 +63,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
       }
     });
   } catch (error) {
-    console.error('Error updating content:', error);
+    logger.error('Error updating content:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to update content',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -91,7 +92,7 @@ export const DELETE: APIRoute = async ({ params }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error deleting content:', error);
+    logger.error('Error deleting content:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to delete content',
       message: error instanceof Error ? error.message : 'Unknown error'

@@ -1,4 +1,4 @@
-import { s as supabaseServer } from '../../chunks/supabase-server_ssb-PSP4.mjs';
+import { s as supabaseServer } from '../../chunks/supabase-server_CrvNcPIF.mjs';
 export { renderers } from '../../renderers.mjs';
 
 const POST = async ({ request }) => {
@@ -45,7 +45,7 @@ const POST = async ({ request }) => {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Promote to admin failed:", error);
+    logger.error("Promote to admin failed:", error);
     return new Response(
       JSON.stringify({
         success: false,

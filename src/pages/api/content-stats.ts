@@ -1,4 +1,6 @@
 /**
+import { logger } from '../../lib/logger';
+
  * API Route: Content Statistics
  * GET /api/content-stats?type=blog|videos|books|music
  * 
@@ -24,7 +26,7 @@ export const GET: APIRoute = async ({ url }) => {
       const collection = await getCollection(type as any);
       count = collection.length;
     } catch (error) {
-      console.log(`Collection ${type} not found, using default count`);
+      logger.log(`Collection ${type} not found, using default count`);
       count = 0;
     }
 
@@ -38,7 +40,7 @@ export const GET: APIRoute = async ({ url }) => {
     );
 
   } catch (error) {
-    console.error('Content stats error:', error);
+    logger.error('Content stats error:', error);
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error'

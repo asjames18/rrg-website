@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { logger } from '../../../lib/logger';
+
 import { supabaseServer } from '../../../lib/supabase-server';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -42,7 +44,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
     
   } catch (error) {
-    console.error('Sign out error:', error);
+    logger.error('Sign out error:', error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: 'Failed to sign out' 

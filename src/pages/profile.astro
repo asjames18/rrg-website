@@ -101,18 +101,18 @@ import UserManagement from '../components/UserManagement';
                       <div class="flex items-center justify-between">
                         <div>
                           <h4 class="text-lg font-semibold text-neutral-100">Password</h4>
-                          <p class="text-sm text-neutral-400">Last updated: Never</p>
+                          <p class="text-sm text-neutral-400">Keep your account secure</p>
                         </div>
-                        <button class="bg-amber-700 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors">
+                        <button id="change-password-btn" class="bg-amber-700 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors">
                           Change Password
                         </button>
                       </div>
                       <div class="flex items-center justify-between">
                         <div>
                           <h4 class="text-lg font-semibold text-neutral-100">Two-Factor Authentication</h4>
-                          <p class="text-sm text-neutral-400">Add an extra layer of security</p>
+                          <p class="text-sm text-neutral-400">Add an extra layer of security (Coming Soon)</p>
                         </div>
-                        <button class="bg-neutral-700 hover:bg-neutral-600 text-neutral-200 font-semibold px-4 py-2 rounded-lg transition-colors">
+                        <button disabled class="bg-neutral-700 text-neutral-500 font-semibold px-4 py-2 rounded-lg cursor-not-allowed opacity-50">
                           Enable 2FA
                         </button>
                       </div>
@@ -141,7 +141,7 @@ import UserManagement from '../components/UserManagement';
                           <h4 class="text-lg font-semibold text-neutral-100">Theme</h4>
                           <p class="text-sm text-neutral-400">Choose your preferred theme</p>
                         </div>
-                        <select class="bg-neutral-700 border border-neutral-600 text-neutral-200 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                        <select id="pref-theme" class="bg-neutral-700 border border-neutral-600 text-neutral-200 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50">
                           <option value="dark">Dark (Default)</option>
                           <option value="light">Light</option>
                           <option value="auto">Auto</option>
@@ -153,7 +153,7 @@ import UserManagement from '../components/UserManagement';
                           <p class="text-sm text-neutral-400">Show sacred names in content</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" class="sr-only peer" checked>
+                          <input type="checkbox" id="pref-sacred-names" class="sr-only peer" checked>
                           <div class="w-11 h-6 bg-neutral-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                         </label>
                       </div>
@@ -171,12 +171,24 @@ import UserManagement from '../components/UserManagement';
                           <p class="text-sm text-neutral-400">Receive updates about new content</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" class="sr-only peer" checked>
+                          <input type="checkbox" id="pref-email-notifs" class="sr-only peer" checked>
                           <div class="w-11 h-6 bg-neutral-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                         </label>
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <!-- Save Preferences Button -->
+                <div class="flex justify-end">
+                  <button id="save-preferences-btn" class="bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
+                    Save Preferences
+                  </button>
+                </div>
+
+                <!-- Success Message -->
+                <div id="preferences-success" class="hidden p-4 bg-green-900/30 border border-green-700 text-green-200 rounded-lg">
+                  ✓ Preferences saved successfully
                 </div>
               </div>
             </div>
@@ -195,6 +207,67 @@ import UserManagement from '../components/UserManagement';
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Password Change Modal -->
+  <div id="password-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-neutral-900 border border-neutral-700 rounded-2xl max-w-md w-full p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-amber-100">Change Password</h3>
+        <button id="close-password-modal" class="text-neutral-400 hover:text-neutral-200 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="password-change-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-neutral-200 mb-2">New Password</label>
+          <input 
+            type="password" 
+            id="new-password"
+            required
+            minlength="8"
+            class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            placeholder="Enter new password"
+          />
+          <p class="text-xs text-neutral-500 mt-1">Minimum 8 characters, must include a number or special character</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-neutral-200 mb-2">Confirm New Password</label>
+          <input 
+            type="password" 
+            id="confirm-password"
+            required
+            minlength="8"
+            class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            placeholder="Confirm new password"
+          />
+        </div>
+
+        <div id="password-error" class="hidden p-3 bg-red-900/30 border border-red-700 text-red-200 rounded-lg text-sm"></div>
+        <div id="password-success" class="hidden p-3 bg-green-900/30 border border-green-700 text-green-200 rounded-lg text-sm"></div>
+
+        <div class="flex gap-3 pt-4">
+          <button 
+            type="button"
+            id="cancel-password-change"
+            class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-4 py-3 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit"
+            id="submit-password-change"
+            class="flex-1 bg-amber-700 hover:bg-amber-600 text-white font-semibold px-4 py-3 rounded-lg transition-colors"
+          >
+            Change Password
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </Base>
@@ -224,11 +297,18 @@ import UserManagement from '../components/UserManagement';
         button?.classList.add('bg-amber-600', 'text-white', 'shadow-lg');
         button?.classList.remove('text-neutral-400', 'hover:text-neutral-200');
         tabContents[index]?.classList.remove('hidden');
+
+        // Load preferences when switching to preferences tab
+        if (tabs[index] === 'preferences') {
+          loadPreferences();
+        }
       });
     });
 
     // Load user profile data
     loadUserProfile();
+    setupPasswordChange();
+    setupPreferencesSave();
   });
 
   async function loadUserProfile() {
@@ -269,7 +349,179 @@ import UserManagement from '../components/UserManagement';
         window.location.href = '/auth';
       }
     } catch (error) {
-      console.error('Failed to load user profile:', error);
+      
     }
+  }
+
+  // Password Change Modal
+  function setupPasswordChange() {
+    const modal = document.getElementById('password-modal');
+    const openBtn = document.getElementById('change-password-btn');
+    const closeBtn = document.getElementById('close-password-modal');
+    const cancelBtn = document.getElementById('cancel-password-change');
+    const form = document.getElementById('password-change-form');
+    const errorDiv = document.getElementById('password-error');
+    const successDiv = document.getElementById('password-success');
+
+    openBtn?.addEventListener('click', () => {
+      modal?.classList.remove('hidden');
+      (form as HTMLFormElement)?.reset();
+      errorDiv?.classList.add('hidden');
+      successDiv?.classList.add('hidden');
+    });
+
+    const closeModal = () => {
+      modal?.classList.add('hidden');
+    };
+
+    closeBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+
+    // Close modal on outside click
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const newPassword = (document.getElementById('new-password') as HTMLInputElement)?.value;
+      const confirmPassword = (document.getElementById('confirm-password') as HTMLInputElement)?.value;
+      const submitBtn = document.getElementById('submit-password-change');
+
+      errorDiv?.classList.add('hidden');
+      successDiv?.classList.add('hidden');
+
+      // Validate passwords match
+      if (newPassword !== confirmPassword) {
+        errorDiv!.textContent = 'Passwords do not match';
+        errorDiv?.classList.remove('hidden');
+        return;
+      }
+
+      // Validate password strength
+      if (newPassword.length < 8) {
+        errorDiv!.textContent = 'Password must be at least 8 characters long';
+        errorDiv?.classList.remove('hidden');
+        return;
+      }
+
+      if (!/[\d\W]/.test(newPassword)) {
+        errorDiv!.textContent = 'Password must contain at least one number or special character';
+        errorDiv?.classList.remove('hidden');
+        return;
+      }
+
+      // Show loading state
+      if (submitBtn) {
+        submitBtn.textContent = 'Changing...';
+        submitBtn.setAttribute('disabled', 'true');
+      }
+
+      try {
+        const response = await fetch('/api/user/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newPassword })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to change password');
+        }
+
+        successDiv!.textContent = '✓ Password changed successfully';
+        successDiv?.classList.remove('hidden');
+        
+        // Reset form and close modal after 2 seconds
+        setTimeout(() => {
+          (form as HTMLFormElement)?.reset();
+          closeModal();
+        }, 2000);
+
+      } catch (error) {
+        errorDiv!.textContent = error instanceof Error ? error.message : 'Failed to change password';
+        errorDiv?.classList.remove('hidden');
+      } finally {
+        if (submitBtn) {
+          submitBtn.textContent = 'Change Password';
+          submitBtn.removeAttribute('disabled');
+        }
+      }
+    });
+  }
+
+  // Load and Save Preferences
+  async function loadPreferences() {
+    try {
+      const response = await fetch('/api/user/preferences');
+      const data = await response.json();
+
+      if (data.preferences) {
+        const prefs = data.preferences;
+        
+        const themeSelect = document.getElementById('pref-theme') as HTMLSelectElement;
+        const sacredNamesCheckbox = document.getElementById('pref-sacred-names') as HTMLInputElement;
+        const emailNotifsCheckbox = document.getElementById('pref-email-notifs') as HTMLInputElement;
+
+        if (themeSelect) themeSelect.value = prefs.theme || 'dark';
+        if (sacredNamesCheckbox) sacredNamesCheckbox.checked = prefs.show_sacred_names !== false;
+        if (emailNotifsCheckbox) emailNotifsCheckbox.checked = prefs.email_notifications !== false;
+      }
+    } catch (error) {
+      console.error('Failed to load preferences:', error);
+    }
+  }
+
+  function setupPreferencesSave() {
+    const saveBtn = document.getElementById('save-preferences-btn');
+    const successDiv = document.getElementById('preferences-success');
+
+    saveBtn?.addEventListener('click', async () => {
+      const themeSelect = document.getElementById('pref-theme') as HTMLSelectElement;
+      const sacredNamesCheckbox = document.getElementById('pref-sacred-names') as HTMLInputElement;
+      const emailNotifsCheckbox = document.getElementById('pref-email-notifs') as HTMLInputElement;
+
+      const preferences = {
+        theme: themeSelect?.value || 'dark',
+        show_sacred_names: sacredNamesCheckbox?.checked || false,
+        email_notifications: emailNotifsCheckbox?.checked || false
+      };
+
+      // Show loading state
+      if (saveBtn) {
+        saveBtn.textContent = 'Saving...';
+        saveBtn.setAttribute('disabled', 'true');
+      }
+
+      try {
+        const response = await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(preferences)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to save preferences');
+        }
+
+        // Show success message
+        successDiv?.classList.remove('hidden');
+        setTimeout(() => {
+          successDiv?.classList.add('hidden');
+        }, 3000);
+
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Failed to save preferences');
+      } finally {
+        if (saveBtn) {
+          saveBtn.textContent = 'Save Preferences';
+          saveBtn.removeAttribute('disabled');
+        }
+      }
+    });
   }
 </script>

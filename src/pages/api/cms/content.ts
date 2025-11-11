@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { SupabaseCMSAPI } from '../../../lib/cms/supabase-cms-api';
+import { logger } from '../../../lib/logger';
 
 export const GET: APIRoute = async ({ request, url }) => {
   try {
@@ -33,7 +34,7 @@ export const GET: APIRoute = async ({ request, url }) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching content:', error);
+    logger.error('Error fetching content:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch content',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -54,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error creating content:', error);
+    logger.error('Error creating content:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to create content',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -83,7 +84,7 @@ export const PUT: APIRoute = async ({ request, url }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error updating content:', error);
+    logger.error('Error updating content:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to update content',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -115,7 +116,7 @@ export const DELETE: APIRoute = async ({ url }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error deleting content:', error);
+    logger.error('Error deleting content:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to delete content',
       message: error instanceof Error ? error.message : 'Unknown error'

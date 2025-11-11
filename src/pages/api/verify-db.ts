@@ -1,4 +1,6 @@
 /**
+import { logger } from '../../lib/logger';
+
  * API Route: Database Verification
  * GET /api/verify-db
  * 
@@ -134,7 +136,7 @@ export const GET: APIRoute = async () => {
     );
 
   } catch (error) {
-    console.error('Database verification failed:', error);
+    logger.error('Database verification failed:', error);
     return new Response(
       JSON.stringify({
         timestamp: new Date().toISOString(),

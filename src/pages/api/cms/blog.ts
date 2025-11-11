@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabaseServer } from '../../../lib/supabase-server';
+import { logger } from '../../../lib/logger';
+import { sanitizeString, sanitizeSlug, sanitizeStringArray, sanitizeMarkdown } from '../../../lib/sanitize';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -29,7 +31,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     const body = await request.json();
-    const { title, slug, summary, body: content, tags, featured, status } = body;
+    
+    // Sanitize inputs
+    const title = sanitizeString(body.title, 200);
+    const slug = sanitizeSlug(body.slug);
+    const summary = sanitizeString(body.summary, 500);
+    const content = sanitizeMarkdown(body.body);
+    const tags = sanitizeStringArray(body.tags || [], 20);
+    const featured = Boolean(body.featured);
+    const status = body.status === 'published' ? 'published' : 'draft';
 
     // Validate required fields
     if (!title || !slug || !summary || !content) {
@@ -47,8 +57,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         slug,
         summary,
         body_md: content,
-        tags: tags || [],
-        featured: featured || false,
+        tags,
+        featured,
         published: status === 'published',
         published_at: status === 'published' ? new Date().toISOString() : null,
         author: user.id,
@@ -59,7 +69,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .single();
 
     if (error) {
-      console.error('Error creating blog post:', error);
+      logger.error('Error creating blog post:', error);
       return new Response(JSON.stringify({ error: 'Failed to create blog post' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -76,7 +86,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
   } catch (error: any) {
-    console.error('Blog post creation error:', error);
+    logger.error('Blog post creation error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

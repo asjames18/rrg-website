@@ -1,4 +1,6 @@
 /**
+import { logger } from '../../lib/logger';
+
  * API Route: Promote User to Admin
  * POST /api/promote-to-admin
  * 
@@ -68,7 +70,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
 
   } catch (error) {
-    console.error('Promote to admin failed:', error);
+    logger.error('Promote to admin failed:', error);
     return new Response(
       JSON.stringify({
         success: false,

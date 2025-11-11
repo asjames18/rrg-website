@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { SupabaseCMSAPI } from '../../../lib/cms/supabase-cms-api';
+import { logger } from '../../../lib/logger';
 
 export const GET: APIRoute = async ({ url }) => {
   try {
@@ -12,11 +13,11 @@ export const GET: APIRoute = async ({ url }) => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
+        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60'
       }
     });
   } catch (error) {
-    console.error('Error fetching activities:', error);
+    logger.error('Error fetching activities:', error);
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch activities',
       message: error instanceof Error ? error.message : 'Unknown error'

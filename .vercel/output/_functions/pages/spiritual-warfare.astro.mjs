@@ -1,6 +1,6 @@
-import { c as createComponent, r as renderComponent, a as renderTemplate, m as maybeRenderHead } from '../chunks/astro/server_BKIoqdNA.mjs';
+import { c as createComponent, d as renderComponent, e as renderTemplate, af as maybeRenderHead } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_Bd7Ja63m.mjs';
+import { $ as $$Base } from '../chunks/Base_BI6EUuN9.mjs';
 export { renderers } from '../renderers.mjs';
 
 const $$SpiritualWarfare = createComponent(($$result, $$props, $$slots) => {
@@ -20,7 +20,7 @@ Use the <a href="/prayer-and-fasting" class="text-amber-400 hover:text-amber-300
 </p> <h2>Authority in YAHUSHA</h2> <p class="text-neutral-300">
 You have been given authority to trample on serpents and scorpions and over all the power of the enemy (Luke 10:19). 
         Use the Name of YAHUSHA. Resist the devil, and he will flee (James 4:7).
-</p> </div> </div> ` })}`;
+</p> <!-- Next Steps --> <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8"> <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Continue Your Training</h3> <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"> <a href="/prayer-and-fasting" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Prayer & Fasting</h4> <p class="text-neutral-400 text-sm">Use the micro-liturgy to close spiritual doorways</p> </a> <a href="/identity-and-messiah" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Identity & Mashiach</h4> <p class="text-neutral-400 text-sm">Know your authority in YAHUSHA HAMASHIACH</p> </a> <a href="/end-times" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">End-Times</h4> <p class="text-neutral-400 text-sm">Prepare for the final battle and YAHUSHA's return</p> </a> </div> </div> </div> </div> ` })}`;
 }, "/Users/asjames18/Development/RRG Website/src/pages/spiritual-warfare.astro", void 0);
 
 const $$file = "/Users/asjames18/Development/RRG Website/src/pages/spiritual-warfare.astro";

@@ -1,9 +1,9 @@
-import { c as createComponent, r as renderComponent, a as renderTemplate, m as maybeRenderHead, f as addAttribute } from '../chunks/astro/server_BKIoqdNA.mjs';
+import { c as createComponent, d as renderComponent, e as renderTemplate, af as maybeRenderHead, ag as addAttribute } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_Bd7Ja63m.mjs';
+import { $ as $$Base } from '../chunks/Base_BI6EUuN9.mjs';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { useState, useRef, useEffect } from 'react';
-import { g as getCollection } from '../chunks/_astro_content_C5AeF3qW.mjs';
+import { S as SupabaseCMSAPI } from '../chunks/supabase-cms-api_dv2hqhP9.mjs';
 export { renderers } from '../renderers.mjs';
 
 function AudioPlayer({ tracks, className = "" }) {
@@ -120,18 +120,32 @@ function AudioPlayer({ tracks, className = "" }) {
 }
 
 const $$Index = createComponent(async ($$result, $$props, $$slots) => {
-  const musicContent = await getCollection("music");
-  const audioTracks = musicContent.filter((item) => item.data.type === "audio" && item.data.audioSrc).map((item) => ({
-    title: item.data.title,
-    src: item.data.audioSrc
-  }));
+  let musicContent = [];
+  let audioTracks = [];
+  try {
+    const result = await SupabaseCMSAPI.getContent({
+      type: "music",
+      status: "published",
+      limit: 50,
+      sortBy: "published_at",
+      sortOrder: "desc"
+    });
+    musicContent = result.content || [];
+    audioTracks = musicContent.filter((item) => item.metadata?.type === "audio" && item.metadata?.audioSrc).map((item) => ({
+      title: item.title,
+      src: item.metadata.audioSrc
+    }));
+  } catch (error) {
+    musicContent = [];
+    audioTracks = [];
+  }
   return renderTemplate`${renderComponent($$result, "Base", $$Base, { "title": "Music" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="container mx-auto px-4 py-12 md:py-16"> <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Music</h1> <p class="text-lg md:text-xl text-neutral-300 mb-12 max-w-3xl">
 Worship music that honors the sacred Names and glorifies YAHUAH.
-</p> <div class="max-w-3xl mx-auto"> ${audioTracks.length > 0 ? renderTemplate`<div class="mb-12"> ${renderComponent($$result2, "AudioPlayer", AudioPlayer, { "tracks": audioTracks, "client:load": true, "client:component-hydration": "load", "client:component-path": "/Users/asjames18/Development/RRG Website/src/components/AudioPlayer", "client:component-export": "default" })} </div>` : renderTemplate`<div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center mb-12"> <p class="text-neutral-400">No music tracks available yet. Check back soon for worship songs and teachings.</p> </div>`}  ${musicContent.length > 0 && renderTemplate`<div class="space-y-6 mb-12"> <h2 class="text-2xl font-bold text-amber-100">All Music</h2> ${musicContent.map((item) => renderTemplate`<article class="bg-neutral-900 border border-neutral-800 rounded-lg p-6 hover:border-amber-700 transition-colors"> <h3 class="text-xl font-bold mb-2 text-amber-100"> <a${addAttribute(`/music/${item.data.slug || item.slug}`, "href")} class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"> ${item.data.title} </a> </h3> <p class="text-sm text-neutral-400 mb-3">
-Type: ${item.data.type === "audio" ? "\u{1F3B5} Audio" : "\u{1F3AC} Video"} </p> ${item.data.scriptures.length > 0 && renderTemplate`<p class="text-xs text-neutral-500">
-Scriptures: ${item.data.scriptures.join(", ")} </p>`} </article>`)} </div>`} <div class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-6"> <p class="text-neutral-300 text-sm"> <strong class="text-amber-100">Note:</strong> Music content coming soon. 
+</p> <div class="max-w-3xl mx-auto"> ${audioTracks.length > 0 ? renderTemplate`<div class="mb-12"> ${renderComponent($$result2, "AudioPlayer", AudioPlayer, { "tracks": audioTracks, "client:load": true, "client:component-hydration": "load", "client:component-path": "/Users/asjames18/Development/RRG Website/src/components/AudioPlayer", "client:component-export": "default" })} </div>` : renderTemplate`<div class="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center mb-12"> <p class="text-neutral-400">No music tracks available yet. Check back soon for worship songs and teachings.</p> </div>`}  ${musicContent.length > 0 && renderTemplate`<div class="space-y-6 mb-12"> <h2 class="text-2xl font-bold text-amber-100">All Music</h2> ${musicContent.map((item) => renderTemplate`<article class="bg-neutral-900 border border-neutral-800 rounded-lg p-6 hover:border-amber-700 transition-colors"> <h3 class="text-xl font-bold mb-2 text-amber-100"> <a${addAttribute(`/music/${item.slug}`, "href")} class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"> ${item.title} </a> </h3> <p class="text-sm text-neutral-400 mb-3">
+Type: ${item.metadata?.type === "audio" ? "\u{1F3B5} Audio" : "\u{1F3AC} Video"} </p> ${item.metadata?.scriptures && item.metadata.scriptures.length > 0 && renderTemplate`<p class="text-xs text-neutral-500">
+Scriptures: ${Array.isArray(item.metadata.scriptures) ? item.metadata.scriptures.join(", ") : item.metadata.scriptures} </p>`} ${item.summary && renderTemplate`<p class="text-sm text-neutral-400 mt-3"> ${item.summary} </p>`} </article>`)} </div>`} <div class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-6"> <p class="text-neutral-300 text-sm"> <strong class="text-amber-100">Note:</strong> Music content coming soon. 
           This player will feature worship songs, hymns, and audio teachings that honor the sacred Names of YAHUAH, YAHUSHA, and RUACH HAQODESH.
-</p> </div> </div> </div> ` })}`;
+</p> </div> <!-- Continue Your Training --> <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8"> <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Continue Your Training</h3> <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"> <a href="/walk-in-the-spirit" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Walk in the Spirit</h4> <p class="text-neutral-400 text-sm">Daily self-check and Spirit-led living</p> </a> <a href="/prayer-and-fasting" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Prayer & Fasting</h4> <p class="text-neutral-400 text-sm">Sharpen your spiritual weapons</p> </a> <a href="/videos" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors"> <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Videos</h4> <p class="text-neutral-400 text-sm">Watch teachings and testimonies</p> </a> </div> </div> </div> </div> ` })}`;
 }, "/Users/asjames18/Development/RRG Website/src/pages/music/index.astro", void 0);
 
 const $$file = "/Users/asjames18/Development/RRG Website/src/pages/music/index.astro";

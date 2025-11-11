@@ -36,7 +36,7 @@ try {
         isAdmin = userRole === 'admin';
         isEditor = userRole === 'editor' || isAdmin;
       } else {
-        console.warn('Profile query failed, trying user_roles table:', profileError);
+        // Profile query failed, trying user_roles table
         
         // Fallback: check user_roles table directly
         const { data: userRoles, error: rolesError } = await supabase
@@ -49,7 +49,7 @@ try {
           isAdmin = userRole === 'admin';
           isEditor = userRole === 'editor' || isAdmin;
         } else {
-          console.warn('User roles query also failed:', rolesError);
+          // User roles query also failed
           // Default to no permissions if both queries fail
           userRole = 'user';
           isAdmin = false;
@@ -57,7 +57,7 @@ try {
         }
       }
     } catch (profileQueryError) {
-      console.error('Profile query error:', profileQueryError);
+      // Profile query error
       // Default to no permissions on error
       userRole = 'user';
       isAdmin = false;
@@ -65,7 +65,7 @@ try {
     }
   }
 } catch (error) {
-  console.error('Admin page auth error:', error);
+  // Admin page auth error
 }
 
 // Redirect if not authenticated

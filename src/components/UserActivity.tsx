@@ -7,9 +7,9 @@ import { getSupabase } from '../lib/supabase-browser';
 
 interface ActivityItem {
   id: string;
-  type: 'login' | 'post_read' | 'video_watched' | 'favorite_saved' | 'profile_updated';
+  activity_type: string;
   description: string;
-  timestamp: string;
+  created_at: string;
   metadata?: any;
 }
 
@@ -20,6 +20,14 @@ interface ActivityStats {
   totalTimeSpent: number;
 }
 
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
 export default function UserActivity() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [stats, setStats] = useState<ActivityStats>({
@@ -28,11 +36,19 @@ export default function UserActivity() {
     favoritesSaved: 0,
     totalTimeSpent: 0
   });
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasMore: false
+  });
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState<string>('all');
 
   useEffect(() => {
     fetchActivityData();
-  }, []);
+  }, [pagination.page, filterType]);
 
   const fetchActivityData = async () => {
     try {
@@ -42,15 +58,28 @@ export default function UserActivity() {
       const { data: { user } } = await getSupabase().auth.getUser();
       if (!user) return;
 
-      // TODO: Implement real activity tracking
-      // For now, show empty state
-      setActivities([]);
-      setStats({
-        postsRead: 0,
-        videosWatched: 0,
-        favoritesSaved: 0,
-        totalTimeSpent: 0
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: String(pagination.page),
+        limit: String(pagination.limit)
       });
+
+      if (filterType && filterType !== 'all') {
+        params.append('type', filterType);
+      }
+
+      // Fetch activity data
+      const response = await fetch(`/api/user/activity?${params.toString()}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setActivities(data.activities || []);
+        setStats(data.summary || stats);
+        setPagination(prev => ({
+          ...prev,
+          ...data.pagination
+        }));
+      }
     } catch (error) {
       console.error('Error fetching activity data:', error);
     } finally {
@@ -70,6 +99,10 @@ export default function UserActivity() {
         return '⭐';
       case 'profile_updated':
         return '✏️';
+      case 'preferences_updated':
+        return '⚙️';
+      case 'password_changed':
+        return '🔒';
       default:
         return '📝';
     }
@@ -86,7 +119,10 @@ export default function UserActivity() {
       case 'favorite_saved':
         return 'bg-yellow-500';
       case 'profile_updated':
+      case 'preferences_updated':
         return 'bg-amber-500';
+      case 'password_changed':
+        return 'bg-red-500';
       default:
         return 'bg-neutral-500';
     }
@@ -100,14 +136,32 @@ export default function UserActivity() {
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    if (diffInMinutes < 10080) return `${Math.floor(diffInMinutes / 1440)}d ago`;
     return date.toLocaleDateString();
   };
 
-  if (loading) {
+  const nextPage = () => {
+    if (pagination.hasMore) {
+      setPagination(prev => ({ ...prev, page: prev.page + 1 }));
+    }
+  };
+
+  const prevPage = () => {
+    if (pagination.page > 1) {
+      setPagination(prev => ({ ...prev, page: prev.page - 1 }));
+    }
+  };
+
+  if (loading && activities.length === 0) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
           <div className="h-6 bg-neutral-700 rounded w-1/3 mb-4"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-24 bg-neutral-800 rounded"></div>
+            ))}
+          </div>
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="h-16 bg-neutral-800 rounded"></div>
@@ -140,26 +194,71 @@ export default function UserActivity() {
         </div>
       </div>
 
+      {/* Filter */}
+      <div className="flex items-center gap-4">
+        <label className="text-sm text-neutral-400 font-medium">Filter by:</label>
+        <select 
+          value={filterType}
+          onChange={(e) => {
+            setFilterType(e.target.value);
+            setPagination(prev => ({ ...prev, page: 1 }));
+          }}
+          className="bg-neutral-800 border border-neutral-700 text-neutral-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+        >
+          <option value="all">All Activity</option>
+          <option value="post_read">Posts Read</option>
+          <option value="video_watched">Videos Watched</option>
+          <option value="favorite_saved">Favorites</option>
+          <option value="profile_updated">Profile Updates</option>
+          <option value="login">Logins</option>
+        </select>
+      </div>
+
       {/* Recent Activity */}
       <div>
         <h3 className="text-xl font-bold text-amber-100 mb-4 font-display">Recent Activity</h3>
         <div className="space-y-3">
           {activities.length > 0 ? (
-            activities.map((activity) => (
-              <div key={activity.id} className="flex items-center gap-4 p-4 bg-neutral-800/30 border border-neutral-700/30 rounded-lg hover:bg-neutral-800/50 transition-colors">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${getActivityColor(activity.type)}`}>
-                  {getActivityIcon(activity.type)}
+            <>
+              {activities.map((activity) => (
+                <div key={activity.id} className="flex items-center gap-4 p-4 bg-neutral-800/30 border border-neutral-700/30 rounded-lg hover:bg-neutral-800/50 transition-colors">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-lg ${getActivityColor(activity.activity_type)}`}>
+                    {getActivityIcon(activity.activity_type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-neutral-200 font-medium truncate">{activity.description}</p>
+                    <p className="text-sm text-neutral-400">{formatTimestamp(activity.created_at)}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-neutral-200 font-medium">{activity.description}</p>
-                  <p className="text-sm text-neutral-400">{formatTimestamp(activity.timestamp)}</p>
+              ))}
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4">
+                  <button
+                    onClick={prevPage}
+                    disabled={pagination.page === 1}
+                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-200 rounded-lg transition-colors text-sm"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-neutral-400">
+                    Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+                  </span>
+                  <button
+                    onClick={nextPage}
+                    disabled={!pagination.hasMore}
+                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-200 rounded-lg transition-colors text-sm"
+                  >
+                    Next
+                  </button>
                 </div>
-              </div>
-            ))
+              )}
+            </>
           ) : (
-            <div className="text-center py-8 text-neutral-400">
+            <div className="text-center py-12 text-neutral-400">
               <div className="text-4xl mb-4">📝</div>
-              <p>No activity yet</p>
+              <p className="text-lg font-medium mb-2">No activity yet</p>
               <p className="text-sm">Start exploring content to see your activity here</p>
             </div>
           )}
@@ -174,8 +273,8 @@ export default function UserActivity() {
             href="/blog" 
             className="flex items-center gap-3 p-4 bg-neutral-800/50 border border-neutral-700/50 rounded-lg hover:bg-neutral-800/70 transition-colors"
           >
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-lg">📖</span>
+            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xl">📖</span>
             </div>
             <div>
               <div className="font-medium text-neutral-200">Read Latest Posts</div>
@@ -187,8 +286,8 @@ export default function UserActivity() {
             href="/videos" 
             className="flex items-center gap-3 p-4 bg-neutral-800/50 border border-neutral-700/50 rounded-lg hover:bg-neutral-800/70 transition-colors"
           >
-            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-lg">🎥</span>
+            <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xl">🎥</span>
             </div>
             <div>
               <div className="font-medium text-neutral-200">Watch Videos</div>
@@ -200,4 +299,3 @@ export default function UserActivity() {
     </div>
   );
 }
-

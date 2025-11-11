@@ -1,119 +1,109 @@
 ---
 /**
- * Blog Index Page
- * 
- * TODO: Add tag filtering functionality
- * TODO: Add pagination (10-20 posts per page)
- * TODO: Add RSS feed generation
+ * Blog Index Page - Enhanced with filtering, search, featured posts, multiple view modes
  */
- import Base from '../../layouts/Base.astro';
+import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
+import BlogCard from '../../components/BlogCard';
+import BlogFilters from '../../components/BlogFilters';
 
 const blogPosts = await getCollection('blog');
 const sortedPosts = blogPosts.sort((a, b) => 
   b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
 );
+
+// Separate featured posts
+const featuredPosts = sortedPosts.filter(p => p.data.featured);
+const regularPosts = sortedPosts.filter(p => !p.data.featured);
+
+// Get URL parameters for initial state
+const searchParams = Astro.url.searchParams;
+const initialViewMode = (searchParams.get('view') || 'list') as 'list' | 'grid' | 'compact';
+const initialSearch = searchParams.get('q') || '';
+const initialTags = searchParams.get('tags')?.split(',').filter(Boolean) || [];
+const initialCategories = searchParams.get('categories')?.split(',').filter(Boolean) || [];
+const initialSort = (searchParams.get('sort') || 'newest') as 'newest' | 'oldest' | 'popular';
+const initialPage = parseInt(searchParams.get('page') || '1', 10);
+
+const postsPerPage = 15;
 ---
 
-<Base title="Blog">
-  <div class="max-w-4xl mx-auto px-4 py-8">
-    <!-- Medium-style Header -->
+<Base title="Blog - Real & Raw Gospel">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
     <div class="mb-12">
-      <h1 class="text-3xl font-bold text-neutral-100 mb-4">Real & Raw Gospel</h1>
-      <p class="text-lg text-neutral-400">Training the remnant in the ways of YAHUAH</p>
+      <h1 class="text-4xl md:text-5xl font-bold text-neutral-100 mb-4">Real & Raw Gospel</h1>
+      <p class="text-lg md:text-xl text-neutral-400 mb-6">Training the remnant in the ways of YAHUAH</p>
     </div>
 
-    {sortedPosts.length > 0 ? (
-      <div class="space-y-8">
-        {sortedPosts.map((post) => (
-          <article class="group">
-            <div class="flex items-start gap-4">
-              <!-- Author Avatar -->
-              <div class="flex-shrink-0">
-                <div class="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center">
-                  <span class="text-white text-sm font-bold">RRG</span>
-                </div>
-              </div>
-              
-              <!-- Content -->
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 text-sm text-neutral-500 mb-2">
-                  <span>Real & Raw Gospel</span>
-                  <span>•</span>
-                  <time datetime={post.data.publishedAt.toISOString()}>
-                    {post.data.publishedAt.toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </time>
-                  <span>•</span>
-                  <span>{post.data.readingTime} min read</span>
-                </div>
-                
-                <h2 class="text-xl font-bold text-neutral-100 mb-3 group-hover:text-amber-200 transition-colors leading-tight">
-                  <a 
-                    href={`/blog/${post.slug}`}
-                    class="focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded"
-                  >
-                    {post.data.title}
-                  </a>
-                </h2>
-                
-                <p class="text-neutral-400 leading-relaxed mb-4 line-clamp-2">
-                  {post.data.summary}
-                </p>
-                
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    {post.data.tags.length > 0 && (
-                      <div class="flex gap-2">
-                        {post.data.tags.slice(0, 2).map((tag) => (
-                          <span class="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
-                            {tag}
-                          </span>
-                        ))}
-                        {post.data.tags.length > 2 && (
-                          <span class="text-xs text-neutral-500">+{post.data.tags.length - 2}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div class="flex items-center gap-2">
-                    <button class="p-2 hover:bg-neutral-800 rounded-full transition-colors">
-                      <svg class="w-4 h-4 text-neutral-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
-                      </svg>
-                    </button>
-                    <button class="p-2 hover:bg-neutral-800 rounded-full transition-colors">
-                      <svg class="w-4 h-4 text-neutral-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3 3 0 000-2.319l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+    <div id="blog-app" 
+      data-posts={JSON.stringify(sortedPosts)}
+      data-featured-posts={JSON.stringify(featuredPosts)}
+      data-initial-view-mode={initialViewMode}
+      data-initial-search={initialSearch}
+      data-initial-tags={JSON.stringify(initialTags)}
+      data-initial-categories={JSON.stringify(initialCategories)}
+      data-initial-sort={initialSort}
+      data-initial-page={initialPage}
+      data-posts-per-page={postsPerPage}
+    >
+      {sortedPosts.length > 0 ? (
+        <div class="space-y-12">
+          {/* Filters will be rendered by React */}
+          <div id="filters-container"></div>
+
+          {/* Featured Posts Section - Server-rendered initially */}
+          {featuredPosts.length > 0 && (
+            <div id="featured-section">
+              <h2 class="text-2xl font-bold text-amber-100 mb-6 flex items-center gap-2">
+                <svg class="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                Featured Posts
+              </h2>
+              <div class="grid md:grid-cols-2 gap-6 mb-12">
+                {featuredPosts.slice(0, 2).map((post) => (
+                  <BlogCard post={post} viewMode="grid" featured={true} client:load />
+                ))}
               </div>
             </div>
-          </article>
-        ))}
-      </div>
-    ) : (
-      <div class="text-center py-16">
-        <div class="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg class="w-8 h-8 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-        </div>
-        <h3 class="text-xl font-bold text-neutral-100 mb-3">Coming Soon</h3>
-        <p class="text-neutral-400 mb-6 max-w-md mx-auto">Raw truth and real teaching are on the way. Check back soon for articles that will challenge, equip, and prepare the remnant.</p>
-        <a href="/start-here" class="inline-block bg-amber-600 hover:bg-amber-700 text-white font-semibold px-6 py-3 rounded-full transition-colors">
-          Start Your Training
-        </a>
-      </div>
-    )}
+          )}
 
-    <!-- Newsletter Signup -->
+          {/* Results count */}
+          <div class="flex items-center justify-between">
+            <div id="results-count" class="text-sm text-neutral-500"></div>
+          </div>
+
+          {/* Posts container */}
+          <div id="posts-container">
+            {/* Initial server-rendered content */}
+            <div class="space-y-8">
+              {regularPosts.slice(0, postsPerPage).map((post) => (
+                <BlogCard post={post} viewMode="list" client:load />
+              ))}
+            </div>
+          </div>
+
+          {/* Pagination */}
+          <div id="pagination-container"></div>
+        </div>
+      ) : (
+        <div class="text-center py-16">
+          <div class="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-8 h-8 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-neutral-100 mb-3">Coming Soon</h3>
+          <p class="text-neutral-400 mb-6 max-w-md mx-auto">Raw truth and real teaching are on the way. Check back soon for articles that will challenge, equip, and prepare the remnant.</p>
+          <a href="/start-here" class="inline-block bg-amber-600 hover:bg-amber-700 text-white font-semibold px-6 py-3 rounded-full transition-colors">
+            Start Your Training
+          </a>
+        </div>
+      )}
+    </div>
+
+    {/* Newsletter Signup */}
     <div class="mt-16 bg-gradient-to-r from-amber-900/30 to-amber-800/30 border border-amber-700/50 rounded-xl p-8 max-w-4xl mx-auto">
       <div class="text-center">
         <h3 class="text-2xl font-bold text-amber-100 mb-4">Stay Connected</h3>
@@ -136,26 +126,7 @@ const sortedPosts = blogPosts.sort((a, b) =>
       </div>
     </div>
 
-    <!-- Contribution CTA -->
-    <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8 max-w-4xl mx-auto">
-      <div class="text-center">
-        <h3 class="text-xl font-bold text-amber-100 mb-4">Want to Contribute?</h3>
-        <p class="text-neutral-300 mb-6">
-          If you have a teaching, testimony, or word from YAHUAH that aligns with our mission, we'd love to hear from you. 
-          All content must honor the sacred Names and be rooted in Scripture.
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="/contact" class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
-            Submit Content
-          </a>
-          <a href="/start-here" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors">
-            Start Training
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Continue Your Training -->
+    {/* Continue Your Training */}
     <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8">
       <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Continue Your Training</h3>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -169,11 +140,283 @@ const sortedPosts = blogPosts.sort((a, b) =>
           <p class="text-neutral-400 text-sm">Watch powerful teachings and testimonies</p>
         </a>
         
-        <a href="/music" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
-          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Music</h4>
-          <p class="text-neutral-400 text-sm">Worship and honor the sacred Names</p>
+        <a href="/books" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+          <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Books</h4>
+          <p class="text-neutral-400 text-sm">Essential reading for the remnant</p>
         </a>
       </div>
     </div>
   </div>
+
+  <script>
+    import BlogCard from '../../components/BlogCard';
+    import BlogFilters from '../../components/BlogFilters';
+    import type { FilterState, SortOption } from '../../components/BlogFilters';
+    import { createRoot } from 'react-dom/client';
+    import { createElement } from 'react';
+
+    // Get the app container
+    const appContainer = document.getElementById('blog-app');
+    if (!appContainer) throw new Error('Blog app container not found');
+
+    // Parse initial data
+    const allPosts = JSON.parse(appContainer.dataset.posts || '[]');
+    const featuredPosts = JSON.parse(appContainer.dataset.featuredPosts || '[]');
+    const initialViewMode = (appContainer.dataset.initialViewMode || 'list') as 'list' | 'grid' | 'compact';
+    const initialSearch = appContainer.dataset.initialSearch || '';
+    const initialTags = JSON.parse(appContainer.dataset.initialTags || '[]');
+    const initialCategories = JSON.parse(appContainer.dataset.initialCategories || '[]');
+    const initialSort = (appContainer.dataset.initialSort || 'newest') as SortOption;
+    const initialPage = parseInt(appContainer.dataset.initialPage || '1', 10);
+    const postsPerPage = parseInt(appContainer.dataset.postsPerPage || '15', 10);
+
+    // State
+    let currentPage = initialPage;
+    let viewMode = initialViewMode;
+    let searchTerm = initialSearch;
+    let filters: FilterState = {
+      tags: initialTags,
+      categories: initialCategories,
+    };
+    let sortBy: SortOption = initialSort;
+
+    // Update URL with current state
+    function updateURL() {
+      const params = new URLSearchParams();
+      if (currentPage > 1) params.set('page', String(currentPage));
+      if (viewMode !== 'list') params.set('view', viewMode);
+      if (searchTerm) params.set('q', searchTerm);
+      if (filters.tags.length > 0) params.set('tags', filters.tags.join(','));
+      if (filters.categories.length > 0) params.set('categories', filters.categories.join(','));
+      if (sortBy !== 'newest') params.set('sort', sortBy);
+      
+      const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
+      window.history.pushState({}, '', newURL);
+    }
+
+    // Filter and sort posts
+    function getFilteredPosts() {
+      let filtered = [...allPosts].filter(p => !p.data.featured); // Exclude featured from main list
+
+      // Apply search
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        filtered = filtered.filter((p: any) => 
+          p.data.title.toLowerCase().includes(search) ||
+          p.data.summary.toLowerCase().includes(search) ||
+          (p.data.excerpt || '').toLowerCase().includes(search) ||
+          (p.data.tags || []).some((t: string) => t.toLowerCase().includes(search))
+        );
+      }
+
+      // Apply filters
+      if (filters.tags.length > 0) {
+        filtered = filtered.filter((p: any) =>
+          p.data.tags?.some((t: string) => filters.tags.includes(t))
+        );
+      }
+
+      if (filters.categories.length > 0) {
+        filtered = filtered.filter((p: any) =>
+          filters.categories.includes(p.data.category)
+        );
+      }
+
+      // Apply sorting
+      filtered.sort((a: any, b: any) => {
+        switch (sortBy) {
+          case 'oldest':
+            return new Date(a.data.publishedAt).getTime() - new Date(b.data.publishedAt).getTime();
+          case 'popular':
+            // For now, use reading time as proxy for popularity
+            return b.data.readingTime - a.data.readingTime;
+          case 'newest':
+          default:
+            return new Date(b.data.publishedAt).getTime() - new Date(a.data.publishedAt).getTime();
+        }
+      });
+
+      return filtered;
+    }
+
+    // Render posts
+    function renderPosts() {
+      const filtered = getFilteredPosts();
+      const totalPages = Math.ceil(filtered.length / postsPerPage);
+      
+      // Reset to page 1 if current page is out of bounds
+      if (currentPage > totalPages && totalPages > 0) {
+        currentPage = Math.max(1, totalPages);
+      }
+
+      const startIndex = (currentPage - 1) * postsPerPage;
+      const endIndex = startIndex + postsPerPage;
+      const paginatedPosts = filtered.slice(startIndex, endIndex);
+
+      // Update results count
+      const resultsCount = document.getElementById('results-count');
+      if (resultsCount) {
+        resultsCount.textContent = `${filtered.length} post${filtered.length !== 1 ? 's' : ''}`;
+      }
+
+      // Render posts
+      const container = document.getElementById('posts-container');
+      if (!container) return;
+
+      container.innerHTML = '';
+      const postsWrapper = document.createElement('div');
+      postsWrapper.className = viewMode === 'grid' 
+        ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6'
+        : viewMode === 'compact'
+        ? 'space-y-4'
+        : 'space-y-8';
+
+      if (paginatedPosts.length === 0) {
+        postsWrapper.innerHTML = `
+          <div class="col-span-full text-center py-16">
+            <div class="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg class="w-8 h-8 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <p class="text-neutral-400 text-lg mb-2">No posts found</p>
+            <p class="text-neutral-500 text-sm">Try adjusting your filters or search terms</p>
+          </div>
+        `;
+      } else {
+        paginatedPosts.forEach(post => {
+          const postDiv = document.createElement('div');
+          const root = createRoot(postDiv);
+          root.render(createElement(BlogCard, { post, viewMode }));
+          postsWrapper.appendChild(postDiv);
+        });
+      }
+
+      container.appendChild(postsWrapper);
+
+      // Render pagination
+      renderPagination(totalPages);
+      updateURL();
+    }
+
+    // Render pagination
+    function renderPagination(totalPages: number) {
+      const container = document.getElementById('pagination-container');
+      if (!container || totalPages <= 1) {
+        if (container) container.innerHTML = '';
+        return;
+      }
+
+      const pagesToShow = new Set<number>();
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages) {
+          pagesToShow.add(i);
+        } else {
+          const diff = Math.abs(i - currentPage);
+          if (diff <= 1) {
+            pagesToShow.add(i);
+          }
+        }
+      }
+
+      let paginationHTML = '<nav class="flex items-center justify-center gap-2" aria-label="Blog pagination">';
+      
+      // Previous button
+      if (currentPage > 1) {
+        paginationHTML += `
+          <button data-page="${currentPage - 1}" class="pagination-btn px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition-colors">
+            Previous
+          </button>
+        `;
+      }
+
+      // Page numbers
+      paginationHTML += '<div class="flex gap-2">';
+      for (let page = 1; page <= totalPages; page++) {
+        if (pagesToShow.has(page)) {
+          const isActive = page === currentPage;
+          paginationHTML += `
+            <button 
+              data-page="${page}"
+              class="pagination-btn px-4 py-2 rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-amber-700 text-white'
+                  : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300'
+              }"
+              ${isActive ? 'aria-current="page"' : ''}
+            >
+              ${page}
+            </button>
+          `;
+        } else {
+          const prevPage = currentPage - 2;
+          const nextPage = currentPage + 2;
+          if (page === prevPage || page === nextPage) {
+            paginationHTML += '<span class="px-2 text-neutral-500">...</span>';
+          }
+        }
+      }
+      paginationHTML += '</div>';
+
+      // Next button
+      if (currentPage < totalPages) {
+        paginationHTML += `
+          <button data-page="${currentPage + 1}" class="pagination-btn px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition-colors">
+            Next
+          </button>
+        `;
+      }
+
+      paginationHTML += '</nav>';
+      container.innerHTML = paginationHTML;
+
+      // Add click handlers
+      container.querySelectorAll('.pagination-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const page = parseInt((e.target as HTMLElement).dataset.page || '1', 10);
+          currentPage = page;
+          renderPosts();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
+    // Render filters
+    const filtersContainer = document.getElementById('filters-container');
+    if (filtersContainer) {
+      const root = createRoot(filtersContainer);
+      root.render(
+        createElement(BlogFilters, {
+          posts: allPosts,
+          onFilterChange: (newFilters: FilterState) => {
+            filters = newFilters;
+            currentPage = 1;
+            renderPosts();
+          },
+          onSearchChange: (search: string) => {
+            searchTerm = search;
+            currentPage = 1;
+            renderPosts();
+          },
+          onSortChange: (sort: SortOption) => {
+            sortBy = sort;
+            renderPosts();
+          },
+          onViewModeChange: (mode: 'list' | 'grid' | 'compact') => {
+            viewMode = mode;
+            renderPosts();
+          },
+          viewMode,
+        })
+      );
+    }
+
+    // Initial render
+    renderPosts();
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      window.location.reload();
+    });
+  </script>
 </Base>

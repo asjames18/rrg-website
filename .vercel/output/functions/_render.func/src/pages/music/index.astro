@@ -1,17 +1,37 @@
 ---
+/**
+ * Music Index Page - Now reads from Supabase CMS
+ */
 import Base from '../../layouts/Base.astro';
 import AudioPlayer from '../../components/AudioPlayer';
-import { getCollection } from 'astro:content';
+import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 
-const musicContent = await getCollection('music');
-
-// Separate audio and video content
-const audioTracks = musicContent
-  .filter(item => item.data.type === 'audio' && item.data.audioSrc)
-  .map(item => ({
-    title: item.data.title,
-    src: item.data.audioSrc!,
-  }));
+// Get music content from Supabase CMS
+let musicContent = [];
+let audioTracks = [];
+try {
+  const result = await SupabaseCMSAPI.getContent({
+    type: 'music',
+    status: 'published',
+    limit: 50,
+    sortBy: 'published_at',
+    sortOrder: 'desc'
+  });
+  musicContent = result.content || [];
+  
+  // Separate audio tracks for the player
+  audioTracks = musicContent
+    .filter(item => item.metadata?.type === 'audio' && item.metadata?.audioSrc)
+    .map(item => ({
+      title: item.title,
+      src: item.metadata.audioSrc,
+    }));
+} catch (error) {
+  
+  // Fallback to empty arrays if CMS fails
+  musicContent = [];
+  audioTracks = [];
+}
 ---
 
 <Base title="Music">
@@ -40,18 +60,23 @@ const audioTracks = musicContent
             <article class="bg-neutral-900 border border-neutral-800 rounded-lg p-6 hover:border-amber-700 transition-colors">
               <h3 class="text-xl font-bold mb-2 text-amber-100">
                 <a 
-                  href={`/music/${item.data.slug || item.slug}`}
+                  href={`/music/${item.slug}`}
                   class="hover:text-amber-200 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-900 rounded"
                 >
-                  {item.data.title}
+                  {item.title}
                 </a>
               </h3>
               <p class="text-sm text-neutral-400 mb-3">
-                Type: {item.data.type === 'audio' ? '🎵 Audio' : '🎬 Video'}
+                Type: {item.metadata?.type === 'audio' ? '🎵 Audio' : '🎬 Video'}
               </p>
-              {item.data.scriptures.length > 0 && (
+              {item.metadata?.scriptures && item.metadata.scriptures.length > 0 && (
                 <p class="text-xs text-neutral-500">
-                  Scriptures: {item.data.scriptures.join(', ')}
+                  Scriptures: {Array.isArray(item.metadata.scriptures) ? item.metadata.scriptures.join(', ') : item.metadata.scriptures}
+                </p>
+              )}
+              {item.summary && (
+                <p class="text-sm text-neutral-400 mt-3">
+                  {item.summary}
                 </p>
               )}
             </article>
@@ -64,6 +89,27 @@ const audioTracks = musicContent
           <strong class="text-amber-100">Note:</strong> Music content coming soon. 
           This player will feature worship songs, hymns, and audio teachings that honor the sacred Names of YAHUAH, YAHUSHA, and RUACH HAQODESH.
         </p>
+      </div>
+
+      <!-- Continue Your Training -->
+      <div class="mt-12 bg-neutral-950 border border-neutral-800 rounded-lg p-8">
+        <h3 class="text-2xl font-bold text-amber-100 mb-6 text-center">Continue Your Training</h3>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <a href="/walk-in-the-spirit" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+            <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Walk in the Spirit</h4>
+            <p class="text-neutral-400 text-sm">Daily self-check and Spirit-led living</p>
+          </a>
+          
+          <a href="/prayer-and-fasting" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+            <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Prayer & Fasting</h4>
+            <p class="text-neutral-400 text-sm">Sharpen your spiritual weapons</p>
+          </a>
+          
+          <a href="/videos" class="group block p-6 bg-neutral-900 rounded-lg border border-neutral-800 hover:border-amber-700 transition-colors">
+            <h4 class="text-lg font-bold text-amber-100 group-hover:text-amber-200 mb-2">Videos</h4>
+            <p class="text-neutral-400 text-sm">Watch teachings and testimonies</p>
+          </a>
+        </div>
       </div>
     </div>
   </div>
