@@ -1,7 +1,7 @@
 import { c as createComponent, a as createAstro, r as renderScript, b as renderHead, d as renderComponent, e as renderTemplate } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
 import { s as supabaseServer } from '../chunks/supabase-server_CrvNcPIF.mjs';
-import { jsx, jsxs } from 'react/jsx-runtime';
+import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
@@ -22,15 +22,17 @@ function MediaPicker({ onSelect, onUpload }) {
   }, []);
   const loadFiles = async () => {
     try {
+      console.log("[MediaPicker] Loading files from Supabase storage bucket: media");
       const { data, error } = await supabase.storage.from("media").list("", {
         limit: 100,
         offset: 0,
         sortBy: { column: "created_at", order: "desc" }
       });
       if (error) {
-        console.error("Error loading files:", error);
+        console.error("[MediaPicker] Error loading files:", error);
         return;
       }
+      console.log("[MediaPicker] Files loaded:", data?.length || 0);
       const filesWithUrls = await Promise.all(
         data.map(async (file) => {
           const { data: urlData } = supabase.storage.from("media").getPublicUrl(file.name);
@@ -45,8 +47,9 @@ function MediaPicker({ onSelect, onUpload }) {
         })
       );
       setFiles(filesWithUrls);
+      console.log("[MediaPicker] Files processed successfully");
     } catch (error) {
-      console.error("Error loading files:", error);
+      console.error("[MediaPicker] Exception loading files:", error);
     } finally {
       setIsLoading(false);
     }
@@ -54,6 +57,7 @@ function MediaPicker({ onSelect, onUpload }) {
   const handleFileUpload = async (event) => {
     const selectedFiles = event.target.files;
     if (!selectedFiles || selectedFiles.length === 0) return;
+    console.log("[MediaPicker] Uploading", selectedFiles.length, "files");
     setIsUploading(true);
     setUploadProgress(0);
     try {
@@ -61,16 +65,19 @@ function MediaPicker({ onSelect, onUpload }) {
         const file = selectedFiles[i];
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        console.log("[MediaPicker] Uploading file:", fileName);
         const { error: uploadError } = await supabase.storage.from("media").upload(fileName, file);
         if (uploadError) {
-          console.error("Upload error:", uploadError);
+          console.error("[MediaPicker] Upload error:", uploadError);
           continue;
         }
+        console.log("[MediaPicker] File uploaded successfully:", fileName);
         setUploadProgress((i + 1) / selectedFiles.length * 100);
       }
+      console.log("[MediaPicker] Reloading file list");
       await loadFiles();
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("[MediaPicker] Upload exception:", error);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -219,8 +226,10 @@ function SupabaseContentEditor({ contentId, onSave, onCancel }) {
   const loadContent = async () => {
     try {
       setLoading(true);
+      console.log("[ContentEditor] Loading content:", contentId);
       const response = await fetch(`/api/cms/content/${contentId}`);
       const data = await response.json();
+      console.log("[ContentEditor] Response:", response.status, data);
       if (response.ok) {
         setContent({
           ...data,
@@ -233,10 +242,14 @@ function SupabaseContentEditor({ contentId, onSave, onCancel }) {
           }
         });
         setSelectedTags(data.tags?.map((tag) => tag.id) || []);
+        console.log("[ContentEditor] Content loaded successfully");
       } else {
-        setError(data.error || "Failed to load content");
+        const errorMsg = data.error || "Failed to load content";
+        console.error("[ContentEditor] Error:", errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
+      console.error("[ContentEditor] Exception:", err);
       setError("Failed to load content");
     } finally {
       setLoading(false);
@@ -257,23 +270,31 @@ function SupabaseContentEditor({ contentId, onSave, onCancel }) {
     try {
       setSaving(true);
       setError("");
+      const payload = {
+        ...content,
+        tags: selectedTags
+      };
+      console.log("[ContentEditor] Saving content:", contentId ? "UPDATE" : "CREATE");
+      console.log("[ContentEditor] Payload:", payload);
       const response = await fetch(contentId ? `/api/cms/content/${contentId}` : "/api/cms/content", {
         method: contentId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          ...content,
-          tags: selectedTags
-        })
+        body: JSON.stringify(payload)
       });
       const data = await response.json();
+      console.log("[ContentEditor] Save response:", response.status, data);
       if (response.ok) {
+        console.log("[ContentEditor] Content saved successfully");
         onSave?.(data);
       } else {
-        setError(data.error || "Failed to save content");
+        const errorMsg = data.error || "Failed to save content";
+        console.error("[ContentEditor] Save error:", errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
+      console.error("[ContentEditor] Save exception:", err);
       setError("Failed to save content");
     } finally {
       setSaving(false);
@@ -858,16 +879,24 @@ function Dashboard() {
     try {
       setLoading(true);
       setError(null);
+      console.log("[Dashboard] Fetching stats from /api/admin/dashboard/stats");
       const response = await fetch("/api/admin/dashboard/stats");
       const data = await response.json();
+      console.log("[Dashboard] Response status:", response.status);
+      console.log("[Dashboard] Response data:", data);
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch dashboard stats");
+        const errorMsg = data.error || "Failed to fetch dashboard stats";
+        console.error("[Dashboard] Error:", errorMsg);
+        throw new Error(errorMsg);
       }
       setStats(data.stats);
       setContentGrowth(data.content_growth || {});
       setUserGrowth(data.user_growth || {});
+      console.log("[Dashboard] Stats loaded successfully");
     } catch (error2) {
-      setError(error2 instanceof Error ? error2.message : "Failed to load dashboard");
+      const errorMsg = error2 instanceof Error ? error2.message : "Failed to load dashboard";
+      console.error("[Dashboard] Failed to fetch stats:", errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -1177,16 +1206,23 @@ function ContentAnalytics() {
     try {
       setLoading(true);
       setError(null);
+      console.log("[ContentAnalytics] Fetching analytics from /api/admin/analytics/overview?days=" + days);
       const response = await fetch(`/api/admin/analytics/overview?days=${days}`);
       const data = await response.json();
+      console.log("[ContentAnalytics] Response:", response.status, data);
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch analytics");
+        const errorMsg = data.error || "Failed to fetch analytics";
+        console.error("[ContentAnalytics] Error:", errorMsg);
+        throw new Error(errorMsg);
       }
       setViewsByType(data.views_by_type || {});
       setTrending(data.trending_content || []);
       setViewsOverTime(data.views_over_time || {});
+      console.log("[ContentAnalytics] Analytics loaded successfully");
     } catch (error2) {
-      setError(error2 instanceof Error ? error2.message : "Failed to load analytics");
+      const errorMsg = error2 instanceof Error ? error2.message : "Failed to load analytics";
+      console.error("[ContentAnalytics] Exception:", error2);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -1382,14 +1418,21 @@ function SettingsPanel() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      console.log("[SettingsPanel] Fetching settings from /api/admin/settings");
       const response = await fetch("/api/admin/settings");
       const data = await response.json();
+      console.log("[SettingsPanel] Response:", response.status, data);
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch settings");
+        const errorMsg = data.error || "Failed to fetch settings";
+        console.error("[SettingsPanel] Error:", errorMsg);
+        throw new Error(errorMsg);
       }
       setSettings(data.settings || {});
+      console.log("[SettingsPanel] Settings loaded:", Object.keys(data.settings || {}).length, "items");
     } catch (error2) {
-      setError(error2 instanceof Error ? error2.message : "Failed to load settings");
+      const errorMsg = error2 instanceof Error ? error2.message : "Failed to load settings";
+      console.error("[SettingsPanel] Exception:", error2);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -1399,20 +1442,27 @@ function SettingsPanel() {
     setError(null);
     setSuccess(false);
     try {
+      console.log("[SettingsPanel] Saving setting:", { key, value, category });
       const response = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key, value, category })
       });
       const data = await response.json();
+      console.log("[SettingsPanel] Save response:", response.status, data);
       if (!response.ok) {
-        throw new Error(data.error || "Failed to save setting");
+        const errorMsg = data.error || "Failed to save setting";
+        console.error("[SettingsPanel] Save error:", errorMsg);
+        throw new Error(errorMsg);
       }
+      console.log("[SettingsPanel] Setting saved successfully");
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3e3);
       fetchSettings();
     } catch (error2) {
-      setError(error2 instanceof Error ? error2.message : "Failed to save setting");
+      const errorMsg = error2 instanceof Error ? error2.message : "Failed to save setting";
+      console.error("[SettingsPanel] Save exception:", error2);
+      setError(errorMsg);
     } finally {
       setSaving(false);
     }
@@ -1485,6 +1535,101 @@ function SettingsPanel() {
             }
           )
         ] })
+      ] }),
+      activeCategory === "email" && /* @__PURE__ */ jsxs("div", { className: "space-y-4", children: [
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-neutral-400 mb-2", children: "SMTP Host" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "text",
+              defaultValue: settings.smtp_host?.value || "",
+              onBlur: (e) => handleSave("smtp_host", e.target.value, "email"),
+              placeholder: "smtp.example.com",
+              className: "w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-neutral-400 mb-2", children: "SMTP Port" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "number",
+              defaultValue: settings.smtp_port?.value || 587,
+              onBlur: (e) => handleSave("smtp_port", parseInt(e.target.value), "email"),
+              className: "w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-neutral-400 mb-2", children: "SMTP Username" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "text",
+              defaultValue: settings.smtp_username?.value || "",
+              onBlur: (e) => handleSave("smtp_username", e.target.value, "email"),
+              className: "w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-neutral-400 mb-2", children: "SMTP Password" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "password",
+              defaultValue: settings.smtp_password?.value || "",
+              onBlur: (e) => handleSave("smtp_password", e.target.value, "email"),
+              className: "w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-neutral-400 mb-2", children: "From Email Address" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "email",
+              defaultValue: settings.from_email?.value || "",
+              onBlur: (e) => handleSave("from_email", e.target.value, "email"),
+              placeholder: "noreply@example.com",
+              className: "w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-neutral-400 mb-2", children: "From Name" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "text",
+              defaultValue: settings.from_name?.value || "Real & Raw Gospel",
+              onBlur: (e) => handleSave("from_name", e.target.value, "email"),
+              className: "w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between p-4 bg-neutral-800 rounded-lg", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("div", { className: "font-medium text-neutral-200", children: "Use TLS/SSL" }),
+            /* @__PURE__ */ jsx("div", { className: "text-sm text-neutral-500", children: "Enable secure connection for SMTP" })
+          ] }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              onClick: () => handleSave("smtp_use_tls", !settings.smtp_use_tls?.value, "email"),
+              className: `px-4 py-2 rounded-lg font-medium ${settings.smtp_use_tls?.value ? "bg-green-700 text-green-100" : "bg-neutral-700 text-neutral-400"}`,
+              disabled: saving,
+              children: settings.smtp_use_tls?.value ? "Enabled" : "Disabled"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "mt-6 p-4 bg-amber-900/20 border border-amber-800/50 rounded-lg", children: /* @__PURE__ */ jsxs("div", { className: "text-sm text-amber-200", children: [
+          /* @__PURE__ */ jsx("strong", { children: "Note:" }),
+          " Email configuration requires proper SMTP credentials. Test your settings before enabling email notifications."
+        ] }) })
       ] }),
       activeCategory === "features" && /* @__PURE__ */ jsxs("div", { className: "space-y-4", children: [
         /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between p-4 bg-neutral-800 rounded-lg", children: [
@@ -1583,7 +1728,7 @@ function SettingsPanel() {
 function AdminShell({ userRole, userName, userEmail }) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isLoading, setIsLoading] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(typeof window !== "undefined");
   useEffect(() => {
     setIsHydrated(true);
   }, []);
@@ -1603,16 +1748,26 @@ function AdminShell({ userRole, userName, userEmail }) {
     }
   }, [isHydrated]);
   useEffect(() => {
-    const handleIframeLoad = () => setIsLoading(false);
-    const iframes = document.querySelectorAll("iframe");
-    iframes.forEach((iframe) => {
-      iframe.addEventListener("load", handleIframeLoad);
-    });
-    return () => {
-      iframes.forEach((iframe) => {
-        iframe.removeEventListener("load", handleIframeLoad);
-      });
-    };
+    const tabsWithIframes = [];
+    if (tabsWithIframes.includes(activeTab)) {
+      const handleIframeLoad = () => setIsLoading(false);
+      const iframes = document.querySelectorAll("iframe");
+      if (iframes.length > 0) {
+        setIsLoading(true);
+        iframes.forEach((iframe) => {
+          iframe.addEventListener("load", handleIframeLoad);
+        });
+        return () => {
+          iframes.forEach((iframe) => {
+            iframe.removeEventListener("load", handleIframeLoad);
+          });
+        };
+      } else {
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+    }
   }, [activeTab]);
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: "📊", description: "Overview and analytics" },
@@ -1698,8 +1853,8 @@ function AdminShell({ userRole, userName, userEmail }) {
       },
       tab.id
     )) }) }) }),
-    /* @__PURE__ */ jsxs("main", { className: "flex-1 bg-neutral-950", children: [
-      isLoading && /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center h-64", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-center space-y-4", children: [
+    /* @__PURE__ */ jsxs("main", { className: "flex-1 bg-neutral-950 relative", children: [
+      isLoading && /* @__PURE__ */ jsx("div", { className: "absolute inset-0 flex items-center justify-center bg-neutral-950/80 backdrop-blur-sm z-50", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-center space-y-4", children: [
         /* @__PURE__ */ jsx("div", { className: "animate-spin rounded-full h-8 w-8 border-2 border-amber-200 border-t-amber-500" }),
         /* @__PURE__ */ jsx("div", { className: "text-amber-100 font-medium", children: "Loading..." })
       ] }) }),
@@ -1846,52 +2001,180 @@ function MediaTab() {
 }
 function UsersTab() {
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [grantEmail, setGrantEmail] = useState("");
+  const [grantRole, setGrantRole] = useState("editor");
+  const [isGranting, setIsGranting] = useState(false);
+  const [grantMessage, setGrantMessage] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("lastActive");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(25);
+  const [selectedUsers, setSelectedUsers] = useState(/* @__PURE__ */ new Set());
+  const [bulkActionRole, setBulkActionRole] = useState("editor");
+  const [isBulkActioning, setIsBulkActioning] = useState(false);
   useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const response = await fetch("/api/cms/users");
-        if (response.ok) {
-          const data = await response.json();
-          setUsers(data.users || []);
-        } else {
-          console.error("Failed to fetch users:", response.statusText);
-          setUsers([]);
-        }
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        setUsers([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     fetchUsers();
   }, []);
+  useEffect(() => {
+    let result = [...users];
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (user) => user.email.toLowerCase().includes(query) || user.displayName?.toLowerCase().includes(query)
+      );
+    }
+    if (roleFilter !== "all") {
+      result = result.filter((user) => user.role === roleFilter);
+    }
+    result.sort((a, b) => {
+      let aVal, bVal;
+      switch (sortBy) {
+        case "email":
+          aVal = a.email.toLowerCase();
+          bVal = b.email.toLowerCase();
+          break;
+        case "role":
+          aVal = a.role;
+          bVal = b.role;
+          break;
+        case "lastActive":
+          aVal = new Date(a.lastActive).getTime();
+          bVal = new Date(b.lastActive).getTime();
+          break;
+        default:
+          return 0;
+      }
+      if (sortOrder === "asc") {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+    setFilteredUsers(result);
+    setCurrentPage(1);
+  }, [users, searchQuery, roleFilter, sortBy, sortOrder]);
+  const fetchUsers = async () => {
+    try {
+      console.log("[UsersTab] Fetching users from /api/cms/users");
+      const response = await fetch("/api/cms/users");
+      const data = await response.json();
+      console.log("[UsersTab] Response:", response.status, data);
+      if (response.ok) {
+        setUsers(data.users || []);
+        console.log("[UsersTab] Users loaded:", data.users?.length || 0);
+      } else {
+        console.error("[UsersTab] Failed to fetch users:", response.statusText, data);
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error("[UsersTab] Error fetching users:", error);
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const handleGrantAccess = async (e) => {
+    e.preventDefault();
+    setIsGranting(true);
+    setGrantMessage(null);
+    try {
+      console.log("[UsersTab] Granting access:", grantEmail, grantRole);
+      const response = await fetch("/api/admin/grant-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: grantEmail, role: grantRole })
+      });
+      const data = await response.json();
+      console.log("[UsersTab] Grant response:", response.status, data);
+      if (response.ok) {
+        setGrantMessage({ type: "success", text: `Successfully granted ${grantRole} access to ${grantEmail}. They can now sign in with their account.` });
+        setGrantEmail("");
+        setGrantRole("editor");
+        fetchUsers();
+      } else {
+        setGrantMessage({ type: "error", text: data.error || "Failed to grant access. The user may not exist yet." });
+      }
+    } catch (error) {
+      console.error("[UsersTab] Error granting access:", error);
+      setGrantMessage({ type: "error", text: "An error occurred. Please try again." });
+    } finally {
+      setIsGranting(false);
+    }
+  };
   const promoteUser = async (userId, newRole) => {
     try {
+      console.log("[UsersTab] Updating user role:", userId, "to", newRole);
       const response = await fetch("/api/cms/users", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          userId,
-          role: newRole
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole })
       });
+      const data = await response.json();
+      console.log("[UsersTab] Update response:", response.status, data);
       if (response.ok) {
         setUsers((prev) => prev.map(
           (user) => user.id === userId ? { ...user, role: newRole } : user
         ));
-        console.log(`User ${userId} promoted to ${newRole}`);
+        console.log(`[UsersTab] User ${userId} promoted to ${newRole}`);
       } else {
-        console.error("Failed to promote user:", response.statusText);
+        console.error("[UsersTab] Failed to promote user:", response.statusText, data);
         alert("Failed to update user role. Please try again.");
       }
     } catch (error) {
-      console.error("Error promoting user:", error);
+      console.error("[UsersTab] Error promoting user:", error);
       alert("Error updating user role. Please try again.");
     }
+  };
+  const toggleUserSelection = (userId) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === paginatedUsers.length) {
+      setSelectedUsers(/* @__PURE__ */ new Set());
+    } else {
+      setSelectedUsers(new Set(paginatedUsers.map((u) => u.id)));
+    }
+  };
+  const handleBulkRoleChange = async () => {
+    if (selectedUsers.size === 0) return;
+    if (!confirm(`Change role to "${bulkActionRole}" for ${selectedUsers.size} selected users?`)) {
+      return;
+    }
+    setIsBulkActioning(true);
+    let successCount = 0;
+    let failCount = 0;
+    for (const userId of Array.from(selectedUsers)) {
+      try {
+        const response = await fetch("/api/cms/users", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, role: bulkActionRole })
+        });
+        if (response.ok) {
+          successCount++;
+          setUsers((prev) => prev.map(
+            (user) => user.id === userId ? { ...user, role: bulkActionRole } : user
+          ));
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
+    }
+    setIsBulkActioning(false);
+    setSelectedUsers(/* @__PURE__ */ new Set());
+    alert(`Updated ${successCount} users successfully${failCount > 0 ? `, ${failCount} failed` : ""}.`);
   };
   const getRoleColor = (role) => {
     switch (role) {
@@ -1901,61 +2184,354 @@ function UsersTab() {
         return "bg-blue-900/30 text-blue-300 border border-blue-700/50";
       case "viewer":
         return "bg-neutral-800 text-neutral-300 border border-neutral-700";
+      case "user":
+        return "bg-neutral-800 text-neutral-400 border border-neutral-700";
       default:
         return "bg-neutral-800 text-neutral-300 border border-neutral-700";
     }
+  };
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+  const stats = {
+    total: users.length,
+    admins: users.filter((u) => u.role === "admin").length,
+    editors: users.filter((u) => u.role === "editor").length,
+    viewers: users.filter((u) => u.role === "viewer").length,
+    regularUsers: users.filter((u) => u.role === "user" || !u.role).length
   };
   return /* @__PURE__ */ jsxs("div", { className: "p-8 max-w-7xl mx-auto", children: [
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("h2", { className: "text-3xl font-bold text-amber-100 mb-3", children: "User Management" }),
       /* @__PURE__ */ jsx("p", { className: "text-neutral-400 text-lg", children: "Manage team access and permissions for your content management system." })
     ] }),
+    /* @__PURE__ */ jsxs("div", { className: "mb-8 bg-gradient-to-r from-amber-900/20 to-amber-800/10 border border-amber-700/30 rounded-2xl p-8", children: [
+      /* @__PURE__ */ jsxs("div", { className: "mb-6", children: [
+        /* @__PURE__ */ jsx("h3", { className: "text-xl font-semibold text-amber-100 mb-2", children: "Grant Admin/Editor Access" }),
+        /* @__PURE__ */ jsx("p", { className: "text-neutral-300 text-sm", children: "Give admin or editor access to an existing user. They must have already created an account via the signup page." })
+      ] }),
+      /* @__PURE__ */ jsxs("form", { onSubmit: handleGrantAccess, className: "space-y-4", children: [
+        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-4", children: [
+          /* @__PURE__ */ jsxs("div", { className: "md:col-span-2", children: [
+            /* @__PURE__ */ jsx("label", { htmlFor: "grant-email", className: "block text-sm font-medium text-amber-200 mb-2", children: "User Email Address" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "grant-email",
+                type: "email",
+                value: grantEmail,
+                onChange: (e) => setGrantEmail(e.target.value),
+                placeholder: "user@example.com",
+                required: true,
+                className: "w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("label", { htmlFor: "grant-role", className: "block text-sm font-medium text-amber-200 mb-2", children: "Role" }),
+            /* @__PURE__ */ jsxs(
+              "select",
+              {
+                id: "grant-role",
+                value: grantRole,
+                onChange: (e) => setGrantRole(e.target.value),
+                className: "w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors",
+                children: [
+                  /* @__PURE__ */ jsx("option", { value: "editor", children: "Editor" }),
+                  /* @__PURE__ */ jsx("option", { value: "admin", children: "Admin" })
+                ]
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "submit",
+            disabled: isGranting || !grantEmail,
+            className: "w-full md:w-auto px-6 py-3 bg-amber-700 hover:bg-amber-600 disabled:bg-neutral-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2",
+            children: isGranting ? /* @__PURE__ */ jsxs(Fragment, { children: [
+              /* @__PURE__ */ jsx("div", { className: "animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" }),
+              "Granting Access..."
+            ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+              /* @__PURE__ */ jsx("svg", { className: "w-5 h-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M12 4v16m8-8H4" }) }),
+              "Grant Access"
+            ] })
+          }
+        )
+      ] }),
+      grantMessage && /* @__PURE__ */ jsx("div", { className: `mt-4 p-4 rounded-lg border ${grantMessage.type === "success" ? "bg-green-900/20 border-green-700/50 text-green-200" : "bg-red-900/20 border-red-700/50 text-red-200"}`, children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
+        /* @__PURE__ */ jsx("svg", { className: "w-5 h-5 flex-shrink-0 mt-0.5", fill: "currentColor", viewBox: "0 0 20 20", children: grantMessage.type === "success" ? /* @__PURE__ */ jsx("path", { fillRule: "evenodd", d: "M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z", clipRule: "evenodd" }) : /* @__PURE__ */ jsx("path", { fillRule: "evenodd", d: "M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z", clipRule: "evenodd" }) }),
+        /* @__PURE__ */ jsx("p", { className: "text-sm", children: grantMessage.text })
+      ] }) })
+    ] }),
+    /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-2 md:grid-cols-5 gap-4 mb-8", children: [
+      /* @__PURE__ */ jsxs("div", { className: "bg-gradient-to-br from-neutral-800 to-neutral-900 p-6 rounded-xl border border-neutral-700", children: [
+        /* @__PURE__ */ jsx("div", { className: "text-3xl font-bold text-amber-100", children: stats.total }),
+        /* @__PURE__ */ jsx("div", { className: "text-sm text-neutral-400 mt-1", children: "Total Users" })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-gradient-to-br from-red-900/20 to-red-800/10 p-6 rounded-xl border border-red-700/30", children: [
+        /* @__PURE__ */ jsx("div", { className: "text-3xl font-bold text-red-300", children: stats.admins }),
+        /* @__PURE__ */ jsx("div", { className: "text-sm text-neutral-400 mt-1", children: "Admins" })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-gradient-to-br from-blue-900/20 to-blue-800/10 p-6 rounded-xl border border-blue-700/30", children: [
+        /* @__PURE__ */ jsx("div", { className: "text-3xl font-bold text-blue-300", children: stats.editors }),
+        /* @__PURE__ */ jsx("div", { className: "text-sm text-neutral-400 mt-1", children: "Editors" })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 p-6 rounded-xl border border-neutral-700", children: [
+        /* @__PURE__ */ jsx("div", { className: "text-3xl font-bold text-neutral-300", children: stats.viewers }),
+        /* @__PURE__ */ jsx("div", { className: "text-sm text-neutral-400 mt-1", children: "Viewers" })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-gradient-to-br from-neutral-800/30 to-neutral-900/30 p-6 rounded-xl border border-neutral-700", children: [
+        /* @__PURE__ */ jsx("div", { className: "text-3xl font-bold text-neutral-400", children: stats.regularUsers }),
+        /* @__PURE__ */ jsx("div", { className: "text-sm text-neutral-400 mt-1", children: "Regular Users" })
+      ] })
+    ] }),
     isLoading ? /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center h-64", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-center space-y-4", children: [
       /* @__PURE__ */ jsx("div", { className: "animate-spin rounded-full h-8 w-8 border-2 border-amber-200 border-t-amber-500" }),
       /* @__PURE__ */ jsx("div", { className: "text-amber-100 font-medium", children: "Loading users..." })
-    ] }) }) : /* @__PURE__ */ jsxs("div", { className: "bg-neutral-900 rounded-2xl shadow-sm border border-neutral-800 overflow-hidden", children: [
-      /* @__PURE__ */ jsxs("div", { className: "px-8 py-6 border-b border-neutral-800 bg-neutral-800/50", children: [
-        /* @__PURE__ */ jsx("h3", { className: "text-lg font-semibold text-amber-100", children: "Team Members" }),
-        /* @__PURE__ */ jsx("p", { className: "text-neutral-400 text-sm mt-1", children: "Manage roles and permissions for your team" })
-      ] }),
-      /* @__PURE__ */ jsx("ul", { className: "divide-y divide-neutral-800", children: users.map((user) => /* @__PURE__ */ jsx("li", { className: "px-8 py-6 hover:bg-neutral-800/50 transition-colors", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center space-x-4", children: [
-          /* @__PURE__ */ jsx("div", { className: "w-12 h-12 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center shadow-lg", children: /* @__PURE__ */ jsx("span", { className: "text-amber-100 font-semibold text-lg", children: user.email.charAt(0).toUpperCase() }) }),
+    ] }) }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsxs("div", { className: "mb-6 bg-neutral-900 rounded-xl border border-neutral-800 p-6", children: [
+        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 md:grid-cols-4 gap-4", children: [
+          /* @__PURE__ */ jsxs("div", { className: "md:col-span-2", children: [
+            /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-amber-200 mb-2", children: "Search Users" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "text",
+                value: searchQuery,
+                onChange: (e) => setSearchQuery(e.target.value),
+                placeholder: "Search by email or name...",
+                className: "w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              }
+            )
+          ] }),
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("div", { className: "text-lg font-semibold text-amber-100", children: user.email }),
-            /* @__PURE__ */ jsxs("div", { className: "text-sm text-neutral-400", children: [
-              "Last active ",
-              user.lastActive
+            /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-amber-200 mb-2", children: "Filter by Role" }),
+            /* @__PURE__ */ jsxs(
+              "select",
+              {
+                value: roleFilter,
+                onChange: (e) => setRoleFilter(e.target.value),
+                className: "w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:ring-2 focus:ring-amber-500 focus:border-amber-500",
+                children: [
+                  /* @__PURE__ */ jsx("option", { value: "all", children: "All Roles" }),
+                  /* @__PURE__ */ jsx("option", { value: "admin", children: "Admin" }),
+                  /* @__PURE__ */ jsx("option", { value: "editor", children: "Editor" }),
+                  /* @__PURE__ */ jsx("option", { value: "viewer", children: "Viewer" }),
+                  /* @__PURE__ */ jsx("option", { value: "user", children: "Regular User" })
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("label", { className: "block text-sm font-medium text-amber-200 mb-2", children: "Sort By" }),
+            /* @__PURE__ */ jsxs("div", { className: "flex gap-2", children: [
+              /* @__PURE__ */ jsxs(
+                "select",
+                {
+                  value: sortBy,
+                  onChange: (e) => setSortBy(e.target.value),
+                  className: "flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:ring-2 focus:ring-amber-500 focus:border-amber-500",
+                  children: [
+                    /* @__PURE__ */ jsx("option", { value: "lastActive", children: "Last Active" }),
+                    /* @__PURE__ */ jsx("option", { value: "email", children: "Email" }),
+                    /* @__PURE__ */ jsx("option", { value: "role", children: "Role" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => setSortOrder(sortOrder === "asc" ? "desc" : "asc"),
+                  className: "px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 hover:bg-neutral-700 transition-colors",
+                  title: sortOrder === "asc" ? "Ascending" : "Descending",
+                  children: /* @__PURE__ */ jsx("svg", { className: `w-5 h-5 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`, fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M5 15l7-7 7 7" }) })
+                }
+              )
             ] })
           ] })
         ] }),
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center space-x-4", children: [
-          /* @__PURE__ */ jsx("span", { className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`, children: user.role }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-4 text-sm text-neutral-400", children: [
+          "Showing ",
+          filteredUsers.length,
+          " of ",
+          users.length,
+          " users"
+        ] })
+      ] }),
+      selectedUsers.size > 0 && /* @__PURE__ */ jsxs("div", { className: "mb-6 bg-amber-900/20 border border-amber-700/50 rounded-xl p-4 flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+          /* @__PURE__ */ jsxs("span", { className: "text-amber-200 font-semibold", children: [
+            selectedUsers.size,
+            " user(s) selected"
+          ] }),
           /* @__PURE__ */ jsxs(
             "select",
             {
-              value: user.role,
-              onChange: (e) => promoteUser(user.id, e.target.value),
-              className: "text-sm border-neutral-700 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-neutral-800 text-amber-100 px-3 py-2 shadow-sm",
+              value: bulkActionRole,
+              onChange: (e) => setBulkActionRole(e.target.value),
+              className: "px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 text-sm",
               children: [
-                /* @__PURE__ */ jsx("option", { value: "viewer", children: "Viewer" }),
+                /* @__PURE__ */ jsx("option", { value: "admin", children: "Admin" }),
                 /* @__PURE__ */ jsx("option", { value: "editor", children: "Editor" }),
-                /* @__PURE__ */ jsx("option", { value: "admin", children: "Admin" })
+                /* @__PURE__ */ jsx("option", { value: "viewer", children: "Viewer" }),
+                /* @__PURE__ */ jsx("option", { value: "user", children: "Regular User" })
               ]
             }
+          ),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              onClick: handleBulkRoleChange,
+              disabled: isBulkActioning,
+              className: "px-4 py-2 bg-amber-700 hover:bg-amber-600 disabled:bg-neutral-700 text-white rounded-lg text-sm font-semibold transition-colors",
+              children: isBulkActioning ? "Updating..." : "Change Role"
+            }
           )
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => setSelectedUsers(/* @__PURE__ */ new Set()),
+            className: "text-neutral-400 hover:text-neutral-200 text-sm",
+            children: "Clear Selection"
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-neutral-900 rounded-2xl shadow-sm border border-neutral-800 overflow-hidden", children: [
+        /* @__PURE__ */ jsxs("div", { className: "px-8 py-6 border-b border-neutral-800 bg-neutral-800/50 flex items-center justify-between", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsxs("h3", { className: "text-lg font-semibold text-amber-100", children: [
+              "All Users (",
+              filteredUsers.length,
+              ")"
+            ] }),
+            /* @__PURE__ */ jsx("p", { className: "text-neutral-400 text-sm mt-1", children: "Manage roles and permissions for your team" })
+          ] }),
+          paginatedUsers.length > 0 && /* @__PURE__ */ jsx(
+            "button",
+            {
+              onClick: toggleSelectAll,
+              className: "text-sm text-amber-400 hover:text-amber-300 font-medium",
+              children: selectedUsers.size === paginatedUsers.length ? "Deselect All" : "Select All"
+            }
+          )
+        ] }),
+        filteredUsers.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "px-8 py-12 text-center", children: [
+          /* @__PURE__ */ jsx("svg", { className: "w-16 h-16 mx-auto text-neutral-600 mb-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" }) }),
+          /* @__PURE__ */ jsx("p", { className: "text-neutral-400", children: "No users found matching your search." }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              onClick: () => {
+                setSearchQuery("");
+                setRoleFilter("all");
+              },
+              className: "mt-4 text-amber-400 hover:text-amber-300 text-sm font-medium",
+              children: "Clear Filters"
+            }
+          )
+        ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+          /* @__PURE__ */ jsx("ul", { className: "divide-y divide-neutral-800", children: paginatedUsers.map((user) => /* @__PURE__ */ jsx("li", { className: "px-8 py-6 hover:bg-neutral-800/50 transition-colors", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "checkbox",
+                checked: selectedUsers.has(user.id),
+                onChange: () => toggleUserSelection(user.id),
+                className: "w-5 h-5 rounded border-neutral-600 text-amber-600 focus:ring-amber-500 focus:ring-offset-0 bg-neutral-800"
+              }
+            ),
+            /* @__PURE__ */ jsx("div", { className: "w-12 h-12 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center shadow-lg flex-shrink-0", children: /* @__PURE__ */ jsx("span", { className: "text-amber-100 font-semibold text-lg", children: user.email.charAt(0).toUpperCase() }) }),
+            /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0", children: [
+              /* @__PURE__ */ jsx("div", { className: "text-lg font-semibold text-amber-100 truncate", children: user.displayName || user.email }),
+              user.displayName && /* @__PURE__ */ jsx("div", { className: "text-sm text-neutral-500 truncate", children: user.email }),
+              /* @__PURE__ */ jsxs("div", { className: "text-sm text-neutral-400 mt-1", children: [
+                "Last active: ",
+                user.lastActive
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4 flex-shrink-0", children: [
+              /* @__PURE__ */ jsx("span", { className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`, children: user.role || "user" }),
+              /* @__PURE__ */ jsxs(
+                "select",
+                {
+                  value: user.role,
+                  onChange: (e) => promoteUser(user.id, e.target.value),
+                  className: "text-sm border-neutral-700 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-neutral-800 text-amber-100 px-3 py-2 shadow-sm",
+                  onClick: (e) => e.stopPropagation(),
+                  children: [
+                    /* @__PURE__ */ jsx("option", { value: "user", children: "Regular User" }),
+                    /* @__PURE__ */ jsx("option", { value: "viewer", children: "Viewer" }),
+                    /* @__PURE__ */ jsx("option", { value: "editor", children: "Editor" }),
+                    /* @__PURE__ */ jsx("option", { value: "admin", children: "Admin" })
+                  ]
+                }
+              )
+            ] })
+          ] }) }, user.id)) }),
+          totalPages > 1 && /* @__PURE__ */ jsx("div", { className: "px-8 py-6 border-t border-neutral-800 bg-neutral-800/30", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxs("div", { className: "text-sm text-neutral-400", children: [
+              "Page ",
+              currentPage,
+              " of ",
+              totalPages,
+              " • Showing ",
+              startIndex + 1,
+              "-",
+              Math.min(endIndex, filteredUsers.length),
+              " of ",
+              filteredUsers.length
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex gap-2", children: [
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => setCurrentPage(Math.max(1, currentPage - 1)),
+                  disabled: currentPage === 1,
+                  className: "px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-900 disabled:text-neutral-600 text-neutral-200 rounded-lg text-sm font-medium transition-colors",
+                  children: "Previous"
+                }
+              ),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => setCurrentPage(Math.min(totalPages, currentPage + 1)),
+                  disabled: currentPage === totalPages,
+                  className: "px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-900 disabled:text-neutral-600 text-neutral-200 rounded-lg text-sm font-medium transition-colors",
+                  children: "Next"
+                }
+              )
+            ] })
+          ] }) })
         ] })
-      ] }) }, user.id)) })
+      ] })
     ] }),
-    /* @__PURE__ */ jsx("div", { className: "mt-8 p-6 bg-gradient-to-r from-amber-900/20 to-amber-800/10 border border-amber-700/30 rounded-2xl", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start space-x-4", children: [
-      /* @__PURE__ */ jsx("div", { className: "flex-shrink-0", children: /* @__PURE__ */ jsx("div", { className: "w-10 h-10 bg-amber-700 rounded-xl flex items-center justify-center", children: /* @__PURE__ */ jsx("svg", { className: "h-6 w-6 text-white", viewBox: "0 0 20 20", fill: "currentColor", children: /* @__PURE__ */ jsx("path", { fillRule: "evenodd", d: "M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z", clipRule: "evenodd" }) }) }) }),
+    /* @__PURE__ */ jsx("div", { className: "mt-8 p-6 bg-blue-900/20 border border-blue-700/30 rounded-2xl", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start space-x-4", children: [
+      /* @__PURE__ */ jsx("div", { className: "flex-shrink-0", children: /* @__PURE__ */ jsx("div", { className: "w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center", children: /* @__PURE__ */ jsx("svg", { className: "h-6 w-6 text-white", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" }) }) }) }),
       /* @__PURE__ */ jsxs("div", { children: [
-        /* @__PURE__ */ jsx("h3", { className: "text-lg font-semibold text-amber-100", children: "Need to add more users?" }),
-        /* @__PURE__ */ jsx("div", { className: "mt-2 text-amber-200", children: /* @__PURE__ */ jsxs("p", { children: [
-          "Use the ",
-          /* @__PURE__ */ jsx("a", { href: "/admin-promote", className: "font-semibold underline hover:text-amber-300 transition-colors", children: "User Promotion Tool" }),
-          " to invite new team members or promote existing users."
-        ] }) })
+        /* @__PURE__ */ jsx("h3", { className: "text-lg font-semibold text-blue-100", children: "How User Access Works" }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-2 text-blue-200 text-sm space-y-2", children: [
+          /* @__PURE__ */ jsxs("p", { children: [
+            "• ",
+            /* @__PURE__ */ jsx("strong", { children: "New Users:" }),
+            " Users must first create an account at ",
+            /* @__PURE__ */ jsx("a", { href: "/auth", className: "underline hover:text-blue-300", children: "/auth" }),
+            " (sign up page)"
+          ] }),
+          /* @__PURE__ */ jsxs("p", { children: [
+            "• ",
+            /* @__PURE__ */ jsx("strong", { children: "Grant Access:" }),
+            " Use the form above to promote existing users to Admin or Editor"
+          ] }),
+          /* @__PURE__ */ jsxs("p", { children: [
+            "• ",
+            /* @__PURE__ */ jsx("strong", { children: "Roles:" }),
+            " Admin = full access | Editor = content management | Viewer = read only"
+          ] })
+        ] })
       ] })
     ] }) })
   ] });

@@ -19,8 +19,38 @@ interface Props {
   post: CollectionEntry<'blog'>;
 }
 
-const { post } = Astro.props;
-const { Content, headings } = await post.render();
+let { post } = Astro.props;
+
+// Fallback: fetch by slug when navigating to a path not pre-generated
+if (!post) {
+  const slugParam = Array.isArray(Astro.params.slug) ? Astro.params.slug.join('/') : (Astro.params.slug || '');
+  if (slugParam) {
+    try {
+      // Prefer getEntry when available; otherwise find in collection
+      try {
+        post = await getEntry('blog', slugParam) as any;
+      } catch {
+        const all = await getCollection('blog');
+        post = all.find(p => p.slug === slugParam) as any;
+      }
+      if (!post) {
+        Astro.response.status = 404;
+      }
+    } catch {
+      Astro.response.status = 404;
+    }
+  } else {
+    Astro.response.status = 404;
+  }
+}
+
+let Content: any = null;
+let headings: any[] = [];
+if (post) {
+  const rendered = await post.render();
+  Content = rendered.Content;
+  headings = rendered.headings;
+}
 
 // Get all posts for related posts
 const allPosts = await getCollection('blog');
@@ -69,8 +99,10 @@ const updateDate = post.data.updatedAt
 const pageUrl = encodeURIComponent(Astro.url.href);
 const pageTitle = encodeURIComponent(post.data.title);
 const shareText = encodeURIComponent(post.data.excerpt || post.data.summary);
+
 ---
 
+{post ? (
 <Base title={`${post.data.title} - Real & Raw Gospel`}>
   <article class="max-w-4xl mx-auto px-4 py-8">
     <!-- Back button -->
@@ -248,9 +280,11 @@ const shareText = encodeURIComponent(post.data.excerpt || post.data.summary);
         )}
 
         {/* MDX Content */}
-        <div class="prose prose-invert prose-lg max-w-none prose-headings:text-neutral-100 prose-p:text-neutral-300 prose-a:text-amber-500 hover:prose-a:text-amber-400 prose-strong:text-neutral-200 prose-code:text-amber-400 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800">
-          <Content />
-        </div>
+        {Content && (
+          <div class="prose prose-invert prose-lg max-w-none prose-headings:text-neutral-100 prose-p:text-neutral-300 prose-a:text-amber-500 hover:prose-a:text-amber-400 prose-strong:text-neutral-200 prose-code:text-amber-400 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800">
+            <Content />
+          </div>
+        )}
 
         {/* Author bio */}
         {post.data.authorBio && (
@@ -271,7 +305,7 @@ const shareText = encodeURIComponent(post.data.excerpt || post.data.summary);
       <!-- Sidebar -->
       <aside class="space-y-6">
         {/* Table of Contents */}
-        {headings.length > 0 && (
+        {headings && headings.length > 0 && (
           <div class="sticky top-8 p-6 bg-neutral-900 border border-neutral-800 rounded-lg">
             <h3 class="text-lg font-bold text-neutral-100 mb-4 flex items-center gap-2">
               <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,3 +474,17 @@ const shareText = encodeURIComponent(post.data.excerpt || post.data.summary);
     });
   </script>
 </Base>
+)
+:
+(
+  <>
+    {Astro.response.status = 404}
+    <Base title="Not Found - Real & Raw Gospel">
+      <article class="max-w-3xl mx-auto px-4 py-12">
+        <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Article not found</h1>
+        <p class="text-neutral-300 mb-6">This post may have been moved or the link is incorrect.</p>
+        <a href="/blog" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors">← Back to Blog</a>
+      </article>
+    </Base>
+  </>
+)}

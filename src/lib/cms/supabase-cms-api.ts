@@ -242,6 +242,37 @@ export class SupabaseCMSAPI {
   }
 
   /**
+   * Get single content item by slug
+   */
+  static async getContentBySlug(slug: string, options: { type?: string; status?: string } = {}): Promise<ContentItem | null> {
+    try {
+      const supabase = supabaseAdmin();
+      let query = supabase
+        .from('content')
+        .select(`
+          *,
+          tags:content_tags(tags(*)),
+          media:content_media(media_library(*))
+        `)
+        .eq('slug', slug);
+
+      if (options.type && options.type !== 'all') {
+        query = query.eq('content_type', options.type);
+      }
+      if (options.status && options.status !== 'all') {
+        query = query.eq('status', options.status);
+      }
+
+      const { data, error } = await query.single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      logger.error('Error fetching content by slug:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get single content item
    */
   static async getContentById(id: string): Promise<ContentItem | null> {
@@ -273,9 +304,12 @@ export class SupabaseCMSAPI {
     try {
       const supabase = supabaseAdmin();
       
+      // Filter out relationship fields that aren't columns in the content table
+      const { tags, media, ...contentData } = content;
+      
       const { data, error } = await supabase
         .from('content')
-        .insert([content])
+        .insert([contentData])
         .select(`
           *,
           tags:content_tags(tags(*)),
@@ -298,9 +332,12 @@ export class SupabaseCMSAPI {
     try {
       const supabase = supabaseAdmin();
       
+      // Filter out relationship fields that aren't columns in the content table
+      const { tags, media, ...contentUpdates } = updates;
+      
       const { data, error } = await supabase
         .from('content')
-        .update(updates)
+        .update(contentUpdates)
         .eq('id', id)
         .select(`
           *,
@@ -451,24 +488,65 @@ export class SupabaseCMSAPI {
   }
 
   /**
-   * Get content activities
+   * Get content activities (workflow history and user activities related to content)
    */
   static async getActivities(limit = 50): Promise<any[]> {
     try {
       const supabase = supabaseAdmin();
       
-      const { data, error } = await supabase
-        .from('content_activities')
+      // Get workflow history (content state changes)
+      const { data: workflowData, error: workflowError } = await supabase
+        .from('workflow_history')
         .select(`
-          *,
-          content:content(id, title, content_type),
-          user:profiles(id, display_name, email)
+          id,
+          content_id,
+          content_type,
+          from_state,
+          to_state,
+          changed_by,
+          comment,
+          created_at,
+          changer:profiles!changed_by(id, display_name, email)
         `)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) throw error;
-      return data || [];
+      if (workflowError) {
+        logger.warn('Error fetching workflow history:', workflowError);
+      }
+
+      // Get user activities related to content (views, edits, etc.)
+      const { data: userActivityData, error: activityError } = await supabase
+        .from('user_activity')
+        .select(`
+          id,
+          user_id,
+          activity_type,
+          description,
+          metadata,
+          created_at,
+          user:profiles!user_id(id, display_name, email)
+        `)
+        .in('activity_type', ['content_created', 'content_updated', 'content_deleted', 'content_published'])
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (activityError) {
+        logger.warn('Error fetching user activities:', activityError);
+      }
+
+      // Combine and sort by created_at
+      const combined = [
+        ...(workflowData || []).map(item => ({
+          ...item,
+          activity_type: 'workflow_change',
+          description: `Changed from ${item.from_state} to ${item.to_state}`
+        })),
+        ...(userActivityData || [])
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+       .slice(0, limit);
+
+      return combined;
     } catch (error) {
       logger.error('Error fetching activities:', error);
       throw error;

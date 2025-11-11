@@ -1,9 +1,9 @@
 import { c as createComponent, d as renderComponent, e as renderTemplate, af as maybeRenderHead, ag as addAttribute } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_BI6EUuN9.mjs';
+import { $ as $$Base } from '../chunks/Base_pSiMxjTU.mjs';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { useState, useRef, useEffect } from 'react';
-import { S as SupabaseCMSAPI } from '../chunks/supabase-cms-api_dv2hqhP9.mjs';
+import { S as SupabaseCMSAPI } from '../chunks/supabase-cms-api_CUOvopCO.mjs';
 export { renderers } from '../renderers.mjs';
 
 function AudioPlayer({ tracks, className = "" }) {

@@ -30,18 +30,26 @@ export default function ContentAnalytics() {
       setLoading(true);
       setError(null);
 
+      console.log('[ContentAnalytics] Fetching analytics from /api/admin/analytics/overview?days=' + days);
       const response = await fetch(`/api/admin/analytics/overview?days=${days}`);
       const data = await response.json();
 
+      console.log('[ContentAnalytics] Response:', response.status, data);
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch analytics');
+        const errorMsg = data.error || 'Failed to fetch analytics';
+        console.error('[ContentAnalytics] Error:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       setViewsByType(data.views_by_type || {});
       setTrending(data.trending_content || []);
       setViewsOverTime(data.views_over_time || {});
+      console.log('[ContentAnalytics] Analytics loaded successfully');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to load analytics');
+      const errorMsg = error instanceof Error ? error.message : 'Failed to load analytics';
+      console.error('[ContentAnalytics] Exception:', error);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

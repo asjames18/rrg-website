@@ -19,30 +19,32 @@ async function isAdmin(supabase: any, userId: string): Promise<boolean> {
   return userRoles && userRoles.some((role: any) => role.role === 'admin');
 }
 
-export const GET: APIRoute = async ({ params, cookies }) => {
+export const GET: APIRoute = async ({ params, locals, cookies }) => {
   try {
-    const supabase = supabaseServer(cookies);
-    const { id } = params;
-
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'User ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    // Use authenticated user from middleware
+    const user = locals.user;
+    const isAdminUser = locals.isAdmin;
     
-    // Check if user is authenticated and is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    if (!(await isAdmin(supabase, user.id))) {
+    if (!isAdminUser) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const supabase = supabaseServer(cookies);
+    const { id } = params;
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'User ID is required' }), {
+        status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -100,30 +102,32 @@ export const GET: APIRoute = async ({ params, cookies }) => {
   }
 };
 
-export const PUT: APIRoute = async ({ params, request, cookies }) => {
+export const PUT: APIRoute = async ({ params, request, locals, cookies }) => {
   try {
-    const supabase = supabaseServer(cookies);
-    const { id } = params;
-
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'User ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    // Use authenticated user from middleware
+    const user = locals.user;
+    const isAdminUser = locals.isAdmin;
     
-    // Check if user is authenticated and is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    if (!(await isAdmin(supabase, user.id))) {
+    if (!isAdminUser) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const supabase = supabaseServer(cookies);
+    const { id } = params;
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'User ID is required' }), {
+        status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }

@@ -42,8 +42,11 @@ export default function SupabaseContentEditor({ contentId, onSave, onCancel }: S
   const loadContent = async () => {
     try {
       setLoading(true);
+      console.log('[ContentEditor] Loading content:', contentId);
       const response = await fetch(`/api/cms/content/${contentId}`);
       const data = await response.json();
+      
+      console.log('[ContentEditor] Response:', response.status, data);
       
       if (response.ok) {
         setContent({
@@ -57,10 +60,14 @@ export default function SupabaseContentEditor({ contentId, onSave, onCancel }: S
           }
         });
         setSelectedTags(data.tags?.map((tag: any) => tag.id) || []);
+        console.log('[ContentEditor] Content loaded successfully');
       } else {
-        setError(data.error || 'Failed to load content');
+        const errorMsg = data.error || 'Failed to load content';
+        console.error('[ContentEditor] Error:', errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
+      console.error('[ContentEditor] Exception:', err);
       setError('Failed to load content');
     } finally {
       setLoading(false);
@@ -84,25 +91,36 @@ export default function SupabaseContentEditor({ contentId, onSave, onCancel }: S
       setSaving(true);
       setError('');
       
+      const payload = {
+        ...content,
+        tags: selectedTags
+      };
+      
+      console.log('[ContentEditor] Saving content:', contentId ? 'UPDATE' : 'CREATE');
+      console.log('[ContentEditor] Payload:', payload);
+      
       const response = await fetch(contentId ? `/api/cms/content/${contentId}` : '/api/cms/content', {
         method: contentId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...content,
-          tags: selectedTags
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
       
+      console.log('[ContentEditor] Save response:', response.status, data);
+      
       if (response.ok) {
+        console.log('[ContentEditor] Content saved successfully');
         onSave?.(data);
       } else {
-        setError(data.error || 'Failed to save content');
+        const errorMsg = data.error || 'Failed to save content';
+        console.error('[ContentEditor] Save error:', errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
+      console.error('[ContentEditor] Save exception:', err);
       setError('Failed to save content');
     } finally {
       setSaving(false);

@@ -21,16 +21,24 @@ export default function SettingsPanel() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      console.log('[SettingsPanel] Fetching settings from /api/admin/settings');
       const response = await fetch('/api/admin/settings');
       const data = await response.json();
 
+      console.log('[SettingsPanel] Response:', response.status, data);
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch settings');
+        const errorMsg = data.error || 'Failed to fetch settings';
+        console.error('[SettingsPanel] Error:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       setSettings(data.settings || {});
+      console.log('[SettingsPanel] Settings loaded:', Object.keys(data.settings || {}).length, 'items');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to load settings');
+      const errorMsg = error instanceof Error ? error.message : 'Failed to load settings';
+      console.error('[SettingsPanel] Exception:', error);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -42,6 +50,7 @@ export default function SettingsPanel() {
     setSuccess(false);
 
     try {
+      console.log('[SettingsPanel] Saving setting:', { key, value, category });
       const response = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -49,16 +58,22 @@ export default function SettingsPanel() {
       });
 
       const data = await response.json();
+      console.log('[SettingsPanel] Save response:', response.status, data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to save setting');
+        const errorMsg = data.error || 'Failed to save setting';
+        console.error('[SettingsPanel] Save error:', errorMsg);
+        throw new Error(errorMsg);
       }
 
+      console.log('[SettingsPanel] Setting saved successfully');
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       fetchSettings();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to save setting');
+      const errorMsg = error instanceof Error ? error.message : 'Failed to save setting';
+      console.error('[SettingsPanel] Save exception:', error);
+      setError(errorMsg);
     } finally {
       setSaving(false);
     }
@@ -138,6 +153,89 @@ export default function SettingsPanel() {
                 onBlur={(e) => handleSave('contact_email', e.target.value, 'general')}
                 className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
               />
+            </div>
+          </div>
+        )}
+
+        {activeCategory === 'email' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">SMTP Host</label>
+              <input
+                type="text"
+                defaultValue={settings.smtp_host?.value || ''}
+                onBlur={(e) => handleSave('smtp_host', e.target.value, 'email')}
+                placeholder="smtp.example.com"
+                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">SMTP Port</label>
+              <input
+                type="number"
+                defaultValue={settings.smtp_port?.value || 587}
+                onBlur={(e) => handleSave('smtp_port', parseInt(e.target.value), 'email')}
+                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">SMTP Username</label>
+              <input
+                type="text"
+                defaultValue={settings.smtp_username?.value || ''}
+                onBlur={(e) => handleSave('smtp_username', e.target.value, 'email')}
+                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">SMTP Password</label>
+              <input
+                type="password"
+                defaultValue={settings.smtp_password?.value || ''}
+                onBlur={(e) => handleSave('smtp_password', e.target.value, 'email')}
+                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">From Email Address</label>
+              <input
+                type="email"
+                defaultValue={settings.from_email?.value || ''}
+                onBlur={(e) => handleSave('from_email', e.target.value, 'email')}
+                placeholder="noreply@example.com"
+                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">From Name</label>
+              <input
+                type="text"
+                defaultValue={settings.from_name?.value || 'Real & Raw Gospel'}
+                onBlur={(e) => handleSave('from_name', e.target.value, 'email')}
+                className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200"
+              />
+            </div>
+            <div className="flex items-center justify-between p-4 bg-neutral-800 rounded-lg">
+              <div>
+                <div className="font-medium text-neutral-200">Use TLS/SSL</div>
+                <div className="text-sm text-neutral-500">Enable secure connection for SMTP</div>
+              </div>
+              <button
+                onClick={() => handleSave('smtp_use_tls', !settings.smtp_use_tls?.value, 'email')}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  settings.smtp_use_tls?.value
+                    ? 'bg-green-700 text-green-100'
+                    : 'bg-neutral-700 text-neutral-400'
+                }`}
+                disabled={saving}
+              >
+                {settings.smtp_use_tls?.value ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+            <div className="mt-6 p-4 bg-amber-900/20 border border-amber-800/50 rounded-lg">
+              <div className="text-sm text-amber-200">
+                <strong>Note:</strong> Email configuration requires proper SMTP credentials. Test your settings before enabling email notifications.
+              </div>
             </div>
           </div>
         )}

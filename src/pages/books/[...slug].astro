@@ -16,9 +16,32 @@ type Props = {
   entry: CollectionEntry<'books'>;
 };
 
-const { entry } = Astro.props;
-const { Content } = await entry.render();
-const book = entry.data;
+let { entry } = Astro.props;
+
+// Fallback: fetch by slug when navigating to non-prebuilt path
+if (!entry) {
+  const slugParam = Array.isArray(Astro.params.slug) ? Astro.params.slug.join('/') : (Astro.params.slug || '');
+  if (slugParam) {
+    try {
+      const all = await getCollection('books');
+      entry = all.find(e => e.slug === slugParam) as any;
+      if (!entry) {
+        Astro.response.status = 404;
+      }
+    } catch {
+      Astro.response.status = 404;
+    }
+  } else {
+    Astro.response.status = 404;
+  }
+}
+
+let Content: any = null;
+const book = entry ? entry.data : null as any;
+if (entry) {
+  const rendered = await entry.render();
+  Content = rendered.Content;
+}
 
 // Get related books (same category or topics)
 const allBooks = await getCollection('books');
@@ -50,8 +73,10 @@ const relatedBooks = allBooks
   .slice(0, 3);
 
 const coverUrl = getBookCoverUrl(book.isbn, 'L');
+
 ---
 
+{book ? (
 <Base title={book.title} description={book.whyRecommended || `${book.title} by ${book.author}`}>
   <article class="container mx-auto px-4 py-12 md:py-16 max-w-6xl">
     <div class="grid md:grid-cols-[300px_1fr] gap-8 md:gap-12 mb-12">
@@ -198,9 +223,11 @@ const coverUrl = getBookCoverUrl(book.isbn, 'L');
         </header>
 
         {/* Book description (MDX content) */}
-        <div class="prose prose-lg prose-invert max-w-none">
-          <Content />
-        </div>
+        {Content && (
+          <div class="prose prose-lg prose-invert max-w-none">
+            <Content />
+          </div>
+        )}
       </div>
     </div>
 
@@ -281,4 +308,18 @@ const coverUrl = getBookCoverUrl(book.isbn, 'L');
     </div>
   </article>
 </Base>
+)
+:
+(
+  <>
+    {Astro.response.status = 404}
+    <Base title="Book Not Found">
+      <article class="container mx-auto px-4 py-12 md:py-16 max-w-3xl">
+        <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Book not found</h1>
+        <p class="text-neutral-300 mb-6">This book entry may have been moved or the link is incorrect.</p>
+        <a href="/books" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors">← Back to Books</a>
+      </article>
+    </Base>
+  </>
+)}
 

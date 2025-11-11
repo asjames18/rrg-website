@@ -1,9 +1,10 @@
 import { c as createComponent, a as createAstro, e as renderTemplate, d as renderComponent, af as maybeRenderHead, aq as Fragment$1 } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_BI6EUuN9.mjs';
+import { $ as $$Base } from '../chunks/Base_pSiMxjTU.mjs';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useState, useEffect } from 'react';
 import { g as getSupabase } from '../chunks/supabase-browser_Cda5YnzV.mjs';
+import { g as getPasswordStrengthLabel, a as getPasswordStrengthColor, v as validatePassword } from '../chunks/password-validator_Dh8TSG1E.mjs';
 import { s as supabaseServer } from '../chunks/supabase-server_CrvNcPIF.mjs';
 export { renderers } from '../renderers.mjs';
 
@@ -11,53 +12,106 @@ function SimpleAuthForm({ mode }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [currentMode, setCurrentMode] = useState(mode);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState(null);
   useEffect(() => {
-    console.log("SimpleAuthForm: Initializing...");
+    console.log("[SimpleAuthForm] Initializing...");
+    if (typeof window !== "undefined") {
+      const loadingEl = document.getElementById("auth-loading");
+      if (loadingEl) {
+        loadingEl.style.display = "none";
+        console.log("[SimpleAuthForm] Hidden static loading fallback");
+      }
+    }
     if (typeof window !== "undefined") {
       try {
         const supabase = getSupabase();
         if (supabase) {
-          console.log("SimpleAuthForm: Supabase client available");
+          console.log("[SimpleAuthForm] Supabase client available");
           setIsInitialized(true);
         } else {
-          console.error("SimpleAuthForm: Supabase client not available");
+          console.error("[SimpleAuthForm] Supabase client not available");
+          setIsInitialized(true);
           setMessage({ type: "error", text: "Authentication service not available. Please refresh the page." });
         }
       } catch (error) {
-        console.error("SimpleAuthForm: Error getting Supabase client:", error);
-        setMessage({ type: "error", text: "Authentication service not available. Please refresh the page." });
+        console.error("[SimpleAuthForm] Error getting Supabase client:", error);
+        setIsInitialized(true);
+        setMessage({ type: "error", text: "Authentication service not available. Please check your configuration." });
       }
     } else {
-      console.error("SimpleAuthForm: Not in browser environment");
-      setMessage({ type: "error", text: "Authentication service not available. Please refresh the page." });
+      console.error("[SimpleAuthForm] Not in browser environment");
+      setTimeout(() => {
+        setIsInitialized(true);
+      }, 100);
     }
   }, []);
+  const handleEmailBlur = () => {
+    if (email && !email.includes("@")) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  };
+  const handlePasswordChange = (value) => {
+    setPassword(value);
+    if (currentMode === "signup" && value) {
+      const strength = validatePassword(value);
+      setPasswordStrength(strength);
+      if (!strength.isValid) {
+        setPasswordError(strength.feedback[0] || "Password is too weak");
+      } else {
+        setPasswordError("");
+      }
+    } else {
+      setPasswordStrength(null);
+      setPasswordError("");
+    }
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
+    setEmailError("");
+    setPasswordError("");
     try {
-      console.log("SimpleAuthForm: Submitting form...", {
+      console.log("[SimpleAuthForm] Submitting form...", {
         currentMode,
         email,
         passwordLength: password.length,
         hasPassword: !!password
       });
+      if (!email || !email.includes("@")) {
+        setEmailError("Please enter a valid email address");
+        setLoading(false);
+        return;
+      }
       if (currentMode === "signup") {
         if (!password || !confirmPassword) {
           setMessage({ type: "error", text: "Please fill in all fields" });
+          setLoading(false);
           return;
         }
         if (password !== confirmPassword) {
-          setMessage({ type: "error", text: "Passwords do not match" });
+          setPasswordError("Passwords do not match");
+          setLoading(false);
           return;
         }
-        if (password.length < 6) {
-          setMessage({ type: "error", text: "Password must be at least 6 characters" });
+        if (password.length < 8) {
+          setPasswordError("Password must be at least 8 characters");
+          setLoading(false);
+          return;
+        }
+        const strength = validatePassword(password);
+        if (!strength.isValid) {
+          setPasswordError(strength.feedback[0] || "Password is too weak");
+          setLoading(false);
           return;
         }
         const response = await fetch("/api/auth/signup", {
@@ -66,16 +120,21 @@ function SimpleAuthForm({ mode }) {
           body: JSON.stringify({ email, password })
         });
         const result = await response.json();
+        console.log("[SimpleAuthForm] Signup response:", response.status, result);
         if (!response.ok) {
           throw new Error(result.error || "Signup failed");
         }
         setMessage({
           type: "success",
-          text: "Check your email for the confirmation link!"
+          text: result.message || "Check your email for the confirmation link!"
         });
+        setPassword("");
+        setConfirmPassword("");
+        setPasswordStrength(null);
       } else if (currentMode === "signin") {
         if (!password) {
-          setMessage({ type: "error", text: "Please enter your password" });
+          setPasswordError("Please enter your password");
+          setLoading(false);
           return;
         }
         const response = await fetch("/api/auth/signin", {
@@ -84,6 +143,7 @@ function SimpleAuthForm({ mode }) {
           body: JSON.stringify({ email, password })
         });
         const result = await response.json();
+        console.log("[SimpleAuthForm] Signin response:", response.status, result);
         if (!response.ok) {
           throw new Error(result.error || "Signin failed");
         }
@@ -103,6 +163,7 @@ function SimpleAuthForm({ mode }) {
           body: JSON.stringify({ email })
         });
         const result = await response.json();
+        console.log("[SimpleAuthForm] Reset response:", response.status, result);
         if (!response.ok) {
           throw new Error(result.error || "Failed to send reset email");
         }
@@ -112,7 +173,7 @@ function SimpleAuthForm({ mode }) {
         });
       }
     } catch (error) {
-      console.error("Auth error:", error);
+      console.error("[SimpleAuthForm] Auth error:", error);
       setMessage({
         type: "error",
         text: error.message || "An error occurred. Please try again."
@@ -124,6 +185,11 @@ function SimpleAuthForm({ mode }) {
   const switchMode = (newMode) => {
     setCurrentMode(newMode);
     setMessage(null);
+    setEmailError("");
+    setPasswordError("");
+    setPasswordStrength(null);
+    setPassword("");
+    setConfirmPassword("");
   };
   if (!isInitialized) {
     return /* @__PURE__ */ jsx("div", { className: "max-w-md mx-auto bg-neutral-900/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-8 shadow-2xl", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
@@ -174,25 +240,68 @@ function SimpleAuthForm({ mode }) {
             required: true,
             value: email,
             onChange: (e) => setEmail(e.target.value),
-            className: "w-full px-4 py-3 bg-neutral-800/80 border border-neutral-600/50 rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200",
-            placeholder: "your@email.com"
+            onBlur: handleEmailBlur,
+            className: `w-full px-4 py-3 bg-neutral-800/80 border ${emailError ? "border-red-500/50" : "border-neutral-600/50"} rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200`,
+            placeholder: "your@email.com",
+            "aria-invalid": !!emailError,
+            "aria-describedby": emailError ? "email-error" : void 0
           }
-        )
+        ),
+        emailError && /* @__PURE__ */ jsxs("p", { id: "email-error", className: "mt-1 text-sm text-red-400 flex items-center gap-1", children: [
+          /* @__PURE__ */ jsx("span", { children: "⚠️" }),
+          " ",
+          emailError
+        ] })
       ] }),
       currentMode !== "reset" && /* @__PURE__ */ jsxs("div", { children: [
         /* @__PURE__ */ jsx("label", { htmlFor: "password", className: "block text-sm font-medium text-neutral-200 mb-2", children: "Password" }),
-        /* @__PURE__ */ jsx(
-          "input",
-          {
-            id: "password",
-            type: "password",
-            required: true,
-            value: password,
-            onChange: (e) => setPassword(e.target.value),
-            className: "w-full px-4 py-3 bg-neutral-800/80 border border-neutral-600/50 rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200",
-            placeholder: "••••••••"
-          }
-        )
+        /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              id: "password",
+              type: showPassword ? "text" : "password",
+              required: true,
+              value: password,
+              onChange: (e) => handlePasswordChange(e.target.value),
+              className: `w-full px-4 py-3 pr-12 bg-neutral-800/80 border ${passwordError ? "border-red-500/50" : "border-neutral-600/50"} rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200`,
+              placeholder: "••••••••",
+              "aria-invalid": !!passwordError,
+              "aria-describedby": passwordError ? "password-error" : void 0
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => setShowPassword(!showPassword),
+              className: "absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-200 transition-colors",
+              "aria-label": showPassword ? "Hide password" : "Show password",
+              children: showPassword ? /* @__PURE__ */ jsx("svg", { className: "w-5 h-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" }) }) : /* @__PURE__ */ jsxs("svg", { className: "w-5 h-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: [
+                /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z" }),
+                /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" })
+              ] })
+            }
+          )
+        ] }),
+        passwordError && /* @__PURE__ */ jsxs("p", { id: "password-error", className: "mt-1 text-sm text-red-400 flex items-center gap-1", children: [
+          /* @__PURE__ */ jsx("span", { children: "⚠️" }),
+          " ",
+          passwordError
+        ] }),
+        currentMode === "signup" && password && passwordStrength && /* @__PURE__ */ jsxs("div", { className: "mt-2", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between mb-1", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-xs text-neutral-400", children: "Password Strength:" }),
+            /* @__PURE__ */ jsx("span", { className: `text-xs font-medium ${getPasswordStrengthColor(passwordStrength.label)}`, children: getPasswordStrengthLabel(passwordStrength.label) })
+          ] }),
+          /* @__PURE__ */ jsx("div", { className: "w-full bg-neutral-700 rounded-full h-1.5", children: /* @__PURE__ */ jsx(
+            "div",
+            {
+              className: `h-1.5 rounded-full transition-all duration-300 ${passwordStrength.label === "very-weak" ? "bg-red-500 w-1/5" : passwordStrength.label === "weak" ? "bg-orange-500 w-2/5" : passwordStrength.label === "medium" ? "bg-yellow-500 w-3/5" : passwordStrength.label === "strong" ? "bg-green-500 w-4/5" : "bg-emerald-500 w-full"}`
+            }
+          ) }),
+          passwordStrength.feedback.length > 0 && /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-neutral-400", children: passwordStrength.feedback[0] })
+        ] })
       ] }),
       currentMode === "signup" && /* @__PURE__ */ jsxs("div", { children: [
         /* @__PURE__ */ jsx("label", { htmlFor: "confirmPassword", className: "block text-sm font-medium text-neutral-200 mb-2", children: "Confirm Password" }),
@@ -200,21 +309,25 @@ function SimpleAuthForm({ mode }) {
           "input",
           {
             id: "confirmPassword",
-            type: "password",
+            type: showPassword ? "text" : "password",
             required: true,
             value: confirmPassword,
             onChange: (e) => setConfirmPassword(e.target.value),
-            className: "w-full px-4 py-3 bg-neutral-800/80 border border-neutral-600/50 rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200",
+            className: `w-full px-4 py-3 bg-neutral-800/80 border ${confirmPassword && password !== confirmPassword ? "border-red-500/50" : "border-neutral-600/50"} rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200`,
             placeholder: "••••••••"
           }
-        )
+        ),
+        confirmPassword && password !== confirmPassword && /* @__PURE__ */ jsxs("p", { className: "mt-1 text-sm text-red-400 flex items-center gap-1", children: [
+          /* @__PURE__ */ jsx("span", { children: "⚠️" }),
+          " Passwords do not match"
+        ] })
       ] }),
       /* @__PURE__ */ jsx(
         "button",
         {
           type: "submit",
           disabled: loading,
-          className: "w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 disabled:from-neutral-700 disabled:to-neutral-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 focus:ring-offset-neutral-900 shadow-lg hover:shadow-xl disabled:shadow-none",
+          className: "w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 disabled:from-neutral-700 disabled:to-neutral-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 focus:ring-offset-neutral-900 shadow-lg hover:shadow-xl disabled:shadow-none disabled:cursor-not-allowed",
           children: loading ? /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-center", children: [
             /* @__PURE__ */ jsx("div", { className: "animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" }),
             currentMode === "signin" && "Signing In...",
@@ -228,7 +341,10 @@ function SimpleAuthForm({ mode }) {
         }
       )
     ] }),
-    message && /* @__PURE__ */ jsx("div", { className: `mt-4 p-3 rounded-lg text-sm ${message.type === "success" ? "bg-green-900/20 border border-green-600/30 text-green-200" : "bg-red-900/20 border border-red-600/30 text-red-200"}`, children: message.text }),
+    message && /* @__PURE__ */ jsxs("div", { className: `mt-4 p-3 rounded-lg text-sm flex items-start gap-2 ${message.type === "success" ? "bg-green-900/20 border border-green-600/30 text-green-200" : "bg-red-900/20 border border-red-600/30 text-red-200"}`, children: [
+      /* @__PURE__ */ jsx("span", { className: "text-lg", children: message.type === "success" ? "✅" : "⚠️" }),
+      /* @__PURE__ */ jsx("span", { className: "flex-1", children: message.text })
+    ] }),
     /* @__PURE__ */ jsxs("div", { className: "mt-6 text-center", children: [
       currentMode === "signin" && /* @__PURE__ */ jsxs("p", { className: "text-sm text-neutral-400", children: [
         "New to Real & Raw Gospel?",
@@ -513,9 +629,9 @@ const $$Auth = createComponent(async ($$result, $$props, $$slots) => {
       }
     }
   });
-<\/script>`])), renderComponent($$result, "Base", $$Base, { "title": "Sign In | Real & Raw Gospel" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black"> <div class="container mx-auto px-4 py-12 md:py-16"> <div class="max-w-2xl mx-auto"> <div class="text-center mb-12"> <h1 class="text-4xl md:text-5xl font-bold text-amber-100 mb-6 font-display"> ${user ? "Welcome Back" : "Join the Remnant"} </h1> <p class="text-xl text-neutral-300 max-w-lg mx-auto leading-relaxed"> ${user ? `You're signed in as ${user.email}. ${isAdmin ? "You have admin access." : "Enjoy your member benefits!"}` : "Create an account to access exclusive content, save favorites, and connect with other believers."} </p> </div> <!-- Success Message --> ${reset === "success" && renderTemplate`<div class="mb-8 bg-green-900/20 border border-green-700/50 rounded-xl p-6 backdrop-blur-sm"> <div class="flex items-center gap-3"> <span class="text-green-400 text-xl">✅</span> <div> <h3 class="text-green-100 font-semibold mb-1">Password Updated Successfully!</h3> <p class="text-green-200 text-sm">
-Your password has been updated. You can now sign in with your new password.
-</p> </div> </div> </div>`} <!-- Error Message --> ${error && renderTemplate`<div class="mb-8 bg-red-900/20 border border-red-700/50 rounded-xl p-6 backdrop-blur-sm"> <div class="flex items-center gap-3"> <span class="text-red-400 text-xl">⚠️</span> <div> <h3 class="text-red-100 font-semibold mb-1"> ${error === "insufficient-permissions" ? "Insufficient Permissions" : error === "auth-failed" ? "Authentication Failed" : error === "role-check-failed" ? "Role Check Failed" : error === "session-expired" ? "Session Expired" : error === "auth-refresh-failed" ? "Session Refresh Failed" : error === "database-error" ? "Database Error" : error === "server-error" ? "Server Error" : "Authentication Error"} </h3> <p class="text-red-200 text-sm"> ${error === "insufficient-permissions" ? "You need admin or editor access to view this page. Contact an administrator if you believe this is an error." : error === "auth-failed" ? "There was an issue with your authentication. Please try signing in again." : error === "role-check-failed" ? "Unable to verify your user role. Please try signing in again or contact support." : error === "session-expired" ? "Your session has expired. Please sign in again." : error === "auth-refresh-failed" ? "Unable to refresh your session. Please sign in again." : error === "database-error" ? "Database connection issue. Please try again in a moment." : error === "server-error" ? "Server error occurred. Please try again or contact support." : "There was an issue with your authentication. Please try signing in again."} </p> ${error !== "insufficient-permissions" && renderTemplate`<div class="mt-3"> <button onclick="window.location.reload()" class="text-red-300 hover:text-red-100 text-sm underline">
+<\/script>`])), renderComponent($$result, "Base", $$Base, { "title": "Sign In | Real & Raw Gospel" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black"> <div class="container mx-auto px-4 py-12 md:py-16"> <div class="max-w-2xl mx-auto"> <div class="text-center mb-12"> <h1 class="text-4xl md:text-5xl font-bold text-amber-100 mb-6 font-display"> ${user ? "Welcome Back" : "Join the Remnant"} </h1> <p class="text-xl text-neutral-300 max-w-lg mx-auto leading-relaxed"> ${user ? `You're signed in as ${user.email}. ${isAdmin ? "You have admin access." : "Enjoy your member benefits!"}` : "Sign in or create an account to unlock exclusive content, personalized features, and connect with a community of truth-seekers."} </p> ${!user && renderTemplate`<div class="mt-6 flex items-center justify-center gap-6 text-sm text-neutral-400"> <div class="flex items-center gap-2"> <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path> </svg> <span>Free membership</span> </div> <div class="flex items-center gap-2"> <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path> </svg> <span>Secure & private</span> </div> </div>`} </div> <!-- Success Message --> ${reset === "success" && renderTemplate`<div class="mb-8 bg-green-900/20 border border-green-700/50 rounded-xl p-6 backdrop-blur-sm shadow-lg"> <div class="flex items-start gap-3"> <svg class="w-6 h-6 text-green-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path> </svg> <div> <h3 class="text-green-100 font-semibold mb-1">Password Updated Successfully!</h3> <p class="text-green-200 text-sm">
+Your password has been updated. You can now sign in with your new password below.
+</p> </div> </div> </div>`} <!-- Error Message --> ${error && renderTemplate`<div class="mb-8 bg-red-900/20 border border-red-700/50 rounded-xl p-6 backdrop-blur-sm shadow-lg"> <div class="flex items-start gap-3"> <svg class="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path> </svg> <div class="flex-1"> <h3 class="text-red-100 font-semibold mb-1"> ${error === "insufficient-permissions" ? "Insufficient Permissions" : error === "auth-failed" ? "Authentication Failed" : error === "role-check-failed" ? "Role Check Failed" : error === "session-expired" ? "Session Expired" : error === "auth-refresh-failed" ? "Session Refresh Failed" : error === "database-error" ? "Database Error" : error === "server-error" ? "Server Error" : "Authentication Error"} </h3> <p class="text-red-200 text-sm"> ${error === "insufficient-permissions" ? "You need admin or editor access to view this page. Contact an administrator if you believe this is an error." : error === "auth-failed" ? "There was an issue with your authentication. Please try signing in again." : error === "role-check-failed" ? "Unable to verify your user role. Please try signing in again or contact support." : error === "session-expired" ? "Your session has expired. Please sign in again to continue." : error === "auth-refresh-failed" ? "Unable to refresh your session. Please sign in again." : error === "database-error" ? "Database connection issue. Please try again in a moment." : error === "server-error" ? "Server error occurred. Please try again or contact support." : "There was an issue with your authentication. Please try signing in again."} </p> ${error !== "insufficient-permissions" && renderTemplate`<div class="mt-3"> <button onclick="window.location.reload()" class="text-red-300 hover:text-red-100 text-sm underline focus:outline-none focus:ring-2 focus:ring-red-500 rounded px-2 py-1">
 Try Again
 </button> </div>`} </div> </div> </div>`} <!-- User Profile (if signed in) --> ${user ? renderTemplate`<div class="mb-8"> ${renderComponent($$result2, "UserProfile", UserProfile, { "client:load": true, "client:component-hydration": "load", "client:component-path": "/Users/asjames18/Development/RRG Website/src/components/UserProfile", "client:component-export": "default" })} <!-- Sign Out Button --> <div class="mt-6 mb-8"> <button id="sign-out-btn" class="w-full bg-red-700 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black">
 Sign Out

@@ -1,7 +1,7 @@
 import { c as createComponent, a as createAstro, d as renderComponent, e as renderTemplate, af as maybeRenderHead, ag as addAttribute, r as renderScript } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_BI6EUuN9.mjs';
-import { g as getCollection } from '../chunks/_astro_content_FWjK3OZ5.mjs';
+import { $ as $$Base } from '../chunks/Base_pSiMxjTU.mjs';
+import { g as getCollection } from '../chunks/_astro_content_hPKHaW2I.mjs';
 import { B as BookCard } from '../chunks/BookCard_B45yspGI.mjs';
 export { renderers } from '../renderers.mjs';
 

@@ -3,26 +3,19 @@ import { logger } from '../../../lib/logger';
 
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 
-export const GET: APIRoute = async ({ request, cookies }) => {
+export const GET: APIRoute = async ({ locals }) => {
   try {
-    const supabase = supabaseAdmin();
+    // Use authenticated user from middleware
+    const user = locals.user;
+    const isAdmin = locals.isAdmin;
     
-    // Check if user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Check if user has admin role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-    
-    const isAdmin = userRoles && userRoles.some(role => role.role === 'admin');
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
@@ -30,33 +23,48 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    // Fetch all users with their roles
+    const supabase = supabaseAdmin();
+
+    // Fetch all profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select(`
-        id,
-        email,
-        display_name,
-        role,
-        created_at,
-        user_roles!inner(role)
-      `)
+      .select('id, email, display_name, role, created_at')
       .order('created_at', { ascending: false });
 
     if (profilesError) {
-      logger.error('Error fetching users:', profilesError);
+      logger.error('Error fetching profiles:', profilesError);
       return new Response(JSON.stringify({ error: 'Failed to fetch users' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Format the response
+    // Fetch all user roles to supplement profile roles
+    const { data: userRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('user_id, role');
+
+    if (rolesError) {
+      logger.warn('Error fetching user roles (using profile roles only):', rolesError);
+    }
+
+    // Create a map of user_id -> role from user_roles table
+    const roleMap = new Map<string, string>();
+    if (userRoles) {
+      userRoles.forEach(ur => {
+        // If user has multiple roles, prefer 'admin' over others
+        if (!roleMap.has(ur.user_id) || ur.role === 'admin') {
+          roleMap.set(ur.user_id, ur.role);
+        }
+      });
+    }
+
+    // Format the response, using user_roles if available, otherwise profile role
     const users = profiles.map(profile => ({
       id: profile.id,
       email: profile.email,
       displayName: profile.display_name,
-      role: profile.role || 'user',
+      role: roleMap.get(profile.id) || profile.role || 'user',
       lastActive: new Date(profile.created_at).toLocaleDateString()
     }));
 
@@ -74,32 +82,27 @@ export const GET: APIRoute = async ({ request, cookies }) => {
   }
 };
 
-export const PUT: APIRoute = async ({ request, cookies }) => {
+export const PUT: APIRoute = async ({ request, locals }) => {
   try {
-    const supabase = supabaseAdmin();
+    // Use authenticated user from middleware
+    const user = locals.user;
+    const isAdmin = locals.isAdmin;
     
-    // Check if user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Check if user has admin role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-    
-    const isAdmin = userRoles && userRoles.some(role => role.role === 'admin');
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    const supabase = supabaseAdmin();
 
     const body = await request.json();
     const { userId, role } = body;

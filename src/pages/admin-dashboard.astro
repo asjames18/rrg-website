@@ -1,0 +1,11 @@
+---
+/**
+ * Admin Dashboard Redirect
+ * Redirects to /admin#dashboard
+ * This page exists for backward compatibility with links that reference /admin-dashboard
+ */
+export const prerender = false;
+
+return Astro.redirect('/admin#dashboard', 301);
+---
+

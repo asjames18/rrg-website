@@ -24,15 +24,109 @@ export async function getStaticPaths() {
   }
 }
 
-const { video } = Astro.props;
+let { video } = Astro.props;
 
-const formattedDate = new Date(video.published_at || video.created_at).toLocaleDateString('en-US', {
+// Fallback fetch for dynamic paths not present in getStaticPaths (because prerender=false)
+if (!video) {
+  const slugParam = Array.isArray(Astro.params.slug) ? Astro.params.slug.join('/') : (Astro.params.slug || '');
+  if (slugParam) {
+    try {
+      const fetched = await SupabaseCMSAPI.getContentBySlug(slugParam, { type: 'video', status: 'published' });
+      if (fetched) {
+        video = fetched as any;
+      } else {
+        Astro.response.status = 404;
+      }
+    } catch {
+      Astro.response.status = 404;
+    }
+  } else {
+    Astro.response.status = 404;
+  }
+}
+
+const formattedDate = video
+  ? new Date(video.published_at || video.created_at).toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
-});
+    })
+  : '';
 
-const hasBody = video.body_md && video.body_md.trim().length > 0;
+const hasBody = !!(video && ((video.body_html && video.body_html.trim().length > 0) || (video.body_md && video.body_md.trim().length > 0)));
+
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Minimal Markdown renderer for server-side use without external deps.
+function renderBasicMarkdown(markdown: string): string {
+  if (!markdown) return '';
+
+  // Normalize line endings
+  let md = markdown.replace(/\r\n/g, '\n');
+
+  // Code blocks ``` ```
+  md = md.replace(/```([\s\S]*?)```/g, (_m, code) => {
+    return `<pre><code>${escapeHtml(code)}</code></pre>`;
+  });
+
+  // Inline code `code`
+  md = md.replace(/`([^`]+)`/g, (_m, code) => `<code>${escapeHtml(code)}</code>`);
+
+  // Headings ####, ###, ##, #
+  md = md
+    .replace(/^\s*######\s+(.*)$/gm, '<h6>$1</h6>')
+    .replace(/^\s*#####\s+(.*)$/gm, '<h5>$1</h5>')
+    .replace(/^\s*####\s+(.*)$/gm, '<h4>$1</h4>')
+    .replace(/^\s*###\s+(.*)$/gm, '<h3>$1</h3>')
+    .replace(/^\s*##\s+(.*)$/gm, '<h2>$1</h2>')
+    .replace(/^\s*#\s+(.*)$/gm, '<h1>$1</h1>');
+
+  // Bold and italics
+  md = md
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>');
+
+  // Links [text](url)
+  md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // Unordered lists
+  md = md.replace(/(?:^\s*[-*]\s+.*(?:\n|$))+?/gm, (block) => {
+    const items = block
+      .trim()
+      .split('\n')
+      .map((line) => line.replace(/^\s*[-*]\s+/, '').trim())
+      .filter(Boolean)
+      .map((item) => `<li>${item}</li>`)
+      .join('');
+    return items ? `<ul>${items}</ul>\n` : block;
+  });
+
+  // Paragraphs: wrap leftover text blocks separated by blank lines
+  md = md
+    .split(/\n{2,}/)
+    .map((chunk) => {
+      const trimmed = chunk.trim();
+      if (!trimmed) return '';
+      if (/^<h\d|^<ul|^<pre|^<blockquote|^<table|^<p|^<code/.test(trimmed)) {
+        return trimmed;
+      }
+      // Join single newlines within paragraph
+      const joined = trimmed.replace(/\n+/g, ' ');
+      return `<p>${joined}</p>`;
+    })
+    .join('\n');
+
+  return md;
+}
 
 // Get related videos (same series or topics)
 let relatedVideos = [];
@@ -44,13 +138,13 @@ try {
   });
   
   // Filter related videos
-  relatedVideos = allVideosResult.content
-    .filter((v: any) => v.id !== video.id)
+  relatedVideos = (video ? allVideosResult.content
+    .filter((v: any) => v.id !== video.id) : allVideosResult.content)
     .map((v: any) => {
       let relevanceScore = 0;
       
       // Same series gets highest score
-      if (video.metadata?.series && v.metadata?.series) {
+      if (video?.metadata?.series && v.metadata?.series) {
         const matchingSeries = video.metadata.series.filter((s: string) => 
           v.metadata.series.includes(s)
         );
@@ -58,7 +152,7 @@ try {
       }
       
       // Matching topics
-      if (video.metadata?.topics && v.metadata?.topics) {
+      if (video?.metadata?.topics && v.metadata?.topics) {
         const matchingTopics = video.metadata.topics.filter((t: string) => 
           v.metadata.topics.includes(t)
         );
@@ -76,7 +170,7 @@ try {
 
 // Get previous/next videos in series
 let seriesNav = { prev: null, next: null };
-if (video.metadata?.series && video.metadata.series.length > 0) {
+if (video?.metadata?.series && video.metadata.series.length > 0) {
   try {
     const seriesName = video.metadata.series[0];
     const seriesResult = await SupabaseCMSAPI.getContent({
@@ -105,6 +199,7 @@ if (video.metadata?.series && video.metadata.series.length > 0) {
 }
 ---
 
+{video ? (
 <Base title={video.title} description={`Watch: ${video.title}`}>
   <article class="container mx-auto px-4 py-12 md:py-16 max-w-5xl">
     <!-- Header -->
@@ -175,7 +270,9 @@ if (video.metadata?.series && video.metadata.series.length > 0) {
     {hasBody && (
       <div class="prose prose-lg prose-invert max-w-none mb-8">
         <h2 class="text-2xl font-bold text-amber-100 mb-4">Teaching Notes</h2>
-        <div set:html={video.body_md} />
+        {video.body_html && video.body_html.trim().length > 0
+          ? <div set:html={video.body_html} />
+          : <div set:html={renderBasicMarkdown(video.body_md)} />}
       </div>
     )}
 
@@ -291,4 +388,21 @@ if (video.metadata?.series && video.metadata.series.length > 0) {
     </footer>
   </article>
 </Base>
+) : (
+  <>
+    {Astro.response.status = 404}
+    <Base title="Not Found" description="Video not found">
+      <article class="container mx-auto px-4 py-12 md:py-16 max-w-3xl">
+        <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Video not found</h1>
+        <p class="text-neutral-300 mb-6">The video you’re looking for may have been unpublished or the link is incorrect.</p>
+        <a 
+          href="/videos" 
+          class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black"
+        >
+          ← Back to Videos
+        </a>
+      </article>
+    </Base>
+  </>
+)}
 

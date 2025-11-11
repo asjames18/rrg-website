@@ -24,6 +24,14 @@
 			"dest": "_render"
 		},
 		{
+			"src": "^/admin-dashboard/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/admin-promote/?$",
+			"dest": "_render"
+		},
+		{
 			"src": "^/api/admin/analytics/content/([^/]+?)/?$",
 			"dest": "_render"
 		},

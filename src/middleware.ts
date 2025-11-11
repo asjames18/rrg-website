@@ -14,12 +14,20 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   const pathname = ctx.url.pathname;
   
   // Apply rate limiting to API routes
-  if (API_ROUTES.some(rx => rx.test(pathname))) {
+  const isApiRoute = API_ROUTES.some(rx => rx.test(pathname));
+  let rateLimitInfo:
+    | null
+    | {
+        limit: number;
+        remaining: number;
+        resetTime: number;
+      } = null;
+  if (isApiRoute) {
     const clientId = getClientIdentifier(ctx.request);
     const options = getRateLimitOptions(pathname);
     const key = getRateLimitKey(clientId, pathname);
     const rateLimit = checkRateLimit(key, options);
-    
+
     if (!rateLimit.allowed) {
       logger.warn(`Rate limit exceeded for ${pathname} from ${clientId}`);
       return new Response(
@@ -40,11 +48,12 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
         }
       );
     }
-    
-    // Add rate limit headers to response
-    ctx.response.headers.set('X-RateLimit-Limit', String(options.maxRequests));
-    ctx.response.headers.set('X-RateLimit-Remaining', String(rateLimit.remaining));
-    ctx.response.headers.set('X-RateLimit-Reset', String(rateLimit.resetTime));
+
+    rateLimitInfo = {
+      limit: options.maxRequests,
+      remaining: rateLimit.remaining,
+      resetTime: rateLimit.resetTime,
+    };
   }
   
   // Check if route needs admin access
@@ -53,7 +62,16 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   const needsEditor = EDITOR_ROUTES.some(rx => rx.test(pathname));
   
   // If no special access needed, continue
-  if (!needsAdmin && !needsCMS && !needsEditor) return next();
+  if (!needsAdmin && !needsCMS && !needsEditor) {
+    const res = await next();
+    // Add rate limit headers on the final response (for API routes)
+    if (isApiRoute && rateLimitInfo) {
+      res.headers.set('X-RateLimit-Limit', String(rateLimitInfo.limit));
+      res.headers.set('X-RateLimit-Remaining', String(rateLimitInfo.remaining));
+      res.headers.set('X-RateLimit-Reset', String(rateLimitInfo.resetTime));
+    }
+    return res;
+  }
 
   logger.debug(`[Middleware] Checking access for ${pathname} - Admin: ${needsAdmin}, CMS: ${needsCMS}, Editor: ${needsEditor}`);
 
@@ -127,7 +145,13 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     ctx.locals.isEditor = isEditor;
 
     logger.debug(`[Middleware] Access granted for ${pathname}`);
-    return next();
+    const res = await next();
+    if (isApiRoute && rateLimitInfo) {
+      res.headers.set('X-RateLimit-Limit', String(rateLimitInfo.limit));
+      res.headers.set('X-RateLimit-Remaining', String(rateLimitInfo.remaining));
+      res.headers.set('X-RateLimit-Reset', String(rateLimitInfo.resetTime));
+    }
+    return res;
     
   } catch (error) {
     logger.error('[Middleware] Unexpected error:', error);

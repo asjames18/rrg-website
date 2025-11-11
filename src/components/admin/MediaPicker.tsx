@@ -33,6 +33,7 @@ export default function MediaPicker({ onSelect, onUpload }: MediaPickerProps) {
 
   const loadFiles = async () => {
     try {
+      console.log('[MediaPicker] Loading files from Supabase storage bucket: media');
       const { data, error } = await supabase.storage
         .from('media')
         .list('', {
@@ -42,9 +43,11 @@ export default function MediaPicker({ onSelect, onUpload }: MediaPickerProps) {
         });
 
       if (error) {
-        console.error('Error loading files:', error);
+        console.error('[MediaPicker] Error loading files:', error);
         return;
       }
+
+      console.log('[MediaPicker] Files loaded:', data?.length || 0);
 
       const filesWithUrls = await Promise.all(
         data.map(async (file) => {
@@ -64,8 +67,9 @@ export default function MediaPicker({ onSelect, onUpload }: MediaPickerProps) {
       );
 
       setFiles(filesWithUrls);
+      console.log('[MediaPicker] Files processed successfully');
     } catch (error) {
-      console.error('Error loading files:', error);
+      console.error('[MediaPicker] Exception loading files:', error);
     } finally {
       setIsLoading(false);
     }
@@ -75,6 +79,7 @@ export default function MediaPicker({ onSelect, onUpload }: MediaPickerProps) {
     const selectedFiles = event.target.files;
     if (!selectedFiles || selectedFiles.length === 0) return;
 
+    console.log('[MediaPicker] Uploading', selectedFiles.length, 'files');
     setIsUploading(true);
     setUploadProgress(0);
 
@@ -84,22 +89,25 @@ export default function MediaPicker({ onSelect, onUpload }: MediaPickerProps) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         
+        console.log('[MediaPicker] Uploading file:', fileName);
         const { error: uploadError } = await supabase.storage
           .from('media')
           .upload(fileName, file);
 
         if (uploadError) {
-          console.error('Upload error:', uploadError);
+          console.error('[MediaPicker] Upload error:', uploadError);
           continue;
         }
 
+        console.log('[MediaPicker] File uploaded successfully:', fileName);
         setUploadProgress(((i + 1) / selectedFiles.length) * 100);
       }
 
       // Reload files after upload
+      console.log('[MediaPicker] Reloading file list');
       await loadFiles();
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[MediaPicker] Upload exception:', error);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);

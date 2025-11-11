@@ -1,0 +1,10 @@
+---
+/**
+ * Admin User Promotion Redirect
+ * Redirects to /admin#users where user management and promotion tools are located
+ */
+export const prerender = false;
+
+return Astro.redirect('/admin#users', 301);
+---
+

@@ -14,10 +14,12 @@ interface AdminShellProps {
 export default function AdminShell({ userRole, userName, userEmail }: AdminShellProps) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'analytics' | 'media' | 'users' | 'settings'>('dashboard');
   const [isLoading, setIsLoading] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
+  // Initialize as hydrated if we're in the browser (component wouldn't render otherwise)
+  const [isHydrated, setIsHydrated] = useState(typeof window !== 'undefined');
 
   // Ensure component is hydrated before rendering
   useEffect(() => {
+    // Set hydrated immediately - React is already running if this component rendered
     setIsHydrated(true);
   }, []);
 
@@ -44,18 +46,31 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
     }
   }, [isHydrated]);
 
-  // Handle iframe loading states
+  // Handle iframe loading states (only for tabs that use iframes)
   useEffect(() => {
-    const handleIframeLoad = () => setIsLoading(false);
-    const iframes = document.querySelectorAll('iframe');
-    iframes.forEach(iframe => {
-      iframe.addEventListener('load', handleIframeLoad);
-    });
-    return () => {
-      iframes.forEach(iframe => {
-        iframe.removeEventListener('load', handleIframeLoad);
-      });
-    };
+    // Only show loading for tabs that actually use iframes
+    const tabsWithIframes: string[] = []; // Add tab IDs here if they use iframes
+    
+    if (tabsWithIframes.includes(activeTab)) {
+      const handleIframeLoad = () => setIsLoading(false);
+      const iframes = document.querySelectorAll('iframe');
+      
+      if (iframes.length > 0) {
+        setIsLoading(true);
+        iframes.forEach(iframe => {
+          iframe.addEventListener('load', handleIframeLoad);
+        });
+        return () => {
+          iframes.forEach(iframe => {
+            iframe.removeEventListener('load', handleIframeLoad);
+          });
+        };
+      } else {
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+    }
   }, [activeTab]);
 
   const tabs = [
@@ -184,9 +199,10 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 bg-neutral-950">
+      <main className="flex-1 bg-neutral-950 relative">
+        {/* Loading overlay - only for tabs that use iframes */}
         {isLoading && (
-          <div className="flex items-center justify-center h-64">
+          <div className="absolute inset-0 flex items-center justify-center bg-neutral-950/80 backdrop-blur-sm z-50">
             <div className="flex flex-col items-center space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-amber-200 border-t-amber-500"></div>
               <div className="text-amber-100 font-medium">Loading...</div>
@@ -971,60 +987,219 @@ function MediaTab() {
 
 // Users Tab Component
 function UsersTab() {
-  const [users, setUsers] = useState<Array<{id: string, email: string, role: string, lastActive: string}>>([]);
+  const [users, setUsers] = useState<Array<{id: string, email: string, displayName?: string, role: string, lastActive: string, createdAt?: string}>>([]);
+  const [filteredUsers, setFilteredUsers] = useState<typeof users>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [grantEmail, setGrantEmail] = useState('');
+  const [grantRole, setGrantRole] = useState('editor');
+  const [isGranting, setIsGranting] = useState(false);
+  const [grantMessage, setGrantMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  
+  // Filtering and search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'email' | 'role' | 'lastActive'>('lastActive');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(25);
+  
+  // Bulk actions
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [bulkActionRole, setBulkActionRole] = useState('editor');
+  const [isBulkActioning, setIsBulkActioning] = useState(false);
 
   useEffect(() => {
-    // Fetch real users from Supabase
-    async function fetchUsers() {
-      try {
-        const response = await fetch('/api/cms/users');
-        if (response.ok) {
-          const data = await response.json();
-          setUsers(data.users || []);
-        } else {
-          console.error('Failed to fetch users:', response.statusText);
-          // Fallback to empty array if API fails
-          setUsers([]);
-        }
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        setUsers([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
     fetchUsers();
   }, []);
 
-  const promoteUser = async (userId: string, newRole: string) => {
+  // Apply filters, search, and sorting
+  useEffect(() => {
+    let result = [...users];
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(user => 
+        user.email.toLowerCase().includes(query) ||
+        user.displayName?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Role filter
+    if (roleFilter !== 'all') {
+      result = result.filter(user => user.role === roleFilter);
+    }
+    
+    // Sorting
+    result.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (sortBy) {
+        case 'email':
+          aVal = a.email.toLowerCase();
+          bVal = b.email.toLowerCase();
+          break;
+        case 'role':
+          aVal = a.role;
+          bVal = b.role;
+          break;
+        case 'lastActive':
+          aVal = new Date(a.lastActive).getTime();
+          bVal = new Date(b.lastActive).getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortOrder === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+    
+    setFilteredUsers(result);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [users, searchQuery, roleFilter, sortBy, sortOrder]);
+
+  const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/cms/users', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          role: newRole
-        })
-      });
+      console.log('[UsersTab] Fetching users from /api/cms/users');
+      const response = await fetch('/api/cms/users');
+      const data = await response.json();
+      
+      console.log('[UsersTab] Response:', response.status, data);
       
       if (response.ok) {
-        // Update UI optimistically
+        setUsers(data.users || []);
+        console.log('[UsersTab] Users loaded:', data.users?.length || 0);
+      } else {
+        console.error('[UsersTab] Failed to fetch users:', response.statusText, data);
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('[UsersTab] Error fetching users:', error);
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGrantAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsGranting(true);
+    setGrantMessage(null);
+
+    try {
+      console.log('[UsersTab] Granting access:', grantEmail, grantRole);
+      const response = await fetch('/api/admin/grant-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: grantEmail, role: grantRole })
+      });
+
+      const data = await response.json();
+      console.log('[UsersTab] Grant response:', response.status, data);
+
+      if (response.ok) {
+        setGrantMessage({ type: 'success', text: `Successfully granted ${grantRole} access to ${grantEmail}. They can now sign in with their account.` });
+        setGrantEmail('');
+        setGrantRole('editor');
+        // Refresh users list
+        fetchUsers();
+      } else {
+        setGrantMessage({ type: 'error', text: data.error || 'Failed to grant access. The user may not exist yet.' });
+      }
+    } catch (error) {
+      console.error('[UsersTab] Error granting access:', error);
+      setGrantMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+    } finally {
+      setIsGranting(false);
+    }
+  };
+
+  const promoteUser = async (userId: string, newRole: string) => {
+    try {
+      console.log('[UsersTab] Updating user role:', userId, 'to', newRole);
+      const response = await fetch('/api/cms/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role: newRole })
+      });
+      
+      const data = await response.json();
+      console.log('[UsersTab] Update response:', response.status, data);
+      
+      if (response.ok) {
         setUsers(prev => prev.map(user => 
           user.id === userId ? { ...user, role: newRole } : user
         ));
-        console.log(`User ${userId} promoted to ${newRole}`);
+        console.log(`[UsersTab] User ${userId} promoted to ${newRole}`);
       } else {
-        console.error('Failed to promote user:', response.statusText);
+        console.error('[UsersTab] Failed to promote user:', response.statusText, data);
         alert('Failed to update user role. Please try again.');
       }
     } catch (error) {
-      console.error('Error promoting user:', error);
+      console.error('[UsersTab] Error promoting user:', error);
       alert('Error updating user role. Please try again.');
     }
+  };
+
+  const toggleUserSelection = (userId: string) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === paginatedUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(paginatedUsers.map(u => u.id)));
+    }
+  };
+
+  const handleBulkRoleChange = async () => {
+    if (selectedUsers.size === 0) return;
+    
+    if (!confirm(`Change role to "${bulkActionRole}" for ${selectedUsers.size} selected users?`)) {
+      return;
+    }
+
+    setIsBulkActioning(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const userId of Array.from(selectedUsers)) {
+      try {
+        const response = await fetch('/api/cms/users', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, role: bulkActionRole })
+        });
+        
+        if (response.ok) {
+          successCount++;
+          setUsers(prev => prev.map(user => 
+            user.id === userId ? { ...user, role: bulkActionRole } : user
+          ));
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    setIsBulkActioning(false);
+    setSelectedUsers(new Set());
+    alert(`Updated ${successCount} users successfully${failCount > 0 ? `, ${failCount} failed` : ''}.`);
   };
 
   const getRoleColor = (role: string) => {
@@ -1032,8 +1207,24 @@ function UsersTab() {
       case 'admin': return 'bg-red-900/30 text-red-300 border border-red-700/50';
       case 'editor': return 'bg-blue-900/30 text-blue-300 border border-blue-700/50';
       case 'viewer': return 'bg-neutral-800 text-neutral-300 border border-neutral-700';
+      case 'user': return 'bg-neutral-800 text-neutral-400 border border-neutral-700';
       default: return 'bg-neutral-800 text-neutral-300 border border-neutral-700';
     }
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // User statistics
+  const stats = {
+    total: users.length,
+    admins: users.filter(u => u.role === 'admin').length,
+    editors: users.filter(u => u.role === 'editor').length,
+    viewers: users.filter(u => u.role === 'viewer').length,
+    regularUsers: users.filter(u => u.role === 'user' || !u.role).length,
   };
 
   return (
@@ -1041,6 +1232,113 @@ function UsersTab() {
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-amber-100 mb-3">User Management</h2>
         <p className="text-neutral-400 text-lg">Manage team access and permissions for your content management system.</p>
+      </div>
+
+      {/* Grant Access Form */}
+      <div className="mb-8 bg-gradient-to-r from-amber-900/20 to-amber-800/10 border border-amber-700/30 rounded-2xl p-8">
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-amber-100 mb-2">Grant Admin/Editor Access</h3>
+          <p className="text-neutral-300 text-sm">
+            Give admin or editor access to an existing user. They must have already created an account via the signup page.
+          </p>
+        </div>
+        
+        <form onSubmit={handleGrantAccess} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label htmlFor="grant-email" className="block text-sm font-medium text-amber-200 mb-2">
+                User Email Address
+              </label>
+              <input
+                id="grant-email"
+                type="email"
+                value={grantEmail}
+                onChange={(e) => setGrantEmail(e.target.value)}
+                placeholder="user@example.com"
+                required
+                className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="grant-role" className="block text-sm font-medium text-amber-200 mb-2">
+                Role
+              </label>
+              <select
+                id="grant-role"
+                value={grantRole}
+                onChange={(e) => setGrantRole(e.target.value)}
+                className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+              >
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isGranting || !grantEmail}
+            className="w-full md:w-auto px-6 py-3 bg-amber-700 hover:bg-amber-600 disabled:bg-neutral-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            {isGranting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Granting Access...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Grant Access
+              </>
+            )}
+          </button>
+        </form>
+
+        {grantMessage && (
+          <div className={`mt-4 p-4 rounded-lg border ${
+            grantMessage.type === 'success' 
+              ? 'bg-green-900/20 border-green-700/50 text-green-200' 
+              : 'bg-red-900/20 border-red-700/50 text-red-200'
+          }`}>
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                {grantMessage.type === 'success' ? (
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                ) : (
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                )}
+              </svg>
+              <p className="text-sm">{grantMessage.text}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* User Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="bg-gradient-to-br from-neutral-800 to-neutral-900 p-6 rounded-xl border border-neutral-700">
+          <div className="text-3xl font-bold text-amber-100">{stats.total}</div>
+          <div className="text-sm text-neutral-400 mt-1">Total Users</div>
+        </div>
+        <div className="bg-gradient-to-br from-red-900/20 to-red-800/10 p-6 rounded-xl border border-red-700/30">
+          <div className="text-3xl font-bold text-red-300">{stats.admins}</div>
+          <div className="text-sm text-neutral-400 mt-1">Admins</div>
+        </div>
+        <div className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 p-6 rounded-xl border border-blue-700/30">
+          <div className="text-3xl font-bold text-blue-300">{stats.editors}</div>
+          <div className="text-sm text-neutral-400 mt-1">Editors</div>
+        </div>
+        <div className="bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 p-6 rounded-xl border border-neutral-700">
+          <div className="text-3xl font-bold text-neutral-300">{stats.viewers}</div>
+          <div className="text-sm text-neutral-400 mt-1">Viewers</div>
+        </div>
+        <div className="bg-gradient-to-br from-neutral-800/30 to-neutral-900/30 p-6 rounded-xl border border-neutral-700">
+          <div className="text-3xl font-bold text-neutral-400">{stats.regularUsers}</div>
+          <div className="text-sm text-neutral-400 mt-1">Regular Users</div>
+        </div>
       </div>
 
       {isLoading ? (
@@ -1051,60 +1349,218 @@ function UsersTab() {
           </div>
         </div>
       ) : (
-        <div className="bg-neutral-900 rounded-2xl shadow-sm border border-neutral-800 overflow-hidden">
-          <div className="px-8 py-6 border-b border-neutral-800 bg-neutral-800/50">
-            <h3 className="text-lg font-semibold text-amber-100">Team Members</h3>
-            <p className="text-neutral-400 text-sm mt-1">Manage roles and permissions for your team</p>
-          </div>
-          <ul className="divide-y divide-neutral-800">
-            {users.map((user) => (
-              <li key={user.id} className="px-8 py-6 hover:bg-neutral-800/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-amber-100 font-semibold text-lg">
-                        {user.email.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-lg font-semibold text-amber-100">{user.email}</div>
-                      <div className="text-sm text-neutral-400">Last active {user.lastActive}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
-                      {user.role}
-                    </span>
-                    <select
-                      value={user.role}
-                      onChange={(e) => promoteUser(user.id, e.target.value)}
-                      className="text-sm border-neutral-700 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-neutral-800 text-amber-100 px-3 py-2 shadow-sm"
-                    >
-                      <option value="viewer">Viewer</option>
-                      <option value="editor">Editor</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
+        <>
+          {/* Search and Filters */}
+          <div className="mb-6 bg-neutral-900 rounded-xl border border-neutral-800 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-amber-200 mb-2">Search Users</label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by email or name..."
+                  className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-amber-200 mb-2">Filter by Role</label>
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="admin">Admin</option>
+                  <option value="editor">Editor</option>
+                  <option value="viewer">Viewer</option>
+                  <option value="user">Regular User</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-amber-200 mb-2">Sort By</label>
+                <div className="flex gap-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  >
+                    <option value="lastActive">Last Active</option>
+                    <option value="email">Email</option>
+                    <option value="role">Role</option>
+                  </select>
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 hover:bg-neutral-700 transition-colors"
+                    title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                  >
+                    <svg className={`w-5 h-5 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
                 </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+              </div>
+            </div>
+            <div className="mt-4 text-sm text-neutral-400">
+              Showing {filteredUsers.length} of {users.length} users
+            </div>
+          </div>
+
+          {/* Bulk Actions Bar */}
+          {selectedUsers.size > 0 && (
+            <div className="mb-6 bg-amber-900/20 border border-amber-700/50 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-amber-200 font-semibold">{selectedUsers.size} user(s) selected</span>
+                <select
+                  value={bulkActionRole}
+                  onChange={(e) => setBulkActionRole(e.target.value)}
+                  className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-100 text-sm"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="editor">Editor</option>
+                  <option value="viewer">Viewer</option>
+                  <option value="user">Regular User</option>
+                </select>
+                <button
+                  onClick={handleBulkRoleChange}
+                  disabled={isBulkActioning}
+                  className="px-4 py-2 bg-amber-700 hover:bg-amber-600 disabled:bg-neutral-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                >
+                  {isBulkActioning ? 'Updating...' : 'Change Role'}
+                </button>
+              </div>
+              <button
+                onClick={() => setSelectedUsers(new Set())}
+                className="text-neutral-400 hover:text-neutral-200 text-sm"
+              >
+                Clear Selection
+              </button>
+            </div>
+          )}
+
+          {/* Users Table */}
+          <div className="bg-neutral-900 rounded-2xl shadow-sm border border-neutral-800 overflow-hidden">
+            <div className="px-8 py-6 border-b border-neutral-800 bg-neutral-800/50 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-amber-100">All Users ({filteredUsers.length})</h3>
+                <p className="text-neutral-400 text-sm mt-1">Manage roles and permissions for your team</p>
+              </div>
+              {paginatedUsers.length > 0 && (
+                <button
+                  onClick={toggleSelectAll}
+                  className="text-sm text-amber-400 hover:text-amber-300 font-medium"
+                >
+                  {selectedUsers.size === paginatedUsers.length ? 'Deselect All' : 'Select All'}
+                </button>
+              )}
+            </div>
+            
+            {filteredUsers.length === 0 ? (
+              <div className="px-8 py-12 text-center">
+                <svg className="w-16 h-16 mx-auto text-neutral-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <p className="text-neutral-400">No users found matching your search.</p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setRoleFilter('all');
+                  }}
+                  className="mt-4 text-amber-400 hover:text-amber-300 text-sm font-medium"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <ul className="divide-y divide-neutral-800">
+                  {paginatedUsers.map((user) => (
+                    <li key={user.id} className="px-8 py-6 hover:bg-neutral-800/50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.has(user.id)}
+                          onChange={() => toggleUserSelection(user.id)}
+                          className="w-5 h-5 rounded border-neutral-600 text-amber-600 focus:ring-amber-500 focus:ring-offset-0 bg-neutral-800"
+                        />
+                        <div className="w-12 h-12 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
+                          <span className="text-amber-100 font-semibold text-lg">
+                            {user.email.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-lg font-semibold text-amber-100 truncate">{user.displayName || user.email}</div>
+                          {user.displayName && <div className="text-sm text-neutral-500 truncate">{user.email}</div>}
+                          <div className="text-sm text-neutral-400 mt-1">Last active: {user.lastActive}</div>
+                        </div>
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
+                            {user.role || 'user'}
+                          </span>
+                          <select
+                            value={user.role}
+                            onChange={(e) => promoteUser(user.id, e.target.value)}
+                            className="text-sm border-neutral-700 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-neutral-800 text-amber-100 px-3 py-2 shadow-sm"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <option value="user">Regular User</option>
+                            <option value="viewer">Viewer</option>
+                            <option value="editor">Editor</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="px-8 py-6 border-t border-neutral-800 bg-neutral-800/30">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-neutral-400">
+                        Page {currentPage} of {totalPages} • Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          disabled={currentPage === 1}
+                          className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-900 disabled:text-neutral-600 text-neutral-200 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                          disabled={currentPage === totalPages}
+                          className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-900 disabled:text-neutral-600 text-neutral-200 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </>
       )}
 
-      <div className="mt-8 p-6 bg-gradient-to-r from-amber-900/20 to-amber-800/10 border border-amber-700/30 rounded-2xl">
+      <div className="mt-8 p-6 bg-blue-900/20 border border-blue-700/30 rounded-2xl">
         <div className="flex items-start space-x-4">
           <div className="flex-shrink-0">
-            <div className="w-10 h-10 bg-amber-700 rounded-xl flex items-center justify-center">
-              <svg className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center">
+              <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-amber-100">Need to add more users?</h3>
-            <div className="mt-2 text-amber-200">
-              <p>Use the <a href="/admin-promote" className="font-semibold underline hover:text-amber-300 transition-colors">User Promotion Tool</a> to invite new team members or promote existing users.</p>
+            <h3 className="text-lg font-semibold text-blue-100">How User Access Works</h3>
+            <div className="mt-2 text-blue-200 text-sm space-y-2">
+              <p>• <strong>New Users:</strong> Users must first create an account at <a href="/auth" className="underline hover:text-blue-300">/auth</a> (sign up page)</p>
+              <p>• <strong>Grant Access:</strong> Use the form above to promote existing users to Admin or Editor</p>
+              <p>• <strong>Roles:</strong> Admin = full access | Editor = content management | Viewer = read only</p>
             </div>
           </div>
         </div>

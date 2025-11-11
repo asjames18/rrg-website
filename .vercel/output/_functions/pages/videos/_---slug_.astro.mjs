@@ -1,9 +1,9 @@
-import { c as createComponent, a as createAstro, d as renderComponent, e as renderTemplate, af as maybeRenderHead, ag as addAttribute, aq as Fragment$1, ak as unescapeHTML } from '../../chunks/astro/server_C55dHw2B.mjs';
+import { c as createComponent, a as createAstro, d as renderComponent, e as renderTemplate, aq as Fragment$1, af as maybeRenderHead, ag as addAttribute, ak as unescapeHTML } from '../../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../../chunks/Base_BI6EUuN9.mjs';
+import { $ as $$Base } from '../../chunks/Base_pSiMxjTU.mjs';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useState } from 'react';
-import { S as SupabaseCMSAPI } from '../../chunks/supabase-cms-api_dv2hqhP9.mjs';
+import { S as SupabaseCMSAPI } from '../../chunks/supabase-cms-api_CUOvopCO.mjs';
 export { renderers } from '../../renderers.mjs';
 
 function UniversalVideoEmbed({
@@ -218,13 +218,59 @@ async function getStaticPaths() {
 const $$ = createComponent(async ($$result, $$props, $$slots) => {
   const Astro2 = $$result.createAstro($$Astro, $$props, $$slots);
   Astro2.self = $$;
-  const { video } = Astro2.props;
-  const formattedDate = new Date(video.published_at || video.created_at).toLocaleDateString("en-US", {
+  let { video } = Astro2.props;
+  if (!video) {
+    const slugParam = Array.isArray(Astro2.params.slug) ? Astro2.params.slug.join("/") : Astro2.params.slug || "";
+    if (slugParam) {
+      try {
+        const fetched = await SupabaseCMSAPI.getContentBySlug(slugParam, { type: "video", status: "published" });
+        if (fetched) {
+          video = fetched;
+        } else {
+          Astro2.response.status = 404;
+        }
+      } catch {
+        Astro2.response.status = 404;
+      }
+    } else {
+      Astro2.response.status = 404;
+    }
+  }
+  const formattedDate = video ? new Date(video.published_at || video.created_at).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric"
-  });
-  const hasBody = video.body_md && video.body_md.trim().length > 0;
+  }) : "";
+  const hasBody = !!(video && (video.body_html && video.body_html.trim().length > 0 || video.body_md && video.body_md.trim().length > 0));
+  function escapeHtml(input) {
+    return input.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function renderBasicMarkdown(markdown) {
+    if (!markdown) return "";
+    let md = markdown.replace(/\r\n/g, "\n");
+    md = md.replace(/```([\s\S]*?)```/g, (_m, code) => {
+      return `<pre><code>${escapeHtml(code)}</code></pre>`;
+    });
+    md = md.replace(/`([^`]+)`/g, (_m, code) => `<code>${escapeHtml(code)}</code>`);
+    md = md.replace(/^\s*######\s+(.*)$/gm, "<h6>$1</h6>").replace(/^\s*#####\s+(.*)$/gm, "<h5>$1</h5>").replace(/^\s*####\s+(.*)$/gm, "<h4>$1</h4>").replace(/^\s*###\s+(.*)$/gm, "<h3>$1</h3>").replace(/^\s*##\s+(.*)$/gm, "<h2>$1</h2>").replace(/^\s*#\s+(.*)$/gm, "<h1>$1</h1>");
+    md = md.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\*([^*]+)\*/g, "<em>$1</em>").replace(/__([^_]+)__/g, "<strong>$1</strong>").replace(/_([^_]+)_/g, "<em>$1</em>");
+    md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    md = md.replace(/(?:^\s*[-*]\s+.*(?:\n|$))+?/gm, (block) => {
+      const items = block.trim().split("\n").map((line) => line.replace(/^\s*[-*]\s+/, "").trim()).filter(Boolean).map((item) => `<li>${item}</li>`).join("");
+      return items ? `<ul>${items}</ul>
+` : block;
+    });
+    md = md.split(/\n{2,}/).map((chunk) => {
+      const trimmed = chunk.trim();
+      if (!trimmed) return "";
+      if (/^<h\d|^<ul|^<pre|^<blockquote|^<table|^<p|^<code/.test(trimmed)) {
+        return trimmed;
+      }
+      const joined = trimmed.replace(/\n+/g, " ");
+      return `<p>${joined}</p>`;
+    }).join("\n");
+    return md;
+  }
   let relatedVideos = [];
   try {
     const allVideosResult = await SupabaseCMSAPI.getContent({
@@ -232,15 +278,15 @@ const $$ = createComponent(async ($$result, $$props, $$slots) => {
       status: "published",
       limit: 50
     });
-    relatedVideos = allVideosResult.content.filter((v) => v.id !== video.id).map((v) => {
+    relatedVideos = (video ? allVideosResult.content.filter((v) => v.id !== video.id) : allVideosResult.content).map((v) => {
       let relevanceScore = 0;
-      if (video.metadata?.series && v.metadata?.series) {
+      if (video?.metadata?.series && v.metadata?.series) {
         const matchingSeries = video.metadata.series.filter(
           (s) => v.metadata.series.includes(s)
         );
         relevanceScore += matchingSeries.length * 10;
       }
-      if (video.metadata?.topics && v.metadata?.topics) {
+      if (video?.metadata?.topics && v.metadata?.topics) {
         const matchingTopics = video.metadata.topics.filter(
           (t) => v.metadata.topics.includes(t)
         );
@@ -252,7 +298,7 @@ const $$ = createComponent(async ($$result, $$props, $$slots) => {
     relatedVideos = [];
   }
   let seriesNav = { prev: null, next: null };
-  if (video.metadata?.series && video.metadata.series.length > 0) {
+  if (video?.metadata?.series && video.metadata.series.length > 0) {
     try {
       const seriesName = video.metadata.series[0];
       const seriesResult = await SupabaseCMSAPI.getContent({
@@ -273,16 +319,18 @@ const $$ = createComponent(async ($$result, $$props, $$slots) => {
     } catch (error) {
     }
   }
-  return renderTemplate`${renderComponent($$result, "Base", $$Base, { "title": video.title, "description": `Watch: ${video.title}` }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<article class="container mx-auto px-4 py-12 md:py-16 max-w-5xl"> <!-- Header --> <header class="mb-8"> <h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100"> ${video.title} </h1> <div class="flex flex-wrap items-center gap-4 text-sm text-neutral-500 mb-6"> <time${addAttribute(new Date(video.published_at || video.created_at).toISOString(), "datetime")}> ${formattedDate} </time> ${video.metadata?.series && video.metadata.series.length > 0 && renderTemplate`${renderComponent($$result2, "Fragment", Fragment$1, {}, { "default": async ($$result3) => renderTemplate` <span>•</span> <span class="text-amber-400">
-Series: ${Array.isArray(video.metadata.series) ? video.metadata.series.join(", ") : video.metadata.series} </span> ` })}`} </div> ${video.metadata?.topics && video.metadata.topics.length > 0 && renderTemplate`<div class="flex flex-wrap gap-2 mb-4"> ${Array.isArray(video.metadata.topics) ? video.metadata.topics.map((topic) => renderTemplate`<span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-sm px-3 py-1.5 rounded"> ${topic} </span>`) : renderTemplate`<span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-sm px-3 py-1.5 rounded"> ${video.metadata.topics} </span>`} </div>`} </header> <!-- Video Embed --> <div class="mb-8 md:mb-12"> ${renderComponent($$result2, "UniversalVideoEmbed", UniversalVideoEmbed, { "platform": video.metadata?.platform || "youtube", "videoId": video.metadata?.videoId || "", "title": video.title, "client:load": true, "client:component-hydration": "load", "client:component-path": "/Users/asjames18/Development/RRG Website/src/components/UniversalVideoEmbed", "client:component-export": "default" })} </div> <!-- Scripture References --> ${video.metadata?.scriptures && video.metadata.scriptures.length > 0 && renderTemplate`<div class="mb-8 bg-amber-900/20 border border-amber-800/50 rounded-lg p-6"> <h2 class="text-lg font-bold text-amber-100 mb-3">Scripture References</h2> <div class="flex flex-wrap gap-2"> ${Array.isArray(video.metadata.scriptures) ? video.metadata.scriptures.map((scripture) => renderTemplate`<span class="inline-block bg-neutral-900 border border-amber-800 text-amber-200 text-sm font-medium px-3 py-1.5 rounded"> ${scripture} </span>`) : renderTemplate`<span class="inline-block bg-neutral-900 border border-amber-800 text-amber-200 text-sm font-medium px-3 py-1.5 rounded"> ${video.metadata.scriptures} </span>`} </div> </div>`} <!-- Teaching Notes Content --> ${hasBody && renderTemplate`<div class="prose prose-lg prose-invert max-w-none mb-8"> <h2 class="text-2xl font-bold text-amber-100 mb-4">Teaching Notes</h2> <div>${unescapeHTML(video.body_md)}</div> </div>`} <!-- Series Navigation --> ${(seriesNav.prev || seriesNav.next) && renderTemplate`<div class="mt-8 pt-8 border-t border-neutral-800"> <h3 class="text-lg font-bold text-amber-100 mb-4">Series Navigation</h3> <div class="grid md:grid-cols-2 gap-4"> ${seriesNav.prev ? renderTemplate`<a${addAttribute(`/videos/${seriesNav.prev.slug}`, "href")} class="group flex items-center gap-4 p-4 bg-neutral-900 border border-neutral-800 hover:border-amber-700 rounded-lg transition-colors"> <svg class="w-6 h-6 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path> </svg> <div class="flex-1 min-w-0"> <div class="text-xs text-neutral-500 mb-1">Previous in Series</div> <div class="font-semibold text-amber-100 group-hover:text-amber-200 transition-colors line-clamp-2"> ${seriesNav.prev.title} </div> </div> </a>` : renderTemplate`<div></div>`} ${seriesNav.next && renderTemplate`<a${addAttribute(`/videos/${seriesNav.next.slug}`, "href")} class="group flex items-center gap-4 p-4 bg-neutral-900 border border-neutral-800 hover:border-amber-700 rounded-lg transition-colors md:ml-auto"> <div class="flex-1 min-w-0 text-right"> <div class="text-xs text-neutral-500 mb-1">Next in Series</div> <div class="font-semibold text-amber-100 group-hover:text-amber-200 transition-colors line-clamp-2"> ${seriesNav.next.title} </div> </div> <svg class="w-6 h-6 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path> </svg> </a>`} </div> </div>`} <!-- Share Buttons --> <div class="mt-8 pt-8 border-t border-neutral-800"> <h3 class="text-lg font-bold text-amber-100 mb-4">Share This Video</h3> <div class="flex gap-3"> <button${addAttribute(`navigator.share ? navigator.share({title: '${video.title}', url: window.location.href}) : navigator.clipboard.writeText(window.location.href)`, "onclick")} class="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-700 text-neutral-300 hover:text-amber-200 rounded-lg transition-colors"> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path> </svg> <span>Share</span> </button> <button${addAttribute(`navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!'))`, "onclick")} class="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-700 text-neutral-300 hover:text-amber-200 rounded-lg transition-colors"> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path> </svg> <span>Copy Link</span> </button> </div> </div> <!-- Related Videos --> ${relatedVideos.length > 0 && renderTemplate`<div class="mt-12 pt-8 border-t border-neutral-800"> <h3 class="text-2xl font-bold text-amber-100 mb-6">Related Videos</h3> <div class="grid md:grid-cols-3 gap-6"> ${relatedVideos.map((relatedVideo) => renderTemplate`${renderComponent($$result2, "VideoCard", VideoCard, { "video": relatedVideo, "viewMode": "grid", "client:load": true, "client:component-hydration": "load", "client:component-path": "/Users/asjames18/Development/RRG Website/src/components/VideoCard", "client:component-export": "default" })}`)} </div> </div>`} <!-- Footer / Continue Training --> <footer class="mt-12 pt-8 border-t border-neutral-800"> <div class="bg-neutral-900 border border-neutral-800 rounded-lg p-6 md:p-8"> <h3 class="text-xl font-bold text-amber-100 mb-3">Continue Training</h3> <p class="text-neutral-300 mb-4">
+  return renderTemplate`${video ? renderTemplate`${renderComponent($$result, "Base", $$Base, { "title": video.title, "description": `Watch: ${video.title}` }, { "default": async ($$result2) => renderTemplate`${maybeRenderHead()}<article class="container mx-auto px-4 py-12 md:py-16 max-w-5xl"><!-- Header --><header class="mb-8"><h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">${video.title}</h1><div class="flex flex-wrap items-center gap-4 text-sm text-neutral-500 mb-6"><time${addAttribute(new Date(video.published_at || video.created_at).toISOString(), "datetime")}>${formattedDate}</time>${video.metadata?.series && video.metadata.series.length > 0 && renderTemplate`${renderComponent($$result2, "Fragment", Fragment$1, {}, { "default": async ($$result3) => renderTemplate`<span>•</span><span class="text-amber-400">
+Series: ${Array.isArray(video.metadata.series) ? video.metadata.series.join(", ") : video.metadata.series}</span>` })}`}</div>${video.metadata?.topics && video.metadata.topics.length > 0 && renderTemplate`<div class="flex flex-wrap gap-2 mb-4">${Array.isArray(video.metadata.topics) ? video.metadata.topics.map((topic) => renderTemplate`<span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-sm px-3 py-1.5 rounded">${topic}</span>`) : renderTemplate`<span class="inline-block bg-neutral-800 border border-neutral-700 text-neutral-300 text-sm px-3 py-1.5 rounded">${video.metadata.topics}</span>`}</div>`}</header><!-- Video Embed --><div class="mb-8 md:mb-12">${renderComponent($$result2, "UniversalVideoEmbed", UniversalVideoEmbed, { "platform": video.metadata?.platform || "youtube", "videoId": video.metadata?.videoId || "", "title": video.title, "client:load": true, "client:component-hydration": "load", "client:component-path": "/Users/asjames18/Development/RRG Website/src/components/UniversalVideoEmbed", "client:component-export": "default" })}</div><!-- Scripture References -->${video.metadata?.scriptures && video.metadata.scriptures.length > 0 && renderTemplate`<div class="mb-8 bg-amber-900/20 border border-amber-800/50 rounded-lg p-6"><h2 class="text-lg font-bold text-amber-100 mb-3">Scripture References</h2><div class="flex flex-wrap gap-2">${Array.isArray(video.metadata.scriptures) ? video.metadata.scriptures.map((scripture) => renderTemplate`<span class="inline-block bg-neutral-900 border border-amber-800 text-amber-200 text-sm font-medium px-3 py-1.5 rounded">${scripture}</span>`) : renderTemplate`<span class="inline-block bg-neutral-900 border border-amber-800 text-amber-200 text-sm font-medium px-3 py-1.5 rounded">${video.metadata.scriptures}</span>`}</div></div>`}<!-- Teaching Notes Content -->${hasBody && renderTemplate`<div class="prose prose-lg prose-invert max-w-none mb-8"><h2 class="text-2xl font-bold text-amber-100 mb-4">Teaching Notes</h2>${video.body_html && video.body_html.trim().length > 0 ? renderTemplate`<div>${unescapeHTML(video.body_html)}</div>` : renderTemplate`<div>${unescapeHTML(renderBasicMarkdown(video.body_md))}</div>`}</div>`}<!-- Series Navigation -->${(seriesNav.prev || seriesNav.next) && renderTemplate`<div class="mt-8 pt-8 border-t border-neutral-800"><h3 class="text-lg font-bold text-amber-100 mb-4">Series Navigation</h3><div class="grid md:grid-cols-2 gap-4">${seriesNav.prev ? renderTemplate`<a${addAttribute(`/videos/${seriesNav.prev.slug}`, "href")} class="group flex items-center gap-4 p-4 bg-neutral-900 border border-neutral-800 hover:border-amber-700 rounded-lg transition-colors"><svg class="w-6 h-6 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg><div class="flex-1 min-w-0"><div class="text-xs text-neutral-500 mb-1">Previous in Series</div><div class="font-semibold text-amber-100 group-hover:text-amber-200 transition-colors line-clamp-2">${seriesNav.prev.title}</div></div></a>` : renderTemplate`<div></div>`}${seriesNav.next && renderTemplate`<a${addAttribute(`/videos/${seriesNav.next.slug}`, "href")} class="group flex items-center gap-4 p-4 bg-neutral-900 border border-neutral-800 hover:border-amber-700 rounded-lg transition-colors md:ml-auto"><div class="flex-1 min-w-0 text-right"><div class="text-xs text-neutral-500 mb-1">Next in Series</div><div class="font-semibold text-amber-100 group-hover:text-amber-200 transition-colors line-clamp-2">${seriesNav.next.title}</div></div><svg class="w-6 h-6 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></a>`}</div></div>`}<!-- Share Buttons --><div class="mt-8 pt-8 border-t border-neutral-800"><h3 class="text-lg font-bold text-amber-100 mb-4">Share This Video</h3><div class="flex gap-3"><button${addAttribute(`navigator.share ? navigator.share({title: '${video.title}', url: window.location.href}) : navigator.clipboard.writeText(window.location.href)`, "onclick")} class="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-700 text-neutral-300 hover:text-amber-200 rounded-lg transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg><span>Share</span></button><button${addAttribute(`navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!'))`, "onclick")} class="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-amber-700 text-neutral-300 hover:text-amber-200 rounded-lg transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg><span>Copy Link</span></button></div></div><!-- Related Videos -->${relatedVideos.length > 0 && renderTemplate`<div class="mt-12 pt-8 border-t border-neutral-800"><h3 class="text-2xl font-bold text-amber-100 mb-6">Related Videos</h3><div class="grid md:grid-cols-3 gap-6">${relatedVideos.map((relatedVideo) => renderTemplate`${renderComponent($$result2, "VideoCard", VideoCard, { "video": relatedVideo, "viewMode": "grid", "client:load": true, "client:component-hydration": "load", "client:component-path": "/Users/asjames18/Development/RRG Website/src/components/VideoCard", "client:component-export": "default" })}`)}</div></div>`}<!-- Footer / Continue Training --><footer class="mt-12 pt-8 border-t border-neutral-800"><div class="bg-neutral-900 border border-neutral-800 rounded-lg p-6 md:p-8"><h3 class="text-xl font-bold text-amber-100 mb-3">Continue Training</h3><p class="text-neutral-300 mb-4">
 Keep pressing forward in your walk with YAHUSHA. Explore more teachings and resources.
-</p> <div class="flex flex-wrap gap-3"> <a href="/videos" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
+</p><div class="flex flex-wrap gap-3"><a href="/videos" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
 ← All Videos
-</a> <a href="/spiritual-warfare" class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
+</a><a href="/spiritual-warfare" class="inline-block bg-amber-700 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
 Train for War
-</a> <a href="/blog" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
+</a><a href="/blog" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
 Read the Blog
-</a> </div> </div> </footer> </article> ` })}`;
+</a></div></div></footer></article>` })}` : renderTemplate`${renderComponent($$result, "Fragment", Fragment$1, {}, { "default": async ($$result2) => renderTemplate`${Astro2.response.status = 404}${renderComponent($$result2, "Base", $$Base, { "title": "Not Found", "description": "Video not found" }, { "default": async ($$result3) => renderTemplate`<article class="container mx-auto px-4 py-12 md:py-16 max-w-3xl"><h1 class="text-3xl md:text-5xl font-bold mb-4 text-amber-100">Video not found</h1><p class="text-neutral-300 mb-6">The video you’re looking for may have been unpublished or the link is incorrect.</p><a href="/videos" class="inline-block bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-6 py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black">
+← Back to Videos
+</a></article>` })}` })}`}`;
 }, "/Users/asjames18/Development/RRG Website/src/pages/videos/[...slug].astro", void 0);
 
 const $$file = "/Users/asjames18/Development/RRG Website/src/pages/videos/[...slug].astro";

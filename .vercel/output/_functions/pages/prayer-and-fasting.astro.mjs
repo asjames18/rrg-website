@@ -1,6 +1,6 @@
 import { c as createComponent, d as renderComponent, e as renderTemplate, af as maybeRenderHead } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_BI6EUuN9.mjs';
+import { $ as $$Base } from '../chunks/Base_pSiMxjTU.mjs';
 export { renderers } from '../renderers.mjs';
 
 const $$PrayerAndFasting = createComponent(($$result, $$props, $$slots) => {

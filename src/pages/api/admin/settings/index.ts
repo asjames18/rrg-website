@@ -7,32 +7,27 @@ import type { APIRoute } from 'astro';
 import { supabaseServer } from '../../../../lib/supabase-server';
 import { logger } from '../../../../lib/logger';
 
-export const GET: APIRoute = async ({ cookies, url }) => {
+export const GET: APIRoute = async ({ locals, cookies, url }) => {
   try {
-    const supabase = supabaseServer(cookies);
+    // Use authenticated user from middleware
+    const user = locals.user;
+    const isAdmin = locals.isAdmin;
     
-    // Check if user is authenticated and is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Check admin role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-    
-    const isAdmin = userRoles && userRoles.some(role => role.role === 'admin');
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    const supabase = supabaseServer(cookies);
 
     const category = url.searchParams.get('category');
     
@@ -81,32 +76,27 @@ export const GET: APIRoute = async ({ cookies, url }) => {
   }
 };
 
-export const PUT: APIRoute = async ({ cookies, request }) => {
+export const PUT: APIRoute = async ({ locals, cookies, request }) => {
   try {
-    const supabase = supabaseServer(cookies);
+    // Use authenticated user from middleware
+    const user = locals.user;
+    const isAdmin = locals.isAdmin;
     
-    // Check if user is authenticated and is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Check admin role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-    
-    const isAdmin = userRoles && userRoles.some(role => role.role === 'admin');
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    const supabase = supabaseServer(cookies);
 
     const body = await request.json();
     const { key, value, category } = body;

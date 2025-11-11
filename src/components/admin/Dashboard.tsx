@@ -40,18 +40,27 @@ export default function Dashboard() {
       setLoading(true);
       setError(null);
       
+      console.log('[Dashboard] Fetching stats from /api/admin/dashboard/stats');
       const response = await fetch('/api/admin/dashboard/stats');
       const data = await response.json();
 
+      console.log('[Dashboard] Response status:', response.status);
+      console.log('[Dashboard] Response data:', data);
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch dashboard stats');
+        const errorMsg = data.error || 'Failed to fetch dashboard stats';
+        console.error('[Dashboard] Error:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       setStats(data.stats);
       setContentGrowth(data.content_growth || {});
       setUserGrowth(data.user_growth || {});
+      console.log('[Dashboard] Stats loaded successfully');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to load dashboard');
+      const errorMsg = error instanceof Error ? error.message : 'Failed to load dashboard';
+      console.error('[Dashboard] Failed to fetch stats:', errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
