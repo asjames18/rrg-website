@@ -12,6 +12,9 @@ import SimpleAuthForm from '../components/SimpleAuthForm';
 import UserProfile from '../components/UserProfile';
 import { supabaseServer } from '../lib/supabase-server';
 
+// Use Vite's ?url import to get the bundled module URL
+const { default: supabaseBrowserModule } = await import('../lib/supabase-browser.ts?url');
+
 // Get redirect URL, error, and reset status from query params
 const url = new URL(Astro.request.url);
 const error = url.searchParams.get('error');
@@ -271,7 +274,7 @@ try {
   </div>
 </Base>
 
-<script type="module">
+<script type="module" define:vars={{ supabaseBrowserModule }}>
   // Hide loading fallback when component loads
   document.addEventListener('DOMContentLoaded', () => {
     const loadingEl = document.getElementById('auth-loading');
@@ -333,7 +336,7 @@ try {
   const redirectTo = urlParams.get('redirect') || '/';
 
   // Use dynamic import to avoid module resolution issues
-  import('../lib/supabase-browser.ts').then(({ getSupabase }) => {
+  import(supabaseBrowserModule).then(({ getSupabase }) => {
     const supabase = getSupabase();
     
     // Listen for auth changes

@@ -10,6 +10,9 @@ import Base from '../layouts/Base.astro';
 import ProfileCard from '../components/ProfileCard';
 import UserActivity from '../components/UserActivity';
 import UserManagement from '../components/UserManagement';
+
+// Use Vite's ?url import to get the bundled module URL
+const { default: supabaseBrowserModule } = await import('../lib/supabase-browser.ts?url');
 ---
 
 <Base title="Profile | Real & Raw Gospel">
@@ -272,7 +275,7 @@ import UserManagement from '../components/UserManagement';
   </div>
 </Base>
 
-<script type="module">
+<script type="module" define:vars={{ supabaseBrowserModule }}>
   // Tab switching functionality
   document.addEventListener('DOMContentLoaded', () => {
     console.log('[Profile Page] Initializing tabs...');
@@ -334,7 +337,7 @@ import UserManagement from '../components/UserManagement';
 
   async function loadUserProfile() {
     try {
-      const { getSupabase } = await import('../lib/supabase-browser.ts');
+      const { getSupabase } = await import(supabaseBrowserModule);
       const supabase = getSupabase();
 
       const { data: { user } } = await supabase.auth.getUser();

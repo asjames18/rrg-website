@@ -1,25 +1,17 @@
 import { getSupabase } from '../lib/supabase-browser';
 
-declare global {
-  interface Window {
-    __supabaseClient?: any;
-    __supabaseAuthSub?: { unsubscribe?: () => void } | null;
-    __RRG_INITIAL_SESSION?: { access_token: string; refresh_token: string } | null;
-  }
-}
-
 const supabase = getSupabase();
 
 // Check user role and show/hide admin links
-async function checkUserRoleAndShowAdminLinks(email: string) {
+async function checkUserRoleAndShowAdminLinks(email) {
   try {
-    // First get the user to get their ID
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     let isAdmin = false;
-    
-    // Try profiles table first
+
     try {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -30,23 +22,21 @@ async function checkUserRoleAndShowAdminLinks(email: string) {
       if (profile && !profileError) {
         isAdmin = profile.role === 'admin' || profile.role === 'editor';
       } else {
-        // Fallback: try user_roles table
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id);
 
         if (userRoles && userRoles.length > 0 && !rolesError) {
-          isAdmin = userRoles[0].role === 'admin' || userRoles[0].role === 'editor';
+          isAdmin = ['admin', 'editor'].includes(userRoles[0].role);
         } else {
           isAdmin = false;
         }
       }
-    } catch (queryError) {
+    } catch {
       isAdmin = false;
     }
-    
-    // Desktop admin links
+
     const adminLinks = document.getElementById('admin-links');
     if (adminLinks) {
       if (isAdmin) {
@@ -56,7 +46,6 @@ async function checkUserRoleAndShowAdminLinks(email: string) {
       }
     }
 
-    // Mobile admin links
     const mobileAdminLinks = document.getElementById('mobile-admin-links');
     if (mobileAdminLinks) {
       if (isAdmin) {
@@ -65,8 +54,7 @@ async function checkUserRoleAndShowAdminLinks(email: string) {
         mobileAdminLinks.classList.add('hidden');
       }
     }
-  } catch (error) {
-    // Hide admin links on error
+  } catch {
     document.getElementById('admin-links')?.classList.add('hidden');
     document.getElementById('mobile-admin-links')?.classList.add('hidden');
   }
@@ -75,12 +63,13 @@ async function checkUserRoleAndShowAdminLinks(email: string) {
 // Seed the browser session from the server once (if needed)
 const bootstrapSession = (async () => {
   try {
-    // Get session data from body data attribute
     const body = document.body;
     const sessionData = body.getAttribute('data-initial-session');
     const bootstrap = sessionData ? JSON.parse(sessionData) : null;
     if (bootstrap?.access_token && bootstrap?.refresh_token) {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         await supabase.auth.setSession({
           access_token: bootstrap.access_token,
@@ -88,7 +77,7 @@ const bootstrapSession = (async () => {
         });
       }
     }
-  } catch (err) {
+  } catch {
     // Silently fail bootstrap
   }
 })();
@@ -101,29 +90,34 @@ async function waitForBootstrap() {
   }
 }
 
-let inflight: Promise<any> | null = null;
+let inflight = null;
 async function getVerifiedUser() {
   await waitForBootstrap();
   if (!inflight) {
     inflight = supabase.auth
       .getUser()
-      .then(({ data, error }) => (error ? null : (data?.user ?? null)))
-      .finally(() => { inflight = null; });
+      .then(({ data, error }) => (error ? null : data?.user ?? null))
+      .finally(() => {
+        inflight = null;
+      });
   }
   return inflight;
 }
 
-async function syncAuthUI(session?: { user?: { email?: string | null } | null } | null) {
+async function syncAuthUI(session) {
   if (session?.user?.email) {
     showSignedInState(session.user.email);
     return;
   }
   const u = await getVerifiedUser();
-  u ? showSignedInState(u.email || '') : showSignedOutState();
+  if (u) {
+    showSignedInState(u.email || '');
+  } else {
+    showSignedOutState();
+  }
 }
 
-function showSignedInState(email: string) {
-  // desktop
+function showSignedInState(email) {
   const authNavItem = document.getElementById('auth-nav-item');
   const signInNavItem = document.getElementById('sign-in-nav-item');
   const userEmail = document.getElementById('user-email');
@@ -135,10 +129,8 @@ function showSignedInState(email: string) {
   userDropdown?.classList.add('hidden');
   userMenuButton?.setAttribute('aria-expanded', 'false');
 
-  // Check user role and show admin links
   checkUserRoleAndShowAdminLinks(email);
 
-  // mobile
   const mAuth = document.getElementById('mobile-auth-nav-item');
   const mSign = document.getElementById('mobile-sign-in-nav-item');
   const mEmail = document.getElementById('mobile-user-email');
@@ -148,7 +140,6 @@ function showSignedInState(email: string) {
 }
 
 function showSignedOutState() {
-  // desktop
   const authNavItem = document.getElementById('auth-nav-item');
   const signInNavItem = document.getElementById('sign-in-nav-item');
   const userEmail = document.getElementById('user-email');
@@ -162,7 +153,6 @@ function showSignedOutState() {
   userDropdown?.classList.add('hidden');
   userMenuButton?.setAttribute('aria-expanded', 'false');
 
-  // mobile
   const mAuth = document.getElementById('mobile-auth-nav-item');
   const mSign = document.getElementById('mobile-sign-in-nav-item');
   const mEmail = document.getElementById('mobile-user-email');
@@ -171,26 +161,30 @@ function showSignedOutState() {
   if (mEmail) mEmail.textContent = '';
 }
 
-// initial check (wait until bootstrap completes so server session can hydrate)
 waitForBootstrap().finally(() => {
   syncAuthUI();
 });
 
-// single subscription (and re-verify on changes)
-try { window.__supabaseAuthSub?.unsubscribe?.(); } catch {}
-{
+try {
+  window.__supabaseAuthSub?.unsubscribe?.();
+} catch {
+  // ignore
+}
+(function subscribe() {
   const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
     await syncAuthUI(session);
   });
   window.__supabaseAuthSub = data.subscription;
   window.addEventListener('beforeunload', () => {
-    try { window.__supabaseAuthSub?.unsubscribe?.(); } catch {}
+    try {
+      window.__supabaseAuthSub?.unsubscribe?.();
+    } catch {
+      // ignore
+    }
   });
-}
+})();
 
-// dropdown wiring + mobile menu + signout buttons
 (function wireUI() {
-  // mobile hamburger
   const toggle = document.getElementById('mobile-menu-toggle');
   const menu = document.getElementById('mobile-menu');
   toggle?.addEventListener('click', (e) => {
@@ -200,14 +194,13 @@ try { window.__supabaseAuthSub?.unsubscribe?.(); } catch {}
     menu?.classList.toggle('hidden');
   });
   document.addEventListener('click', (e) => {
-    const t = e.target as Node;
+    const t = e.target;
     if (menu && !menu.contains(t) && !toggle?.contains(t)) {
       menu.classList.add('hidden');
       toggle?.setAttribute('aria-expanded', 'false');
     }
   });
 
-  // dropdown
   const userMenuButton = document.getElementById('user-menu-button');
   const userDropdown = document.getElementById('user-dropdown');
   let open = false;
@@ -224,13 +217,18 @@ try { window.__supabaseAuthSub?.unsubscribe?.(); } catch {}
     open = false;
   }
   userMenuButton?.addEventListener('click', (e) => {
-    e.preventDefault(); e.stopPropagation();
-    open ? closeMenu() : openMenu();
+    e.preventDefault();
+    e.stopPropagation();
+    if (open) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
   });
   userDropdown?.addEventListener('click', (e) => e.stopPropagation());
   document.addEventListener('click', (e) => {
     if (!open) return;
-    const t = e.target as Node;
+    const t = e.target;
     if (userDropdown?.contains(t) || userMenuButton?.contains(t)) return;
     closeMenu();
   });
@@ -238,18 +236,30 @@ try { window.__supabaseAuthSub?.unsubscribe?.(); } catch {}
     if (e.key === 'Escape' && open) closeMenu();
   });
 
-  // sign-out (desktop + mobile)
   const doSignOut = async () => {
     try {
       await supabase.auth.signOut();
     } finally {
-      try { await fetch('/api/auth/signout', { method: 'POST' }); } catch {}
+      try {
+        await fetch('/api/auth/signout', { method: 'POST' });
+      } catch {
+        // ignore
+      }
       showSignedOutState();
-      location.assign('/');
+      window.location.assign('/');
     }
   };
-  document.getElementById('sign-out-btn')?.addEventListener('click', (e) => { e.preventDefault(); doSignOut(); });
-  document.getElementById('mobile-sign-out-btn')?.addEventListener('click', (e) => { e.preventDefault(); doSignOut(); });
+  document
+    .getElementById('sign-out-btn')
+    ?.addEventListener('click', (e) => {
+      e.preventDefault();
+      doSignOut();
+    });
+  document
+    .getElementById('mobile-sign-out-btn')
+    ?.addEventListener('click', (e) => {
+      e.preventDefault();
+      doSignOut();
+    });
 })();
-
 

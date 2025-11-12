@@ -14,6 +14,8 @@ interface Props {
 }
 
 const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH' } = Astro.props;
+// Use Vite's ?url import to get the bundled script URL
+const { default: headerScriptSrc } = await import('../scripts/header.js?url');
 
 // Server-side: detect current session and user email for first paint
 let isSignedIn = false;
@@ -185,7 +187,7 @@ try {
     </footer>
 
 
-    <script type="module" src="/src/scripts/header.ts"></script>
+    <script type="module" src={headerScriptSrc}></script>
     
     <!-- Fallback: Ensure mobile menu always works even if module fails to load -->
     <script is:inline>
