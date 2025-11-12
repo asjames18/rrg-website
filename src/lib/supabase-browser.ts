@@ -24,7 +24,17 @@ export function getSupabase(): SupabaseClient {
         autoRefreshToken: true,
         detectSessionInUrl: true,
         storageKey: 'sb:rrg:auth',
+        flowType: 'pkce',
       },
+    });
+
+    // Handle auth errors gracefully
+    window.__supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('[Supabase] Token refreshed successfully');
+      } else if (event === 'SIGNED_OUT') {
+        console.log('[Supabase] User signed out');
+      }
     });
   }
   return window.__supabaseClient;

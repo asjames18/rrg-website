@@ -1,6 +1,6 @@
 import { renderers } from './renderers.mjs';
 import { c as createExports, s as serverEntrypointModule } from './chunks/_@astrojs-ssr-adapter_DBYb7_Us.mjs';
-import { manifest } from './manifest_DDlUM2RD.mjs';
+import { manifest } from './manifest_DGpww23M.mjs';
 
 const serverIslandMap = new Map();;
 
@@ -51,34 +51,35 @@ const _page43 = () => import('./pages/api/user/activity.astro.mjs');
 const _page44 = () => import('./pages/api/user/change-password.astro.mjs');
 const _page45 = () => import('./pages/api/user/preferences.astro.mjs');
 const _page46 = () => import('./pages/api/verify-db.astro.mjs');
-const _page47 = () => import('./pages/auth/reset.astro.mjs');
-const _page48 = () => import('./pages/auth.astro.mjs');
-const _page49 = () => import('./pages/blog.astro.mjs');
-const _page50 = () => import('./pages/blog/_---slug_.astro.mjs');
-const _page51 = () => import('./pages/books.astro.mjs');
-const _page52 = () => import('./pages/books/_---slug_.astro.mjs');
-const _page53 = () => import('./pages/cms/blog/new.astro.mjs');
-const _page54 = () => import('./pages/cms/books/new.astro.mjs');
-const _page55 = () => import('./pages/cms/edit/_id_.astro.mjs');
-const _page56 = () => import('./pages/cms/media.astro.mjs');
-const _page57 = () => import('./pages/cms/music/new.astro.mjs');
-const _page58 = () => import('./pages/cms/videos/new.astro.mjs');
-const _page59 = () => import('./pages/cms.astro.mjs');
-const _page60 = () => import('./pages/end-times.astro.mjs');
-const _page61 = () => import('./pages/feasts.astro.mjs');
-const _page62 = () => import('./pages/give.astro.mjs');
-const _page63 = () => import('./pages/identity-and-messiah.astro.mjs');
-const _page64 = () => import('./pages/music.astro.mjs');
-const _page65 = () => import('./pages/prayer-and-fasting.astro.mjs');
-const _page66 = () => import('./pages/privacy.astro.mjs');
-const _page67 = () => import('./pages/profile.astro.mjs');
-const _page68 = () => import('./pages/rss.xml.astro.mjs');
-const _page69 = () => import('./pages/spiritual-warfare.astro.mjs');
-const _page70 = () => import('./pages/start-here.astro.mjs');
-const _page71 = () => import('./pages/videos.astro.mjs');
-const _page72 = () => import('./pages/videos/_---slug_.astro.mjs');
-const _page73 = () => import('./pages/walk-in-the-spirit.astro.mjs');
-const _page74 = () => import('./pages/index.astro.mjs');
+const _page47 = () => import('./pages/auth/callback.astro.mjs');
+const _page48 = () => import('./pages/auth/reset.astro.mjs');
+const _page49 = () => import('./pages/auth.astro.mjs');
+const _page50 = () => import('./pages/blog.astro.mjs');
+const _page51 = () => import('./pages/blog/_---slug_.astro.mjs');
+const _page52 = () => import('./pages/books.astro.mjs');
+const _page53 = () => import('./pages/books/_---slug_.astro.mjs');
+const _page54 = () => import('./pages/cms/blog/new.astro.mjs');
+const _page55 = () => import('./pages/cms/books/new.astro.mjs');
+const _page56 = () => import('./pages/cms/edit/_id_.astro.mjs');
+const _page57 = () => import('./pages/cms/media.astro.mjs');
+const _page58 = () => import('./pages/cms/music/new.astro.mjs');
+const _page59 = () => import('./pages/cms/videos/new.astro.mjs');
+const _page60 = () => import('./pages/cms.astro.mjs');
+const _page61 = () => import('./pages/end-times.astro.mjs');
+const _page62 = () => import('./pages/feasts.astro.mjs');
+const _page63 = () => import('./pages/give.astro.mjs');
+const _page64 = () => import('./pages/identity-and-messiah.astro.mjs');
+const _page65 = () => import('./pages/music.astro.mjs');
+const _page66 = () => import('./pages/prayer-and-fasting.astro.mjs');
+const _page67 = () => import('./pages/privacy.astro.mjs');
+const _page68 = () => import('./pages/profile.astro.mjs');
+const _page69 = () => import('./pages/rss.xml.astro.mjs');
+const _page70 = () => import('./pages/spiritual-warfare.astro.mjs');
+const _page71 = () => import('./pages/start-here.astro.mjs');
+const _page72 = () => import('./pages/videos.astro.mjs');
+const _page73 = () => import('./pages/videos/_---slug_.astro.mjs');
+const _page74 = () => import('./pages/walk-in-the-spirit.astro.mjs');
+const _page75 = () => import('./pages/index.astro.mjs');
 const pageMap = new Map([
     ["node_modules/astro/dist/assets/endpoint/generic.js", _page0],
     ["src/pages/admin.astro", _page1],
@@ -127,34 +128,35 @@ const pageMap = new Map([
     ["src/pages/api/user/change-password.ts", _page44],
     ["src/pages/api/user/preferences.ts", _page45],
     ["src/pages/api/verify-db.ts", _page46],
-    ["src/pages/auth/reset.astro", _page47],
-    ["src/pages/auth.astro", _page48],
-    ["src/pages/blog/index.astro", _page49],
-    ["src/pages/blog/[...slug].astro", _page50],
-    ["src/pages/books/index.astro", _page51],
-    ["src/pages/books/[...slug].astro", _page52],
-    ["src/pages/cms/blog/new.astro", _page53],
-    ["src/pages/cms/books/new.astro", _page54],
-    ["src/pages/cms/edit/[id].astro", _page55],
-    ["src/pages/cms/media/index.astro", _page56],
-    ["src/pages/cms/music/new.astro", _page57],
-    ["src/pages/cms/videos/new.astro", _page58],
-    ["src/pages/cms/index.astro", _page59],
-    ["src/pages/end-times.astro", _page60],
-    ["src/pages/feasts.astro", _page61],
-    ["src/pages/give.astro", _page62],
-    ["src/pages/identity-and-messiah.astro", _page63],
-    ["src/pages/music/index.astro", _page64],
-    ["src/pages/prayer-and-fasting.astro", _page65],
-    ["src/pages/privacy.astro", _page66],
-    ["src/pages/profile.astro", _page67],
-    ["src/pages/rss.xml.ts", _page68],
-    ["src/pages/spiritual-warfare.astro", _page69],
-    ["src/pages/start-here.astro", _page70],
-    ["src/pages/videos/index.astro", _page71],
-    ["src/pages/videos/[...slug].astro", _page72],
-    ["src/pages/walk-in-the-spirit.astro", _page73],
-    ["src/pages/index.astro", _page74]
+    ["src/pages/auth/callback.astro", _page47],
+    ["src/pages/auth/reset.astro", _page48],
+    ["src/pages/auth.astro", _page49],
+    ["src/pages/blog/index.astro", _page50],
+    ["src/pages/blog/[...slug].astro", _page51],
+    ["src/pages/books/index.astro", _page52],
+    ["src/pages/books/[...slug].astro", _page53],
+    ["src/pages/cms/blog/new.astro", _page54],
+    ["src/pages/cms/books/new.astro", _page55],
+    ["src/pages/cms/edit/[id].astro", _page56],
+    ["src/pages/cms/media/index.astro", _page57],
+    ["src/pages/cms/music/new.astro", _page58],
+    ["src/pages/cms/videos/new.astro", _page59],
+    ["src/pages/cms/index.astro", _page60],
+    ["src/pages/end-times.astro", _page61],
+    ["src/pages/feasts.astro", _page62],
+    ["src/pages/give.astro", _page63],
+    ["src/pages/identity-and-messiah.astro", _page64],
+    ["src/pages/music/index.astro", _page65],
+    ["src/pages/prayer-and-fasting.astro", _page66],
+    ["src/pages/privacy.astro", _page67],
+    ["src/pages/profile.astro", _page68],
+    ["src/pages/rss.xml.ts", _page69],
+    ["src/pages/spiritual-warfare.astro", _page70],
+    ["src/pages/start-here.astro", _page71],
+    ["src/pages/videos/index.astro", _page72],
+    ["src/pages/videos/[...slug].astro", _page73],
+    ["src/pages/walk-in-the-spirit.astro", _page74],
+    ["src/pages/index.astro", _page75]
 ]);
 
 const _manifest = Object.assign(manifest, {
@@ -165,7 +167,7 @@ const _manifest = Object.assign(manifest, {
     middleware: () => import('./_astro-internal_middleware.mjs')
 });
 const _args = {
-    "middlewareSecret": "d25c3a68-7cbc-4fd6-a9cd-09c943b708cc",
+    "middlewareSecret": "72e83070-9cf1-4a40-b513-09f7e83e40c9",
     "skewProtection": false
 };
 const _exports = createExports(_manifest, _args);

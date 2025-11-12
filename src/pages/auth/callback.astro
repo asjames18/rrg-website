@@ -1,0 +1,141 @@
+---
+/**
+ * Auth Callback Handler
+ * Handles email confirmation and password reset redirects from Supabase
+ */
+export const prerender = false;
+
+import { supabaseServer } from '../../lib/supabase-server';
+
+// Get tokens from URL (Supabase sends them as hash parameters)
+const url = new URL(Astro.request.url);
+
+// Supabase uses different params for different flows
+const access_token = url.searchParams.get('access_token');
+const refresh_token = url.searchParams.get('refresh_token');
+const type = url.searchParams.get('type'); // 'signup', 'recovery', 'invite', 'magiclink'
+const error = url.searchParams.get('error');
+const error_description = url.searchParams.get('error_description');
+
+// Handle errors from Supabase
+if (error) {
+  console.error('[Auth Callback] Error from Supabase:', error, error_description);
+  return Astro.redirect(`/auth?error=auth-failed&message=${encodeURIComponent(error_description || error)}`);
+}
+
+// If we have tokens, set the session
+if (access_token && refresh_token) {
+  try {
+    const supabase = supabaseServer(Astro.cookies);
+    
+    // Set the session with the tokens from the URL
+    const { data, error: sessionError } = await supabase.auth.setSession({
+      access_token,
+      refresh_token,
+    });
+
+    if (sessionError) {
+      console.error('[Auth Callback] Session error:', sessionError);
+      return Astro.redirect(`/auth?error=session-failed&message=${encodeURIComponent(sessionError.message)}`);
+    }
+
+    console.log('[Auth Callback] Session set successfully for user:', data.user?.email);
+
+    // Redirect based on the type of callback
+    if (type === 'recovery') {
+      // Password reset - redirect to reset password page
+      return Astro.redirect('/auth/reset?verified=true');
+    } else if (type === 'signup') {
+      // Email confirmation - redirect to welcome page
+      return Astro.redirect('/auth?verified=true&message=Email confirmed! Welcome to Real & Raw Gospel.');
+    } else {
+      // Default redirect
+      return Astro.redirect('/auth?verified=true');
+    }
+  } catch (err) {
+    console.error('[Auth Callback] Unexpected error:', err);
+    return Astro.redirect('/auth?error=callback-failed');
+  }
+} else {
+  // No tokens in URL - might be coming from a hash fragment
+  // Redirect to auth page to handle it client-side
+  console.log('[Auth Callback] No tokens found in query params, checking hash...');
+  return Astro.redirect('/auth?from=callback');
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirming...</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(to bottom right, #000, #171717, #000);
+      color: #fef3c7;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #404040;
+      border-top-color: #f59e0b;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    p {
+      color: #d4d4d8;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1>Confirming your email...</h1>
+    <p>Please wait while we verify your account</p>
+  </div>
+
+  <script>
+    // Handle hash fragments (Supabase might send tokens in the hash)
+    if (window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+
+      if (accessToken && refreshToken) {
+        // Convert hash to query params and reload
+        const newUrl = `/auth/callback?access_token=${accessToken}&refresh_token=${refreshToken}&type=${type || 'signup'}`;
+        window.location.href = newUrl;
+      } else {
+        // No tokens found, redirect to auth
+        setTimeout(() => {
+          window.location.href = '/auth?error=no-tokens';
+        }, 2000);
+      }
+    }
+  </script>
+</body>
+</html>
+

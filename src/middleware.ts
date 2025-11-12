@@ -94,6 +94,21 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     
     if (authError) {
       logger.error('[Middleware] Auth error:', authError);
+      
+      // Handle specific token errors by clearing session and redirecting
+      if (authError.message?.includes('refresh_token') || 
+          authError.message?.includes('Invalid Refresh Token')) {
+        logger.warn('[Middleware] Invalid refresh token, clearing session');
+        
+        // Clear all auth-related cookies
+        ctx.cookies.delete('sb:rrg:auth-token', { path: '/' });
+        ctx.cookies.delete('sb:rrg:auth', { path: '/' });
+        ctx.cookies.delete('sb-access-token', { path: '/' });
+        ctx.cookies.delete('sb-refresh-token', { path: '/' });
+        
+        return ctx.redirect('/auth?error=session-expired&redirect=' + encodeURIComponent(pathname));
+      }
+      
       return ctx.redirect('/auth?error=auth-failed&redirect=' + encodeURIComponent(pathname));
     }
     

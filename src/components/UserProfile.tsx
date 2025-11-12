@@ -43,6 +43,9 @@ export default function UserProfile() {
     try {
       const supabase = getSupabase();
       
+      // Get current user data to use as fallback
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
       // Try profiles table first
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -51,9 +54,10 @@ export default function UserProfile() {
         .maybeSingle();
 
       if (profileData && !profileError) {
+        console.log('[UserProfile] Profile found:', profileData);
         setProfile(profileData);
       } else {
-        console.warn('Profile query failed, trying user_roles table:', profileError);
+        console.warn('[UserProfile] Profile query failed, trying user_roles table:', profileError);
         
         // Fallback: try user_roles table
         const { data: userRoles, error: rolesError } = await supabase
@@ -62,35 +66,42 @@ export default function UserProfile() {
           .eq('user_id', userId);
 
         if (userRoles && userRoles.length > 0 && !rolesError) {
+          console.log('[UserProfile] User roles found:', userRoles);
           // Create a minimal profile object from user_roles data
           setProfile({
             id: userId,
-            email: user?.email || '',
-            display_name: user?.user_metadata?.full_name || user?.email || '',
+            email: currentUser?.email || user?.email || '',
+            display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split('@')[0] || user?.email || 'User',
             role: userRoles[0].role,
-            created_at: new Date().toISOString()
+            status: 'active',
+            created_at: currentUser?.created_at || new Date().toISOString()
           });
         } else {
-          console.warn('User roles query also failed:', rolesError);
+          console.warn('[UserProfile] User roles query also failed, using default:', rolesError);
           // Set a default profile if both queries fail
           setProfile({
             id: userId,
-            email: user?.email || '',
-            display_name: user?.user_metadata?.full_name || user?.email || '',
+            email: currentUser?.email || user?.email || '',
+            display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split('@')[0] || user?.email || 'User',
             role: 'user',
-            created_at: new Date().toISOString()
+            status: 'active',
+            created_at: currentUser?.created_at || new Date().toISOString()
           });
         }
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('[UserProfile] Error fetching profile:', error);
       // Set a default profile on error
+      const supabase = getSupabase();
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
       setProfile({
         id: userId,
-        email: user?.email || '',
-        display_name: user?.user_metadata?.full_name || user?.email || '',
+        email: currentUser?.email || user?.email || '',
+        display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split('@')[0] || 'User',
         role: 'user',
-        created_at: new Date().toISOString()
+        status: 'active',
+        created_at: currentUser?.created_at || new Date().toISOString()
       });
     } finally {
       setLoading(false);
@@ -99,10 +110,35 @@ export default function UserProfile() {
 
   const handleSignOut = async () => {
     try {
+      console.log('[UserProfile] Sign out clicked');
       const supabase = getSupabase();
+      
+      // Clear client-side state
       await supabase.auth.signOut();
-    } finally {
-      try { await fetch('/api/auth/signout', { method: 'POST' }); } catch {}
+      
+      // Clear all storage
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear all cookies
+        document.cookie.split(';').forEach(function(c) {
+          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+        });
+        
+        // Delete Supabase client instance
+        if (window.__supabaseClient) {
+          delete window.__supabaseClient;
+        }
+      }
+      
+      // Call server-side signout
+      await fetch('/api/auth/signout', { method: 'POST' }).catch(() => {});
+      
+      console.log('[UserProfile] Sign out complete, redirecting to home');
+      window.location.href = '/';
+    } catch (error) {
+      console.error('[UserProfile] Sign out error:', error);
       window.location.href = '/';
     }
   };

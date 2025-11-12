@@ -1,6 +1,6 @@
 import { c as createComponent, a as createAstro, d as renderComponent, e as renderTemplate, af as maybeRenderHead, r as renderScript, ag as addAttribute } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_D7yHQtjk.mjs';
+import { $ as $$Base } from '../chunks/Base_DbhHLVHB.mjs';
 import { S as SupabaseCMSAPI } from '../chunks/supabase-cms-api_CUOvopCO.mjs';
 export { renderers } from '../renderers.mjs';
 

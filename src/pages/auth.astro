@@ -286,6 +286,8 @@ try {
   // Handle sign out button
   document.getElementById('sign-out-btn')?.addEventListener('click', async () => {
     try {
+      console.log('[Auth] Sign out clicked');
+      
       // Clear client-side state first
       if (typeof window !== 'undefined') {
         // Clear Supabase client
@@ -311,62 +313,67 @@ try {
       });
       
       if (response.ok) {
-        // Force redirect to auth page
-        window.location.href = '/auth?message=signed-out';
+        console.log('[Auth] Sign out successful, redirecting to home');
+        // Redirect to home page instead of auth page
+        window.location.href = '/';
       } else {
-        
+        console.error('[Auth] Sign out API failed');
         alert('Sign out failed. Please try again.');
       }
     } catch (error) {
-      
-      // Force redirect even if API fails
-      window.location.href = '/auth?message=signed-out';
+      console.error('[Auth] Sign out error:', error);
+      // Force redirect to home even if API fails
+      window.location.href = '/';
     }
   });
 
   // Handle role-based redirects after authentication
-  import { getSupabase } from '../lib/supabase-browser';
-
   // Get redirect URL from query params
   const urlParams = new URLSearchParams(window.location.search);
   const redirectTo = urlParams.get('redirect') || '/';
 
-  // Listen for auth changes
-  const supabase = getSupabase();
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session?.user && event === 'SIGNED_IN') {
-      try {
-        // Get user profile to check role
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
+  // Use dynamic import to avoid module resolution issues
+  import('../lib/supabase-browser.ts').then(({ getSupabase }) => {
+    const supabase = getSupabase();
+    
+    // Listen for auth changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && event === 'SIGNED_IN') {
+        try {
+          // Get user profile to check role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
 
-        const isAdmin = profile?.role === 'admin' || profile?.role === 'editor';
-        
-        // Redirect based on role and original destination
-        setTimeout(() => {
-          if (redirectTo.includes('/admin-dashboard') || redirectTo.includes('/admin-login')) {
-            // Admin trying to access admin area
-            if (isAdmin) {
-              window.location.href = redirectTo;
+          const isAdmin = profile?.role === 'admin' || profile?.role === 'editor';
+          
+          // Redirect based on role and original destination
+          setTimeout(() => {
+            if (redirectTo.includes('/admin-dashboard') || redirectTo.includes('/admin-login')) {
+              // Admin trying to access admin area
+              if (isAdmin) {
+                window.location.href = redirectTo;
+              } else {
+                // Not admin, redirect to home with error
+                window.location.href = '/auth?error=insufficient-permissions&redirect=' + encodeURIComponent(redirectTo);
+              }
             } else {
-              // Not admin, redirect to home with error
-              window.location.href = '/auth?error=insufficient-permissions&redirect=' + encodeURIComponent(redirectTo);
+              // Regular user or admin going to regular page
+              window.location.href = redirectTo;
             }
-          } else {
-            // Regular user or admin going to regular page
+          }, 1500);
+        } catch (error) {
+          
+          // Fallback redirect
+          setTimeout(() => {
             window.location.href = redirectTo;
-          }
-        }, 1500);
-      } catch (error) {
-        
-        // Fallback redirect
-        setTimeout(() => {
-          window.location.href = redirectTo;
-        }, 1500);
+          }, 1500);
+        }
       }
-    }
+    });
+  }).catch(err => {
+    console.error('Failed to load Supabase client:', err);
   });
 </script>

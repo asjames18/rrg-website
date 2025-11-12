@@ -46,16 +46,68 @@ export default function ProfileCard({ showActions = true, className = '' }: Prof
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const supabase = getSupabase();
+      
+      // Get current user data to use as fallback
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      // Try profiles table first
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      setProfile(data);
+      if (profileData && !profileError) {
+        console.log('[ProfileCard] Profile found:', profileData);
+        setProfile(profileData);
+      } else {
+        console.warn('[ProfileCard] Profile query failed, trying user_roles table:', profileError);
+        
+        // Fallback: try user_roles table
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId);
+
+        if (userRoles && userRoles.length > 0 && !rolesError) {
+          console.log('[ProfileCard] User roles found:', userRoles);
+          // Create a minimal profile object from user_roles data
+          setProfile({
+            id: userId,
+            email: currentUser?.email || user?.email || '',
+            display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split('@')[0] || user?.email || 'User',
+            role: userRoles[0].role,
+            status: 'active',
+            created_at: currentUser?.created_at || new Date().toISOString()
+          });
+        } else {
+          console.warn('[ProfileCard] User roles query also failed, using default:', rolesError);
+          // Set a default profile if both queries fail
+          setProfile({
+            id: userId,
+            email: currentUser?.email || user?.email || '',
+            display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split('@')[0] || user?.email || 'User',
+            role: 'user',
+            status: 'active',
+            created_at: currentUser?.created_at || new Date().toISOString()
+          });
+        }
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('[ProfileCard] Error fetching profile:', error);
+      // Set a default profile on error
+      const supabase = getSupabase();
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      setProfile({
+        id: userId,
+        email: currentUser?.email || user?.email || '',
+        display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split('@')[0] || 'User',
+        role: 'user',
+        status: 'active',
+        created_at: currentUser?.created_at || new Date().toISOString()
+      });
     } finally {
       setLoading(false);
     }
@@ -63,10 +115,35 @@ export default function ProfileCard({ showActions = true, className = '' }: Prof
 
   const handleSignOut = async () => {
     try {
+      console.log('[ProfileCard] Sign out clicked');
       const supabase = getSupabase();
+      
+      // Clear client-side state
       await supabase.auth.signOut();
-    } finally {
-      try { await fetch('/api/auth/signout', { method: 'POST' }); } catch {}
+      
+      // Clear all storage
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear all cookies
+        document.cookie.split(';').forEach(function(c) {
+          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+        });
+        
+        // Delete Supabase client instance
+        if (window.__supabaseClient) {
+          delete window.__supabaseClient;
+        }
+      }
+      
+      // Call server-side signout
+      await fetch('/api/auth/signout', { method: 'POST' }).catch(() => {});
+      
+      console.log('[ProfileCard] Sign out complete, redirecting to home');
+      window.location.href = '/';
+    } catch (error) {
+      console.error('[ProfileCard] Sign out error:', error);
       window.location.href = '/';
     }
   };

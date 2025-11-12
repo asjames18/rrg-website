@@ -1,9 +1,9 @@
 import { c as createComponent, a as createAstro, e as renderTemplate, d as renderComponent, af as maybeRenderHead, aq as Fragment$1 } from '../chunks/astro/server_C55dHw2B.mjs';
 import 'kleur/colors';
-import { $ as $$Base } from '../chunks/Base_D7yHQtjk.mjs';
+import { $ as $$Base } from '../chunks/Base_DbhHLVHB.mjs';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useState, useEffect } from 'react';
-import { g as getSupabase } from '../chunks/supabase-browser_Cda5YnzV.mjs';
+import { g as getSupabase } from '../chunks/supabase-browser_DW5nxn7W.mjs';
 import { g as getPasswordStrengthLabel, a as getPasswordStrengthColor, v as validatePassword } from '../chunks/password-validator_Dh8TSG1E.mjs';
 import { s as supabaseServer } from '../chunks/supabase-server_CrvNcPIF.mjs';
 export { renderers } from '../renderers.mjs';
@@ -416,39 +416,47 @@ function UserProfile() {
   const fetchProfile = async (userId) => {
     try {
       const supabase = getSupabase();
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
       const { data: profileData, error: profileError } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
       if (profileData && !profileError) {
+        console.log("[UserProfile] Profile found:", profileData);
         setProfile(profileData);
       } else {
-        console.warn("Profile query failed, trying user_roles table:", profileError);
+        console.warn("[UserProfile] Profile query failed, trying user_roles table:", profileError);
         const { data: userRoles, error: rolesError } = await supabase.from("user_roles").select("role").eq("user_id", userId);
         if (userRoles && userRoles.length > 0 && !rolesError) {
+          console.log("[UserProfile] User roles found:", userRoles);
           setProfile({
             id: userId,
-            email: user?.email || "",
-            display_name: user?.user_metadata?.full_name || user?.email || "",
+            email: currentUser?.email || user?.email || "",
+            display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split("@")[0] || user?.email || "User",
             role: userRoles[0].role,
-            created_at: (/* @__PURE__ */ new Date()).toISOString()
+            status: "active",
+            created_at: currentUser?.created_at || (/* @__PURE__ */ new Date()).toISOString()
           });
         } else {
-          console.warn("User roles query also failed:", rolesError);
+          console.warn("[UserProfile] User roles query also failed, using default:", rolesError);
           setProfile({
             id: userId,
-            email: user?.email || "",
-            display_name: user?.user_metadata?.full_name || user?.email || "",
+            email: currentUser?.email || user?.email || "",
+            display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split("@")[0] || user?.email || "User",
             role: "user",
-            created_at: (/* @__PURE__ */ new Date()).toISOString()
+            status: "active",
+            created_at: currentUser?.created_at || (/* @__PURE__ */ new Date()).toISOString()
           });
         }
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error("[UserProfile] Error fetching profile:", error);
+      const supabase = getSupabase();
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
       setProfile({
         id: userId,
-        email: user?.email || "",
-        display_name: user?.user_metadata?.full_name || user?.email || "",
+        email: currentUser?.email || user?.email || "",
+        display_name: currentUser?.user_metadata?.display_name || currentUser?.email?.split("@")[0] || "User",
         role: "user",
-        created_at: (/* @__PURE__ */ new Date()).toISOString()
+        status: "active",
+        created_at: currentUser?.created_at || (/* @__PURE__ */ new Date()).toISOString()
       });
     } finally {
       setLoading(false);
@@ -456,13 +464,25 @@ function UserProfile() {
   };
   const handleSignOut = async () => {
     try {
+      console.log("[UserProfile] Sign out clicked");
       const supabase = getSupabase();
       await supabase.auth.signOut();
-    } finally {
-      try {
-        await fetch("/api/auth/signout", { method: "POST" });
-      } catch {
+      if (typeof window !== "undefined") {
+        localStorage.clear();
+        sessionStorage.clear();
+        document.cookie.split(";").forEach(function(c) {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + (/* @__PURE__ */ new Date()).toUTCString() + ";path=/");
+        });
+        if (window.__supabaseClient) {
+          delete window.__supabaseClient;
+        }
       }
+      await fetch("/api/auth/signout", { method: "POST" }).catch(() => {
+      });
+      console.log("[UserProfile] Sign out complete, redirecting to home");
+      window.location.href = "/";
+    } catch (error) {
+      console.error("[UserProfile] Sign out error:", error);
       window.location.href = "/";
     }
   };
@@ -546,6 +566,8 @@ const $$Auth = createComponent(async ($$result, $$props, $$slots) => {
   // Handle sign out button
   document.getElementById('sign-out-btn')?.addEventListener('click', async () => {
     try {
+      console.log('[Auth] Sign out clicked');
+      
       // Clear client-side state first
       if (typeof window !== 'undefined') {
         // Clear Supabase client
@@ -571,63 +593,68 @@ const $$Auth = createComponent(async ($$result, $$props, $$slots) => {
       });
       
       if (response.ok) {
-        // Force redirect to auth page
-        window.location.href = '/auth?message=signed-out';
+        console.log('[Auth] Sign out successful, redirecting to home');
+        // Redirect to home page instead of auth page
+        window.location.href = '/';
       } else {
-        
+        console.error('[Auth] Sign out API failed');
         alert('Sign out failed. Please try again.');
       }
     } catch (error) {
-      
-      // Force redirect even if API fails
-      window.location.href = '/auth?message=signed-out';
+      console.error('[Auth] Sign out error:', error);
+      // Force redirect to home even if API fails
+      window.location.href = '/';
     }
   });
 
   // Handle role-based redirects after authentication
-  import { getSupabase } from '../lib/supabase-browser';
-
   // Get redirect URL from query params
   const urlParams = new URLSearchParams(window.location.search);
   const redirectTo = urlParams.get('redirect') || '/';
 
-  // Listen for auth changes
-  const supabase = getSupabase();
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session?.user && event === 'SIGNED_IN') {
-      try {
-        // Get user profile to check role
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
+  // Use dynamic import to avoid module resolution issues
+  import('../lib/supabase-browser.ts').then(({ getSupabase }) => {
+    const supabase = getSupabase();
+    
+    // Listen for auth changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && event === 'SIGNED_IN') {
+        try {
+          // Get user profile to check role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
 
-        const isAdmin = profile?.role === 'admin' || profile?.role === 'editor';
-        
-        // Redirect based on role and original destination
-        setTimeout(() => {
-          if (redirectTo.includes('/admin-dashboard') || redirectTo.includes('/admin-login')) {
-            // Admin trying to access admin area
-            if (isAdmin) {
-              window.location.href = redirectTo;
+          const isAdmin = profile?.role === 'admin' || profile?.role === 'editor';
+          
+          // Redirect based on role and original destination
+          setTimeout(() => {
+            if (redirectTo.includes('/admin-dashboard') || redirectTo.includes('/admin-login')) {
+              // Admin trying to access admin area
+              if (isAdmin) {
+                window.location.href = redirectTo;
+              } else {
+                // Not admin, redirect to home with error
+                window.location.href = '/auth?error=insufficient-permissions&redirect=' + encodeURIComponent(redirectTo);
+              }
             } else {
-              // Not admin, redirect to home with error
-              window.location.href = '/auth?error=insufficient-permissions&redirect=' + encodeURIComponent(redirectTo);
+              // Regular user or admin going to regular page
+              window.location.href = redirectTo;
             }
-          } else {
-            // Regular user or admin going to regular page
+          }, 1500);
+        } catch (error) {
+          
+          // Fallback redirect
+          setTimeout(() => {
             window.location.href = redirectTo;
-          }
-        }, 1500);
-      } catch (error) {
-        
-        // Fallback redirect
-        setTimeout(() => {
-          window.location.href = redirectTo;
-        }, 1500);
+          }, 1500);
+        }
       }
-    }
+    });
+  }).catch(err => {
+    console.error('Failed to load Supabase client:', err);
   });
 <\/script>`])), renderComponent($$result, "Base", $$Base, { "title": "Sign In | Real & Raw Gospel" }, { "default": async ($$result2) => renderTemplate` ${maybeRenderHead()}<div class="min-h-screen bg-gradient-to-br from-black via-neutral-900 to-black"> <div class="container mx-auto px-4 py-12 md:py-16"> <div class="max-w-2xl mx-auto"> <div class="text-center mb-12"> <h1 class="text-4xl md:text-5xl font-bold text-amber-100 mb-6 font-display"> ${user ? "Welcome Back" : "Join the Remnant"} </h1> <p class="text-xl text-neutral-300 max-w-lg mx-auto leading-relaxed"> ${user ? `You're signed in as ${user.email}. ${isAdmin ? "You have admin access." : "Enjoy your member benefits!"}` : "Sign in or create an account to unlock exclusive content, personalized features, and connect with a community of truth-seekers."} </p> ${!user && renderTemplate`<div class="mt-6 flex items-center justify-center gap-6 text-sm text-neutral-400"> <div class="flex items-center gap-2"> <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path> </svg> <span>Free membership</span> </div> <div class="flex items-center gap-2"> <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path> </svg> <span>Secure & private</span> </div> </div>`} </div> <!-- Success Message --> ${reset === "success" && renderTemplate`<div class="mb-8 bg-green-900/20 border border-green-700/50 rounded-xl p-6 backdrop-blur-sm shadow-lg"> <div class="flex items-start gap-3"> <svg class="w-6 h-6 text-green-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path> </svg> <div> <h3 class="text-green-100 font-semibold mb-1">Password Updated Successfully!</h3> <p class="text-green-200 text-sm">
 Your password has been updated. You can now sign in with your new password below.

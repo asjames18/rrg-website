@@ -275,13 +275,25 @@ import UserManagement from '../components/UserManagement';
 <script type="module">
   // Tab switching functionality
   document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Profile Page] Initializing tabs...');
+    
     const tabs = ['profile', 'activity', 'preferences', 'admin'];
     const tabButtons = tabs.map(id => document.getElementById(`${id}-tab`));
     const tabContents = tabs.map(id => document.getElementById(`${id}-content`));
 
+    console.log('[Profile Page] Tab buttons found:', tabButtons.filter(b => b).length);
+    console.log('[Profile Page] Tab contents found:', tabContents.filter(c => c).length);
+
     // Tab click handlers
     tabButtons.forEach((button, index) => {
-      button?.addEventListener('click', () => {
+      if (!button) {
+        console.warn(`[Profile Page] Tab button not found for: ${tabs[index]}`);
+        return;
+      }
+      
+      button.addEventListener('click', () => {
+        console.log(`[Profile Page] Tab clicked: ${tabs[index]}`);
+        
         // Remove active state from all tabs
         tabButtons.forEach(btn => {
           btn?.classList.remove('bg-amber-600', 'text-white', 'shadow-lg');
@@ -294,62 +306,90 @@ import UserManagement from '../components/UserManagement';
         });
 
         // Activate clicked tab
-        button?.classList.add('bg-amber-600', 'text-white', 'shadow-lg');
-        button?.classList.remove('text-neutral-400', 'hover:text-neutral-200');
+        button.classList.add('bg-amber-600', 'text-white', 'shadow-lg');
+        button.classList.remove('text-neutral-400', 'hover:text-neutral-200');
         tabContents[index]?.classList.remove('hidden');
 
         // Load preferences when switching to preferences tab
         if (tabs[index] === 'preferences') {
           loadPreferences();
         }
+        
+        console.log(`[Profile Page] Now showing: ${tabs[index]}`);
       });
     });
 
-    // Load user profile data
-    loadUserProfile();
+    console.log('[Profile Page] Tab click handlers attached');
+
+    // Load user profile data (don't let this block tab functionality)
+    loadUserProfile().catch(err => {
+      console.error('[Profile Page] Error in loadUserProfile:', err);
+    });
+    
     setupPasswordChange();
     setupPreferencesSave();
+    
+    console.log('[Profile Page] Initialization complete');
   });
 
   async function loadUserProfile() {
     try {
-      const { getSupabase } = await import('../lib/supabase-browser');
+      const { getSupabase } = await import('../lib/supabase-browser.ts');
       const supabase = getSupabase();
 
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
+        console.log('[Profile Page] User found:', user.email);
+        
         // Populate profile fields
         const emailField = document.getElementById('profile-email');
         const createdField = document.getElementById('profile-created');
         
-        if (emailField) (emailField as HTMLInputElement).value = user.email || '';
+        if (emailField) emailField.value = user.email || '';
         if (createdField) {
           const createdDate = new Date(user.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           });
-          (createdField as HTMLInputElement).value = createdDate;
+          createdField.value = createdDate;
         }
 
-        // Check if user is admin and show admin tab
-        const { data: profile } = await supabase
+        // Check if user is admin and show admin tab - use maybeSingle to handle missing profile
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (profile?.role === 'admin') {
+        if (profileError) {
+          console.warn('[Profile Page] Could not fetch profile from profiles table:', profileError);
+          
+          // Try user_roles table as fallback
+          const { data: userRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id);
+            
+          if (userRoles && userRoles.some(r => r.role === 'admin')) {
+            const adminTab = document.getElementById('admin-tab');
+            adminTab?.classList.remove('hidden');
+            console.log('[Profile Page] Admin tab shown (from user_roles)');
+          }
+        } else if (profile?.role === 'admin') {
           const adminTab = document.getElementById('admin-tab');
           adminTab?.classList.remove('hidden');
+          console.log('[Profile Page] Admin tab shown (from profiles)');
         }
       } else {
+        console.log('[Profile Page] No user found, redirecting to auth');
         // Redirect to auth page if not signed in
         window.location.href = '/auth';
       }
     } catch (error) {
-      
+      console.error('[Profile Page] Error loading user profile:', error);
+      // Don't stop execution - tabs should still work
     }
   }
 
@@ -365,7 +405,7 @@ import UserManagement from '../components/UserManagement';
 
     openBtn?.addEventListener('click', () => {
       modal?.classList.remove('hidden');
-      (form as HTMLFormElement)?.reset();
+      form?.reset();
       errorDiv?.classList.add('hidden');
       successDiv?.classList.add('hidden');
     });
@@ -385,8 +425,8 @@ import UserManagement from '../components/UserManagement';
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const newPassword = (document.getElementById('new-password') as HTMLInputElement)?.value;
-      const confirmPassword = (document.getElementById('confirm-password') as HTMLInputElement)?.value;
+      const newPassword = document.getElementById('new-password')?.value;
+      const confirmPassword = document.getElementById('confirm-password')?.value;
       const submitBtn = document.getElementById('submit-password-change');
 
       errorDiv?.classList.add('hidden');
@@ -394,20 +434,20 @@ import UserManagement from '../components/UserManagement';
 
       // Validate passwords match
       if (newPassword !== confirmPassword) {
-        errorDiv!.textContent = 'Passwords do not match';
+        if (errorDiv) errorDiv.textContent = 'Passwords do not match';
         errorDiv?.classList.remove('hidden');
         return;
       }
 
       // Validate password strength
       if (newPassword.length < 8) {
-        errorDiv!.textContent = 'Password must be at least 8 characters long';
+        if (errorDiv) errorDiv.textContent = 'Password must be at least 8 characters long';
         errorDiv?.classList.remove('hidden');
         return;
       }
 
       if (!/[\d\W]/.test(newPassword)) {
-        errorDiv!.textContent = 'Password must contain at least one number or special character';
+        if (errorDiv) errorDiv.textContent = 'Password must contain at least one number or special character';
         errorDiv?.classList.remove('hidden');
         return;
       }
@@ -431,17 +471,17 @@ import UserManagement from '../components/UserManagement';
           throw new Error(data.error || 'Failed to change password');
         }
 
-        successDiv!.textContent = '✓ Password changed successfully';
+        if (successDiv) successDiv.textContent = '✓ Password changed successfully';
         successDiv?.classList.remove('hidden');
         
         // Reset form and close modal after 2 seconds
         setTimeout(() => {
-          (form as HTMLFormElement)?.reset();
+          form?.reset();
           closeModal();
         }, 2000);
 
       } catch (error) {
-        errorDiv!.textContent = error instanceof Error ? error.message : 'Failed to change password';
+        if (errorDiv) errorDiv.textContent = error instanceof Error ? error.message : 'Failed to change password';
         errorDiv?.classList.remove('hidden');
       } finally {
         if (submitBtn) {
@@ -461,9 +501,9 @@ import UserManagement from '../components/UserManagement';
       if (data.preferences) {
         const prefs = data.preferences;
         
-        const themeSelect = document.getElementById('pref-theme') as HTMLSelectElement;
-        const sacredNamesCheckbox = document.getElementById('pref-sacred-names') as HTMLInputElement;
-        const emailNotifsCheckbox = document.getElementById('pref-email-notifs') as HTMLInputElement;
+        const themeSelect = document.getElementById('pref-theme');
+        const sacredNamesCheckbox = document.getElementById('pref-sacred-names');
+        const emailNotifsCheckbox = document.getElementById('pref-email-notifs');
 
         if (themeSelect) themeSelect.value = prefs.theme || 'dark';
         if (sacredNamesCheckbox) sacredNamesCheckbox.checked = prefs.show_sacred_names !== false;
@@ -479,9 +519,9 @@ import UserManagement from '../components/UserManagement';
     const successDiv = document.getElementById('preferences-success');
 
     saveBtn?.addEventListener('click', async () => {
-      const themeSelect = document.getElementById('pref-theme') as HTMLSelectElement;
-      const sacredNamesCheckbox = document.getElementById('pref-sacred-names') as HTMLInputElement;
-      const emailNotifsCheckbox = document.getElementById('pref-email-notifs') as HTMLInputElement;
+      const themeSelect = document.getElementById('pref-theme');
+      const sacredNamesCheckbox = document.getElementById('pref-sacred-names');
+      const emailNotifsCheckbox = document.getElementById('pref-email-notifs');
 
       const preferences = {
         theme: themeSelect?.value || 'dark',

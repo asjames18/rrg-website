@@ -52,11 +52,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     
     // Attempt to sign up the user
     const supabase = supabaseServer(cookies);
+    
+    // Determine the correct redirect URL
+    const appUrl = import.meta.env.PUBLIC_APP_URL || 
+                   import.meta.env.PUBLIC_SITE_URL || 
+                   'http://localhost:4321';
+    
     const { data, error } = await supabase.auth.signUp({
       email, 
       password,
       options: { 
-        emailRedirectTo: `${import.meta.env.PUBLIC_APP_URL}/auth/callback`,
+        emailRedirectTo: `${appUrl}/auth/callback`,
         data: {
           display_name: displayName || email.split('@')[0]
         }
