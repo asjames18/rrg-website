@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseServerReadOnly, supabaseAdmin } from '../../../lib/supabase-server';
+import { supabaseServerReadOnly, supabaseAdmin } from '../../../../lib/supabase-server';
 
 /**
  * Send push notification to all subscribers
