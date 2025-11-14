@@ -41,10 +41,10 @@ export default function DashboardCharts({ contentGrowth, userGrowth, contentByTy
   return (
     <div className="space-y-8">
       {/* Content Published Over Time */}
-      {contentGrowthData.length > 0 && (
-        <div>
-          <h3 className="text-xl font-bold text-amber-100 mb-4">Content Published (Last 30 Days)</h3>
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+      <div>
+        <h3 className="text-xl font-bold text-amber-100 mb-4">Content Published (Last 30 Days)</h3>
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+          {contentGrowthData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={contentGrowthData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
@@ -69,9 +69,16 @@ export default function DashboardCharts({ contentGrowth, userGrowth, contentByTy
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-neutral-500">
+              <div className="text-center">
+                <div className="text-4xl mb-2">📊</div>
+                <p>No content published in the last 30 days</p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Content by Type - Pie and Bar Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -79,31 +86,40 @@ export default function DashboardCharts({ contentGrowth, userGrowth, contentByTy
         <div>
           <h3 className="text-xl font-bold text-amber-100 mb-4">Content Distribution</h3>
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={contentTypeData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {contentTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#171717', 
-                    border: '1px solid #404040',
-                    borderRadius: '8px'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {contentTypeData.some(item => item.value > 0) ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={contentTypeData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {contentTypeData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#171717', 
+                      border: '1px solid #404040',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-neutral-500">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">📊</div>
+                  <p>No content data available</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -135,10 +151,10 @@ export default function DashboardCharts({ contentGrowth, userGrowth, contentByTy
       </div>
 
       {/* User Growth Over Time */}
-      {userGrowthData.length > 0 && (
-        <div>
-          <h3 className="text-xl font-bold text-amber-100 mb-4">User Growth (Last 30 Days)</h3>
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+      <div>
+        <h3 className="text-xl font-bold text-amber-100 mb-4">User Growth</h3>
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+          {userGrowthData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={userGrowthData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
@@ -163,9 +179,17 @@ export default function DashboardCharts({ contentGrowth, userGrowth, contentByTy
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-neutral-500">
+              <div className="text-center">
+                <div className="text-4xl mb-2">👥</div>
+                <p className="mb-2">No user growth data available</p>
+                <p className="text-sm text-neutral-600">User signups will appear here once users register</p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

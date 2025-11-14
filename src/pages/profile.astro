@@ -10,9 +10,6 @@ import Base from '../layouts/Base.astro';
 import ProfileCard from '../components/ProfileCard';
 import UserActivity from '../components/UserActivity';
 import UserManagement from '../components/UserManagement';
-
-// Use Vite's ?url import to get the bundled module URL
-const { default: supabaseBrowserModule } = await import('../lib/supabase-browser.ts?url');
 ---
 
 <Base title="Profile | Real & Raw Gospel">
@@ -77,12 +74,24 @@ const { default: supabaseBrowserModule } = await import('../lib/supabase-browser
                     <div class="grid md:grid-cols-2 gap-6">
                       <div>
                         <label class="block text-sm font-medium text-neutral-200 mb-2">Email Address</label>
-                        <input 
-                          type="email" 
-                          id="profile-email"
-                          class="w-full px-4 py-3 bg-neutral-700/50 border border-neutral-600/50 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
-                          readonly
-                        />
+                        <div class="flex gap-2">
+                          <input 
+                            type="email" 
+                            id="profile-email"
+                            class="flex-1 px-4 py-3 bg-neutral-700/50 border border-neutral-600/50 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200"
+                            placeholder="your@email.com"
+                          />
+                          <button 
+                            id="save-email-btn"
+                            class="bg-amber-700 hover:bg-amber-600 text-white font-semibold px-4 py-3 rounded-lg transition-colors whitespace-nowrap"
+                            style="display: none;"
+                          >
+                            Save Email
+                          </button>
+                        </div>
+                        <p class="text-xs text-neutral-500 mt-1">A confirmation email will be sent to your new address</p>
+                        <div id="email-error" class="hidden mt-2 p-2 bg-red-900/30 border border-red-700 text-red-200 rounded-lg text-sm"></div>
+                        <div id="email-success" class="hidden mt-2 p-2 bg-green-900/30 border border-green-700 text-green-200 rounded-lg text-sm"></div>
                       </div>
                       <div>
                         <label class="block text-sm font-medium text-neutral-200 mb-2">Account Created</label>
@@ -189,8 +198,8 @@ const { default: supabaseBrowserModule } = await import('../lib/supabase-browser
                   </button>
                 </div>
 
-                <!-- Success Message -->
-                <div id="preferences-success" class="hidden p-4 bg-green-900/30 border border-green-700 text-green-200 rounded-lg">
+                <!-- Success/Error Message -->
+                <div id="preferences-success" class="hidden p-4 bg-green-900/30 border border-green-700 text-green-200 rounded-lg mt-4">
                   ✓ Preferences saved successfully
                 </div>
               </div>
@@ -275,10 +284,81 @@ const { default: supabaseBrowserModule } = await import('../lib/supabase-browser
   </div>
 </Base>
 
-<script type="module" define:vars={{ supabaseBrowserModule }}>
+  <style>
+    /* Theme switching styles - Light Theme */
+    html[data-theme="light"],
+    html[data-theme="light"] body {
+      background-color: #ffffff !important;
+      color: #171717 !important;
+    }
+    
+    html[data-theme="light"] .min-h-screen,
+    html[data-theme="light"] .bg-gradient-to-br,
+    html[data-theme="light"] .bg-neutral-900,
+    html[data-theme="light"] .bg-neutral-950,
+    html[data-theme="light"] .bg-black,
+    html[data-theme="light"] div.bg-gradient-to-br {
+      background-color: #ffffff !important;
+      background: linear-gradient(to bottom right, #ffffff, #f9fafb, #ffffff) !important;
+    }
+    
+    html[data-theme="light"] .text-neutral-100,
+    html[data-theme="light"] .text-neutral-200,
+    html[data-theme="light"] .text-neutral-300,
+    html[data-theme="light"] .text-amber-100,
+    html[data-theme="light"] .text-white,
+    html[data-theme="light"] h1,
+    html[data-theme="light"] h2,
+    html[data-theme="light"] h3,
+    html[data-theme="light"] h4,
+    html[data-theme="light"] p {
+      color: #171717 !important;
+    }
+    
+    html[data-theme="light"] .bg-neutral-800,
+    html[data-theme="light"] .bg-neutral-700,
+    html[data-theme="light"] .bg-neutral-800\/50 {
+      background-color: #f3f4f6 !important;
+    }
+    
+    html[data-theme="light"] .border-neutral-700,
+    html[data-theme="light"] .border-neutral-800,
+    html[data-theme="light"] .border-neutral-700\/50 {
+      border-color: #e5e7eb !important;
+    }
+    
+    html[data-theme="light"] .text-neutral-400 {
+      color: #6b7280 !important;
+    }
+    
+    html[data-theme="light"] .text-neutral-500 {
+      color: #9ca3af !important;
+    }
+    
+    html[data-theme="light"] button.bg-amber-700 {
+      background-color: #d97706 !important;
+    }
+    
+    html[data-theme="light"] button.bg-amber-700:hover {
+      background-color: #b45309 !important;
+    }
+  </style>
+
+  <script>
+  import { getSupabase } from '../lib/supabase-browser';
+  
+  // Apply theme on page load (from localStorage or default)
+  function initializeTheme() {
+    const savedTheme = localStorage.getItem('user-theme') || 'dark';
+    applyTheme(savedTheme);
+  }
+
   // Tab switching functionality
   document.addEventListener('DOMContentLoaded', () => {
     console.log('[Profile Page] Initializing tabs...');
+    
+    // Apply theme immediately on page load
+    initializeTheme();
     
     const tabs = ['profile', 'activity', 'preferences', 'admin'];
     const tabButtons = tabs.map(id => document.getElementById(`${id}-tab`));
@@ -331,13 +411,13 @@ const { default: supabaseBrowserModule } = await import('../lib/supabase-browser
     
     setupPasswordChange();
     setupPreferencesSave();
+    setupEmailChange();
     
     console.log('[Profile Page] Initialization complete');
   });
 
   async function loadUserProfile() {
     try {
-      const { getSupabase } = await import(supabaseBrowserModule);
       const supabase = getSupabase();
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -349,7 +429,11 @@ const { default: supabaseBrowserModule } = await import('../lib/supabase-browser
         const emailField = document.getElementById('profile-email');
         const createdField = document.getElementById('profile-created');
         
-        if (emailField) emailField.value = user.email || '';
+        if (emailField) {
+          emailField.value = user.email || '';
+          // Store original email for change detection
+          emailField.setAttribute('data-original-email', user.email || '');
+        }
         if (createdField) {
           const createdDate = new Date(user.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -495,25 +579,228 @@ const { default: supabaseBrowserModule } = await import('../lib/supabase-browser
     });
   }
 
+  // Store observer reference to disconnect when needed
+  let themeObserver: MutationObserver | null = null;
+
+  // Apply theme to the page
+  function applyTheme(theme: string) {
+    const html = document.documentElement;
+    const body = document.body;
+    
+    // Disconnect previous observer if exists
+    if (themeObserver) {
+      themeObserver.disconnect();
+      themeObserver = null;
+    }
+    
+    // Determine actual theme
+    let actualTheme = theme;
+    if (theme === 'auto') {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      actualTheme = prefersDark ? 'dark' : 'light';
+    }
+    
+    // Store in localStorage for persistence across pages
+    localStorage.setItem('user-theme', theme);
+    localStorage.setItem('user-theme-resolved', actualTheme);
+    
+    console.log('[Profile Page] Applying theme:', theme, '→', actualTheme);
+    
+    // Remove all theme classes first
+    html.classList.remove('theme-dark', 'theme-light', 'theme-auto');
+    body.classList.remove('theme-dark', 'theme-light', 'theme-auto');
+    
+    // Add theme class
+    html.classList.add(`theme-${theme}`);
+    html.setAttribute('data-theme', actualTheme);
+    html.style.setProperty('color-scheme', actualTheme);
+    
+    // Apply theme styles immediately
+    if (actualTheme === 'light') {
+      // Apply to body immediately
+      body.style.setProperty('background-color', '#ffffff', 'important');
+      body.style.setProperty('color', '#171717', 'important');
+      
+      // Function to apply light theme styles
+      const applyLightStyles = () => {
+        // Apply to all elements with dark backgrounds (more comprehensive selectors)
+        const darkBgSelectors = [
+          '.bg-neutral-900', '.bg-neutral-950', '.bg-black', '.bg-neutral-800',
+          '[class*="bg-neutral-800"]', '[class*="bg-neutral-900"]',
+          '[class*="bg-neutral-950"]', '[class*="bg-black"]'
+        ].join(', ');
+        
+        document.querySelectorAll(darkBgSelectors).forEach((el) => {
+          const element = el as HTMLElement;
+          // Only apply if not already light
+          const currentBg = element.style.getPropertyValue('background-color');
+          if (!currentBg || currentBg === 'rgba(0, 0, 0, 0)' || 
+              currentBg.includes('rgb(17, 24, 39)') || currentBg.includes('rgb(10, 10, 10)') ||
+              currentBg.includes('rgb(23, 23, 23)') || currentBg.includes('rgb(38, 38, 38)')) {
+            element.style.setProperty('background-color', '#f9fafb', 'important');
+          }
+        });
+        
+        // Apply to all elements with light text
+        const lightTextSelectors = [
+          '.text-neutral-100', '.text-neutral-200', '.text-neutral-300', 
+          '.text-amber-100', '.text-white', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+          '[class*="text-neutral-100"]', '[class*="text-neutral-200"]',
+          '[class*="text-neutral-300"]', '[class*="text-amber-100"]', '[class*="text-white"]'
+        ].join(', ');
+        
+        document.querySelectorAll(lightTextSelectors).forEach((el) => {
+          const element = el as HTMLElement;
+          const classes = element.className;
+          if (typeof classes === 'string' && (
+            classes.includes('text-neutral-100') || 
+            classes.includes('text-neutral-200') || 
+            classes.includes('text-neutral-300') ||
+            classes.includes('text-amber-100') ||
+            classes.includes('text-white')
+          )) {
+            const currentColor = element.style.getPropertyValue('color');
+            if (!currentColor || currentColor.includes('rgb(245, 245, 245)') || 
+                currentColor.includes('rgb(229, 231, 235)') || currentColor.includes('rgb(212, 212, 212)')) {
+              element.style.setProperty('color', '#171717', 'important');
+            }
+          }
+        });
+        
+        // Update main container gradient
+        const mainContainer = document.querySelector('.bg-gradient-to-br');
+        if (mainContainer) {
+          (mainContainer as HTMLElement).style.setProperty('background', 'linear-gradient(to bottom right, #ffffff, #f9fafb, #ffffff)', 'important');
+        }
+        
+        // Update borders
+        document.querySelectorAll('.border-neutral-700, .border-neutral-800, [class*="border-neutral-700"], [class*="border-neutral-800"]').forEach((el) => {
+          (el as HTMLElement).style.setProperty('border-color', '#e5e7eb', 'important');
+        });
+      };
+      
+      // Apply immediately
+      applyLightStyles();
+      
+      // Apply again after a short delay to catch React components
+      setTimeout(applyLightStyles, 100);
+      setTimeout(applyLightStyles, 500);
+      setTimeout(applyLightStyles, 1000);
+      
+      // Watch for new elements (React components, etc.)
+      themeObserver = new MutationObserver(() => {
+        applyLightStyles();
+      });
+      
+      themeObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+      
+    } else {
+      // Dark theme - remove all light theme overrides
+      body.style.removeProperty('background-color');
+      body.style.removeProperty('color');
+      
+      // Remove inline styles from all elements
+      document.querySelectorAll('[style*="background-color"]').forEach((el) => {
+        const style = (el as HTMLElement).style;
+        const bgColor = style.getPropertyValue('background-color');
+        if (style.getPropertyPriority('background-color') === 'important' && 
+            (bgColor === '#f9fafb' || bgColor === 'rgb(249, 250, 251)')) {
+          style.removeProperty('background-color');
+        }
+      });
+      
+      document.querySelectorAll('[style*="color"]').forEach((el) => {
+        const style = (el as HTMLElement).style;
+        const color = style.getPropertyValue('color');
+        if (style.getPropertyPriority('color') === 'important' && 
+            (color === '#171717' || color === 'rgb(23, 23, 23)')) {
+          style.removeProperty('color');
+        }
+      });
+      
+      const mainContainer = document.querySelector('.bg-gradient-to-br');
+      if (mainContainer) {
+        (mainContainer as HTMLElement).style.removeProperty('background');
+      }
+    }
+    
+    console.log('[Profile Page] Theme applied successfully');
+    console.log('[Profile Page] HTML data-theme attribute:', html.getAttribute('data-theme'));
+  }
+
+  // Listen for system theme changes (for auto mode)
+  function setupThemeListener() {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+      const theme = localStorage.getItem('user-theme') || 'dark';
+      if (theme === 'auto') {
+        applyTheme('auto');
+      }
+    });
+  }
+
   // Load and Save Preferences
   async function loadPreferences() {
     try {
+      console.log('[Profile Page] Loading preferences...');
       const response = await fetch('/api/user/preferences');
       const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load preferences');
+      }
+
       if (data.preferences) {
         const prefs = data.preferences;
+        console.log('[Profile Page] Preferences loaded:', prefs);
         
         const themeSelect = document.getElementById('pref-theme');
         const sacredNamesCheckbox = document.getElementById('pref-sacred-names');
         const emailNotifsCheckbox = document.getElementById('pref-email-notifs');
 
-        if (themeSelect) themeSelect.value = prefs.theme || 'dark';
-        if (sacredNamesCheckbox) sacredNamesCheckbox.checked = prefs.show_sacred_names !== false;
-        if (emailNotifsCheckbox) emailNotifsCheckbox.checked = prefs.email_notifications !== false;
+        if (themeSelect) {
+          (themeSelect as any).value = prefs.theme || 'dark';
+          console.log('[Profile Page] Theme set to:', (themeSelect as any).value);
+          
+          // Apply theme immediately
+          applyTheme(prefs.theme || 'dark');
+          
+          // Listen for theme changes
+          themeSelect.addEventListener('change', (e) => {
+            const newTheme = (e.target as any).value;
+            applyTheme(newTheme);
+          });
+        }
+        if (sacredNamesCheckbox) {
+          (sacredNamesCheckbox as any).checked = prefs.show_sacred_names !== false;
+          console.log('[Profile Page] Sacred Names set to:', (sacredNamesCheckbox as any).checked);
+          // Store in localStorage for use across pages
+          localStorage.setItem('show-sacred-names', String((sacredNamesCheckbox as any).checked));
+        }
+        if (emailNotifsCheckbox) {
+          (emailNotifsCheckbox as any).checked = prefs.email_notifications !== false;
+          console.log('[Profile Page] Email Notifications set to:', (emailNotifsCheckbox as any).checked);
+        }
+      } else {
+        console.warn('[Profile Page] No preferences data received');
       }
+      
+      // Setup theme listener for auto mode
+      setupThemeListener();
+      
     } catch (error) {
-      console.error('Failed to load preferences:', error);
+      console.error('[Profile Page] Failed to load preferences:', error);
+      // Show error to user
+      const successDiv = document.getElementById('preferences-success');
+      if (successDiv) {
+        successDiv.className = 'p-4 bg-red-900/30 border border-red-700 text-red-200 rounded-lg';
+        successDiv.textContent = 'Failed to load preferences. Please refresh the page.';
+        successDiv.classList.remove('hidden');
+        setTimeout(() => {
+          successDiv.classList.add('hidden');
+        }, 5000);
+      }
     }
   }
 
@@ -521,16 +808,180 @@ const { default: supabaseBrowserModule } = await import('../lib/supabase-browser
     const saveBtn = document.getElementById('save-preferences-btn');
     const successDiv = document.getElementById('preferences-success');
 
-    saveBtn?.addEventListener('click', async () => {
+    if (!saveBtn) {
+      console.error('[Profile Page] Save preferences button not found!');
+      return;
+    }
+
+    console.log('[Profile Page] Setting up preferences save handler');
+
+    saveBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      console.log('[Profile Page] Save Preferences button clicked!');
+
       const themeSelect = document.getElementById('pref-theme');
       const sacredNamesCheckbox = document.getElementById('pref-sacred-names');
       const emailNotifsCheckbox = document.getElementById('pref-email-notifs');
 
+      if (!themeSelect || !sacredNamesCheckbox || !emailNotifsCheckbox) {
+        console.error('[Profile Page] Preference elements not found:', {
+          themeSelect: !!themeSelect,
+          sacredNamesCheckbox: !!sacredNamesCheckbox,
+          emailNotifsCheckbox: !!emailNotifsCheckbox
+        });
+        alert('Error: Could not find preference fields. Please refresh the page.');
+        return;
+      }
+
       const preferences = {
-        theme: themeSelect?.value || 'dark',
-        show_sacred_names: sacredNamesCheckbox?.checked || false,
-        email_notifications: emailNotifsCheckbox?.checked || false
+        theme: (themeSelect as any).value || 'dark',
+        show_sacred_names: (sacredNamesCheckbox as any).checked,
+        email_notifications: (emailNotifsCheckbox as any).checked
       };
+
+      console.log('[Profile Page] Saving preferences:', preferences);
+
+      // Show loading state
+      saveBtn.textContent = 'Saving...';
+      saveBtn.setAttribute('disabled', 'true');
+
+      // Hide previous messages and reset styling
+      if (successDiv) {
+        successDiv.classList.add('hidden');
+        successDiv.className = 'p-4 bg-green-900/30 border border-green-700 text-green-200 rounded-lg mt-4';
+      }
+
+      try {
+        console.log('[Profile Page] Sending PUT request to /api/user/preferences');
+        const response = await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(preferences)
+        });
+
+        console.log('[Profile Page] Response status:', response.status);
+        const data = await response.json();
+        console.log('[Profile Page] Response data:', data);
+
+        if (!response.ok) {
+          throw new Error(data.error || `Failed to save preferences (${response.status})`);
+        }
+
+        console.log('[Profile Page] Preferences saved successfully:', data);
+
+        // Store theme in localStorage for immediate site-wide access
+        localStorage.setItem('user-theme', preferences.theme);
+        
+        // Determine resolved theme (for auto mode)
+        let resolvedTheme = preferences.theme;
+        if (preferences.theme === 'auto') {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          resolvedTheme = prefersDark ? 'dark' : 'light';
+        }
+        localStorage.setItem('user-theme-resolved', resolvedTheme);
+        
+        // Apply theme immediately after saving
+        applyTheme(preferences.theme);
+        
+        // Store sacred names preference
+        localStorage.setItem('show-sacred-names', String(preferences.show_sacred_names));
+
+        // Show success message
+        if (successDiv) {
+          successDiv.textContent = '✓ Preferences saved successfully!';
+          successDiv.className = 'p-4 bg-green-900/30 border border-green-700 text-green-200 rounded-lg mt-4';
+          successDiv.classList.remove('hidden');
+          
+          // Scroll to message if needed
+          successDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          
+          setTimeout(() => {
+            successDiv.classList.add('hidden');
+          }, 5000);
+        } else {
+          // Fallback if div doesn't exist
+          alert('✓ Preferences saved successfully!');
+        }
+
+      } catch (error) {
+        console.error('[Profile Page] Error saving preferences:', error);
+        
+        // Show error message
+        const errorMessage = error instanceof Error ? error.message : 'Failed to save preferences';
+        console.error('[Profile Page] Error details:', errorMessage);
+        
+        if (successDiv) {
+          successDiv.textContent = `✗ Error: ${errorMessage}`;
+          successDiv.className = 'p-4 bg-red-900/30 border border-red-700 text-red-200 rounded-lg mt-4';
+          successDiv.classList.remove('hidden');
+          
+          // Scroll to message
+          successDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          
+          setTimeout(() => {
+            successDiv.classList.add('hidden');
+          }, 8000);
+        } else {
+          // Fallback alert
+          alert(`Error: ${errorMessage}`);
+        }
+      } finally {
+        saveBtn.textContent = 'Save Preferences';
+        saveBtn.removeAttribute('disabled');
+      }
+    });
+  }
+
+  // Email Change Handler
+  function setupEmailChange() {
+    const emailField = document.getElementById('profile-email');
+    const saveBtn = document.getElementById('save-email-btn');
+    const errorDiv = document.getElementById('email-error');
+    const successDiv = document.getElementById('email-success');
+
+    const getOriginalEmail = () => {
+      return emailField?.getAttribute('data-original-email') || emailField?.value || '';
+    };
+
+    // Show save button when email changes
+    emailField?.addEventListener('input', () => {
+      const currentValue = emailField.value.trim();
+      const originalEmail = getOriginalEmail();
+      if (currentValue !== originalEmail && currentValue.length > 0) {
+        saveBtn?.style.setProperty('display', 'block');
+        errorDiv?.classList.add('hidden');
+        successDiv?.classList.add('hidden');
+      } else {
+        saveBtn?.style.setProperty('display', 'none');
+      }
+    });
+
+    // Handle save button click
+    saveBtn?.addEventListener('click', async () => {
+      const newEmail = emailField?.value.trim();
+      
+      if (!newEmail) {
+        if (errorDiv) errorDiv.textContent = 'Email address is required';
+        errorDiv?.classList.remove('hidden');
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newEmail)) {
+        if (errorDiv) errorDiv.textContent = 'Please enter a valid email address';
+        errorDiv?.classList.remove('hidden');
+        return;
+      }
+
+      // Check if email changed
+      const originalEmail = getOriginalEmail();
+      if (newEmail === originalEmail) {
+        saveBtn?.style.setProperty('display', 'none');
+        return;
+      }
 
       // Show loading state
       if (saveBtn) {
@@ -538,32 +989,56 @@ const { default: supabaseBrowserModule } = await import('../lib/supabase-browser
         saveBtn.setAttribute('disabled', 'true');
       }
 
+      errorDiv?.classList.add('hidden');
+      successDiv?.classList.add('hidden');
+
       try {
-        const response = await fetch('/api/user/preferences', {
-          method: 'PUT',
+        const response = await fetch('/api/user/change-email', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(preferences)
+          body: JSON.stringify({ newEmail })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to save preferences');
+          throw new Error(data.error || 'Failed to update email address');
         }
 
-        // Show success message
+        // Success
+        if (successDiv) {
+          successDiv.textContent = data.message || '✓ Email address updated successfully. Please check your new email for a confirmation link.';
+        }
         successDiv?.classList.remove('hidden');
+        
+        // Update original email in data attribute
+        if (emailField) {
+          emailField.setAttribute('data-original-email', newEmail);
+        }
+        
+        // Hide save button after a delay
         setTimeout(() => {
-          successDiv?.classList.add('hidden');
+          saveBtn?.style.setProperty('display', 'none');
         }, 3000);
 
       } catch (error) {
-        alert(error instanceof Error ? error.message : 'Failed to save preferences');
+        if (errorDiv) {
+          errorDiv.textContent = error instanceof Error ? error.message : 'Failed to update email address';
+        }
+        errorDiv?.classList.remove('hidden');
       } finally {
         if (saveBtn) {
-          saveBtn.textContent = 'Save Preferences';
+          saveBtn.textContent = 'Save Email';
           saveBtn.removeAttribute('disabled');
         }
+      }
+    });
+
+    // Handle Enter key in email field
+    emailField?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveBtn?.click();
       }
     });
   }

@@ -4,6 +4,9 @@ import SupabaseContentEditor from '../cms/SupabaseContentEditor';
 import Dashboard from './Dashboard';
 import ContentAnalytics from './ContentAnalytics';
 import SettingsPanel from './SettingsPanel';
+import BulkActionsBar from './BulkActionsBar';
+import ActivityLog from './ActivityLog';
+import PushNotifications from './PushNotifications';
 
 interface AdminShellProps {
   userRole?: string;
@@ -12,7 +15,7 @@ interface AdminShellProps {
 }
 
 export default function AdminShell({ userRole, userName, userEmail }: AdminShellProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'analytics' | 'media' | 'users' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'analytics' | 'media' | 'users' | 'settings' | 'activity' | 'notifications'>('dashboard');
   const [isLoading, setIsLoading] = useState(false);
   // Initialize as hydrated if we're in the browser (component wouldn't render otherwise)
   const [isHydrated, setIsHydrated] = useState(typeof window !== 'undefined');
@@ -29,7 +32,7 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
     
     // Check for hash navigation
     const hash = window.location.hash.replace('#', '');
-    if (hash && ['dashboard', 'content', 'analytics', 'media', 'users', 'settings'].includes(hash)) {
+    if (hash && ['dashboard', 'content', 'analytics', 'media', 'users', 'settings', 'activity', 'notifications'].includes(hash)) {
       setActiveTab(hash as any);
       return;
     }
@@ -79,7 +82,9 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
     { id: 'analytics', label: 'Analytics', icon: '📈', description: 'Performance and insights' },
     { id: 'media', label: 'Media', icon: '📁', description: 'Upload and manage files' },
     { id: 'users', label: 'Users', icon: '👥', description: 'Manage team access' },
-    { id: 'settings', label: 'Settings', icon: '⚙️', description: 'System configuration' }
+    { id: 'notifications', label: 'Push Notifications', icon: '🔔', description: 'Send push notifications' },
+    { id: 'settings', label: 'Settings', icon: '⚙️', description: 'System configuration' },
+    { id: 'activity', label: 'Activity', icon: '📋', description: 'System activity log' }
   ] as const;
 
   // Show loading state until hydrated
@@ -102,20 +107,29 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
       {/* Header */}
       <header className="bg-neutral-900/90 backdrop-blur-md border-b border-neutral-800 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            <div className="flex items-center space-x-4 sm:space-x-8 flex-1 min-w-0">
+              <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
                 <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-br from-amber-700 via-amber-600 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg ring-2 ring-amber-700/30">
-                    <span className="text-white font-bold text-xl tracking-tight" style={{ fontFamily: 'Cinzel, ui-serif, Georgia, serif' }}>RRG</span>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-700 via-amber-600 to-amber-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg ring-2 ring-amber-700/30">
+                    <span className="text-white font-bold text-lg sm:text-xl tracking-tight" style={{ fontFamily: 'Cinzel, ui-serif, Georgia, serif' }}>RRG</span>
                   </div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-neutral-900"></div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-neutral-900"></div>
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-amber-100 tracking-tight" style={{ fontFamily: 'Cinzel, ui-serif, Georgia, serif' }}>Admin Center</h1>
-                  <p className="text-sm text-neutral-400 font-medium">Content Management System</p>
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-bold text-amber-100 tracking-tight truncate" style={{ fontFamily: 'Cinzel, ui-serif, Georgia, serif' }}>Admin Center</h1>
+                  <p className="text-xs sm:text-sm text-neutral-400 font-medium hidden sm:block">Content Management System</p>
                 </div>
               </div>
+              {/* Mobile: Show user avatar only */}
+              <div className="lg:hidden ml-auto">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-neutral-700 to-neutral-600 rounded-full flex items-center justify-center ring-2 ring-neutral-600">
+                  <span className="text-amber-100 font-semibold text-xs sm:text-sm">
+                    {(userName || userEmail)?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              {/* Desktop: Show full user info */}
               <div className="hidden lg:block">
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-neutral-700 to-neutral-600 rounded-full flex items-center justify-center ring-2 ring-neutral-600">
@@ -137,10 +151,42 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              {/* Mobile: Icon-only buttons */}
               <a 
                 href="/" 
-                className="inline-flex items-center px-4 py-2.5 text-sm font-semibold text-neutral-400 hover:text-amber-100 hover:bg-neutral-800 rounded-xl transition-all duration-200 group"
+                className="lg:hidden inline-flex items-center justify-center w-10 h-10 text-neutral-400 hover:text-amber-100 hover:bg-neutral-800 rounded-lg transition-all duration-200 group"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View Site"
+              >
+                <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+              </a>
+              <a 
+                href="/cms" 
+                className="lg:hidden inline-flex items-center justify-center w-10 h-10 text-neutral-400 hover:text-amber-100 hover:bg-neutral-800 rounded-lg transition-all duration-200 group"
+                title="CMS Dashboard"
+              >
+                <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+              </a>
+              <a 
+                href="/auth" 
+                className="lg:hidden inline-flex items-center justify-center w-10 h-10 bg-neutral-800 hover:bg-neutral-700 text-amber-100 rounded-lg transition-all duration-200 group border border-neutral-700 hover:border-amber-700"
+                title="Sign Out"
+              >
+                <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+              </a>
+              
+              {/* Desktop: Full buttons with text */}
+              <a 
+                href="/" 
+                className="hidden lg:inline-flex items-center px-4 py-2.5 text-sm font-semibold text-neutral-400 hover:text-amber-100 hover:bg-neutral-800 rounded-xl transition-all duration-200 group"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -150,8 +196,17 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
                 View Site
               </a>
               <a 
+                href="/cms" 
+                className="hidden lg:inline-flex items-center px-4 py-2.5 text-sm font-semibold text-neutral-400 hover:text-amber-100 hover:bg-neutral-800 rounded-xl transition-all duration-200 group"
+              >
+                <svg className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                CMS Dashboard
+              </a>
+              <a 
                 href="/auth" 
-                className="inline-flex items-center px-5 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-amber-100 rounded-xl text-sm font-semibold transition-all duration-200 group border border-neutral-700 hover:border-amber-700"
+                className="hidden lg:inline-flex items-center px-5 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-amber-100 rounded-xl text-sm font-semibold transition-all duration-200 group border border-neutral-700 hover:border-amber-700"
               >
                 <svg className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -165,8 +220,27 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
 
       {/* Tab Navigation */}
       <nav className="bg-neutral-900/70 backdrop-blur-sm border-b border-neutral-800">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
-          <div className="flex space-x-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
+          {/* Mobile: Dropdown selector */}
+          <div className="lg:hidden py-4">
+            <select
+              value={activeTab}
+              onChange={(e) => {
+                setActiveTab(e.target.value as any);
+                setIsLoading(true);
+              }}
+              className="w-full bg-neutral-800 border border-neutral-700 text-amber-100 rounded-lg px-4 py-3 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              {tabs.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.icon} {tab.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Desktop: Horizontal tabs */}
+          <div className="hidden lg:flex space-x-2 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -174,7 +248,7 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
                   setActiveTab(tab.id);
                   setIsLoading(true);
                 }}
-                className={`group flex items-center space-x-3 py-5 px-8 rounded-t-2xl font-semibold text-sm transition-all duration-300 ${
+                className={`group flex items-center space-x-3 py-5 px-8 rounded-t-2xl font-semibold text-sm transition-all duration-300 whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-neutral-800 text-amber-200 shadow-lg border-t-4 border-amber-700 transform -translate-y-1'
                     : 'text-neutral-400 hover:text-amber-100 hover:bg-neutral-800/50 hover:shadow-md hover:transform hover:-translate-y-0.5'
@@ -187,7 +261,7 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
                 </span>
                 <div className="text-left">
                   <div className="font-bold text-base">{tab.label}</div>
-                  <div className="text-xs text-neutral-500 hidden sm:block font-medium">{tab.description}</div>
+                  <div className="text-xs text-neutral-500 hidden xl:block font-medium">{tab.description}</div>
                 </div>
                 {activeTab === tab.id && (
                   <div className="w-2 h-2 bg-amber-700 rounded-full animate-pulse"></div>
@@ -212,7 +286,7 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
 
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-12">
             <Dashboard />
           </div>
         )}
@@ -222,7 +296,7 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
 
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-12">
             <ContentAnalytics />
           </div>
         )}
@@ -233,10 +307,24 @@ export default function AdminShell({ userRole, userName, userEmail }: AdminShell
         {/* Users Tab */}
         {activeTab === 'users' && <UsersTab />}
 
+        {/* Push Notifications Tab */}
+        {activeTab === 'notifications' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-12">
+            <PushNotifications />
+          </div>
+        )}
+
         {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-12">
             <SettingsPanel />
+          </div>
+        )}
+
+        {/* Activity Tab */}
+        {activeTab === 'activity' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-12">
+            <ActivityLog />
           </div>
         )}
       </main>
@@ -501,9 +589,16 @@ function DashboardTab() {
             </div>
           </a>
 
-          <a
-            href="/cms/books/new"
-            className="group bg-neutral-900 p-8 rounded-3xl shadow-lg border border-neutral-800 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden hover:border-purple-700/50"
+          <button
+            onClick={() => {
+              setActiveTab('content');
+              // Trigger create new content with book type
+              setTimeout(() => {
+                const event = new CustomEvent('createContent', { detail: { type: 'book' } });
+                window.dispatchEvent(event);
+              }, 100);
+            }}
+            className="group bg-neutral-900 p-8 rounded-3xl shadow-lg border border-neutral-800 hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden hover:border-purple-700/50 w-full text-left"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-purple-600/10"></div>
             <div className="relative">
@@ -523,7 +618,7 @@ function DashboardTab() {
                 </svg>
               </div>
             </div>
-          </a>
+          </button>
         </div>
       </div>
 
@@ -804,6 +899,9 @@ function ContentTab() {
   const [contentList, setContentList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [defaultContentType, setDefaultContentType] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -814,6 +912,20 @@ function ContentTab() {
       setSelectedContent(editId);
       sessionStorage.removeItem('editContentId'); // Clear it after use
     }
+
+    // Listen for createContent event (from dashboard quick actions)
+    const handleCreateContent = (event: CustomEvent) => {
+      if (event.detail?.type) {
+        setDefaultContentType(event.detail.type);
+        setShowCreateForm(true);
+        setSelectedContent(null);
+      }
+    };
+
+    window.addEventListener('createContent', handleCreateContent as EventListener);
+    return () => {
+      window.removeEventListener('createContent', handleCreateContent as EventListener);
+    };
   }, []);
 
   const loadContent = async () => {
@@ -862,6 +974,60 @@ function ContentTab() {
     setShowCreateForm(false);
   };
 
+  const toggleItemSelection = (itemId: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedItems.size === contentList.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(contentList.map(item => item.id)));
+    }
+  };
+
+  const handleBulkAction = async (action: string, value?: string) => {
+    if (selectedItems.size === 0) return;
+    
+    setBulkActionLoading(true);
+    try {
+      const contentIds = Array.from(selectedItems);
+      const response = await fetch('/api/admin/content/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content_ids: contentIds,
+          action,
+          value
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('[ContentTab] Bulk action successful:', data);
+        // Reload content list
+        await loadContent();
+        // Clear selection
+        setSelectedItems(new Set());
+      } else {
+        console.error('[ContentTab] Bulk action failed:', data);
+        alert(`Bulk action failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('[ContentTab] Bulk action error:', error);
+      alert('An error occurred during bulk action');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
 
   if (selectedContent || showCreateForm) {
     return (
@@ -870,6 +1036,7 @@ function ContentTab() {
           contentId={selectedContent || undefined}
           onSave={handleSaveContent}
           onCancel={handleCancelEdit}
+          defaultContentType={defaultContentType || undefined}
         />
       </div>
     );
@@ -899,9 +1066,19 @@ function ContentTab() {
         </div>
       ) : (
         <div className="bg-neutral-900 rounded-2xl shadow-sm border border-neutral-800 overflow-hidden">
-          <div className="px-8 py-6 border-b border-neutral-800 bg-neutral-800/50">
+          <div className="px-8 py-6 border-b border-neutral-800 bg-neutral-800/50 flex items-center justify-between">
+            <div>
             <h3 className="text-lg font-semibold text-amber-100">Your Content ({contentList.length} items)</h3>
             <p className="text-neutral-400 text-sm mt-1">Click on any content to edit it</p>
+            </div>
+            {contentList.length > 0 && (
+              <button
+                onClick={toggleSelectAll}
+                className="text-sm text-amber-400 hover:text-amber-300 font-medium"
+              >
+                {selectedItems.size === contentList.length ? 'Deselect All' : 'Select All'}
+              </button>
+            )}
           </div>
           
           <div className="p-6">
@@ -911,15 +1088,29 @@ function ContentTab() {
                 <p className="text-neutral-500 text-sm">Check the browser console for any API errors</p>
               </div>
             ) : (
+              <>
               <div className="grid gap-4">
                 {contentList.map((item) => (
                   <div
                     key={item.id}
-                    className="p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:border-amber-500/50 transition-colors cursor-pointer"
-                    onClick={() => handleEditContent(item.id)}
+                      className="p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:border-amber-500/50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex-1">
+                        <div className="flex items-center gap-4 flex-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(item.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleItemSelection(item.id);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-5 h-5 rounded border-neutral-600 text-amber-600 focus:ring-amber-500 focus:ring-offset-0 bg-neutral-800"
+                          />
+                          <div 
+                            className="flex-1 cursor-pointer"
+                            onClick={() => handleEditContent(item.id)}
+                          >
                         <div className="flex items-center space-x-3 mb-2">
                           <h3 className="text-amber-100 font-medium">{item.title}</h3>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -953,6 +1144,7 @@ function ContentTab() {
                             )}
                           </div>
                         )}
+                          </div>
                       </div>
                       <div className="text-neutral-400 text-sm ml-4">
                         {new Date(item.updated_at).toLocaleDateString()}
@@ -961,6 +1153,17 @@ function ContentTab() {
                   </div>
                 ))}
               </div>
+                
+                {/* Bulk Actions Bar */}
+                {selectedItems.size > 0 && (
+                  <BulkActionsBar
+                    selectedCount={selectedItems.size}
+                    contentType="content"
+                    onAction={handleBulkAction}
+                    onClearSelection={() => setSelectedItems(new Set())}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -987,7 +1190,7 @@ function MediaTab() {
 
 // Users Tab Component
 function UsersTab() {
-  const [users, setUsers] = useState<Array<{id: string, email: string, displayName?: string, role: string, lastActive: string, createdAt?: string}>>([]);
+  const [users, setUsers] = useState<Array<{id: string, email: string, displayName?: string, role: string, lastActive: string, createdAt?: string, status?: string}>>([]);
   const [filteredUsers, setFilteredUsers] = useState<typeof users>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [grantEmail, setGrantEmail] = useState('');
@@ -1073,10 +1276,19 @@ function UsersTab() {
       console.log('[UsersTab] Response:', response.status, data);
       
       if (response.ok) {
-        setUsers(data.users || []);
-        console.log('[UsersTab] Users loaded:', data.users?.length || 0);
+        const usersList = data.users || [];
+        setUsers(usersList);
+        console.log('[UsersTab] Users loaded:', usersList.length);
+        console.log('[UsersTab] Users data:', usersList);
+        console.log('[UsersTab] Users by role:', {
+          admin: usersList.filter(u => u.role === 'admin').length,
+          editor: usersList.filter(u => u.role === 'editor').length,
+          viewer: usersList.filter(u => u.role === 'viewer').length,
+          user: usersList.filter(u => u.role === 'user' || !u.role).length,
+          total: usersList.length
+        });
       } else {
-        console.error('[UsersTab] Failed to fetch users:', response.statusText, data);
+        console.error('[UsersTab] Failed to fetch users:', response.status, response.statusText, data);
         setUsers([]);
       }
     } catch (error) {
@@ -1224,18 +1436,20 @@ function UsersTab() {
     admins: users.filter(u => u.role === 'admin').length,
     editors: users.filter(u => u.role === 'editor').length,
     viewers: users.filter(u => u.role === 'viewer').length,
-    regularUsers: users.filter(u => u.role === 'user' || !u.role).length,
+    regularUsers: users.filter(u => u.role === 'user' || !u.role || u.role === '').length,
   };
+  
+  console.log('[UsersTab] User statistics:', stats);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-amber-100 mb-3">User Management</h2>
-        <p className="text-neutral-400 text-lg">Manage team access and permissions for your content management system.</p>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-amber-100 mb-2 sm:mb-3">User Management</h2>
+        <p className="text-neutral-400 text-sm sm:text-lg">Manage team access and permissions for your content management system.</p>
       </div>
 
       {/* Grant Access Form */}
-      <div className="mb-8 bg-gradient-to-r from-amber-900/20 to-amber-800/10 border border-amber-700/30 rounded-2xl p-8">
+      <div className="mb-6 sm:mb-8 bg-gradient-to-r from-amber-900/20 to-amber-800/10 border border-amber-700/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8">
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-amber-100 mb-2">Grant Admin/Editor Access</h3>
           <p className="text-neutral-300 text-sm">
@@ -1408,8 +1622,8 @@ function UsersTab() {
 
           {/* Bulk Actions Bar */}
           {selectedUsers.size > 0 && (
-            <div className="mb-6 bg-amber-900/20 border border-amber-700/50 rounded-xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
+            <div className="mb-4 sm:mb-6 bg-amber-900/20 border border-amber-700/50 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 <span className="text-amber-200 font-semibold">{selectedUsers.size} user(s) selected</span>
                 <select
                   value={bulkActionRole}
@@ -1439,8 +1653,8 @@ function UsersTab() {
           )}
 
           {/* Users Table */}
-          <div className="bg-neutral-900 rounded-2xl shadow-sm border border-neutral-800 overflow-hidden">
-            <div className="px-8 py-6 border-b border-neutral-800 bg-neutral-800/50 flex items-center justify-between">
+          <div className="bg-neutral-900 rounded-xl sm:rounded-2xl shadow-sm border border-neutral-800 overflow-hidden">
+            <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-neutral-800 bg-neutral-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-amber-100">All Users ({filteredUsers.length})</h3>
                 <p className="text-neutral-400 text-sm mt-1">Manage roles and permissions for your team</p>
@@ -1456,7 +1670,7 @@ function UsersTab() {
             </div>
             
             {filteredUsers.length === 0 ? (
-              <div className="px-8 py-12 text-center">
+              <div className="px-4 sm:px-8 py-8 sm:py-12 text-center">
                 <svg className="w-16 h-16 mx-auto text-neutral-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -1475,32 +1689,34 @@ function UsersTab() {
               <>
                 <ul className="divide-y divide-neutral-800">
                   {paginatedUsers.map((user) => (
-                    <li key={user.id} className="px-8 py-6 hover:bg-neutral-800/50 transition-colors">
-                      <div className="flex items-center gap-4">
+                    <li key={user.id} className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 hover:bg-neutral-800/50 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                         <input
                           type="checkbox"
                           checked={selectedUsers.has(user.id)}
                           onChange={() => toggleUserSelection(user.id)}
-                          className="w-5 h-5 rounded border-neutral-600 text-amber-600 focus:ring-amber-500 focus:ring-offset-0 bg-neutral-800"
+                            className="w-5 h-5 rounded border-neutral-600 text-amber-600 focus:ring-amber-500 focus:ring-offset-0 bg-neutral-800 flex-shrink-0"
                         />
-                        <div className="w-12 h-12 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
-                          <span className="text-amber-100 font-semibold text-lg">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-neutral-600 to-neutral-700 rounded-full flex items-center justify-center shadow-lg flex-shrink-0">
+                            <span className="text-amber-100 font-semibold text-base sm:text-lg">
                             {user.email.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-lg font-semibold text-amber-100 truncate">{user.displayName || user.email}</div>
-                          {user.displayName && <div className="text-sm text-neutral-500 truncate">{user.email}</div>}
-                          <div className="text-sm text-neutral-400 mt-1">Last active: {user.lastActive}</div>
+                            <div className="text-base sm:text-lg font-semibold text-amber-100 truncate">{user.displayName || user.email}</div>
+                            {user.displayName && <div className="text-xs sm:text-sm text-neutral-500 truncate">{user.email}</div>}
+                            <div className="text-xs sm:text-sm text-neutral-400 mt-1">Last active: {user.lastActive}</div>
                         </div>
-                        <div className="flex items-center gap-4 flex-shrink-0">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
+                        </div>
+                        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 pl-8 sm:pl-0">
+                          <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getRoleColor(user.role)}`}>
                             {user.role || 'user'}
                           </span>
                           <select
                             value={user.role}
                             onChange={(e) => promoteUser(user.id, e.target.value)}
-                            className="text-sm border-neutral-700 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-neutral-800 text-amber-100 px-3 py-2 shadow-sm"
+                            className="text-xs sm:text-sm border-neutral-700 rounded-lg focus:ring-amber-500 focus:border-amber-500 bg-neutral-800 text-amber-100 px-2 sm:px-3 py-1.5 sm:py-2 shadow-sm"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <option value="user">Regular User</option>
@@ -1516,8 +1732,8 @@ function UsersTab() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="px-8 py-6 border-t border-neutral-800 bg-neutral-800/30">
-                    <div className="flex items-center justify-between">
+                  <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-t border-neutral-800 bg-neutral-800/30">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                       <div className="text-sm text-neutral-400">
                         Page {currentPage} of {totalPages} • Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length}
                       </div>

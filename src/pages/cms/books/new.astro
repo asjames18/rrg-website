@@ -74,6 +74,8 @@ if (!isEditor) {
             />
           </div>
 
+          <!-- Author & Slug -->
+          <div class="grid md:grid-cols-2 gap-4">
           <!-- Author -->
           <div>
             <label for="author" class="block text-sm font-medium text-amber-100 mb-2">
@@ -87,6 +89,22 @@ if (!isEditor) {
               class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="Author name..."
             />
+            </div>
+
+            <!-- Slug -->
+            <div>
+              <label for="slug" class="block text-sm font-medium text-amber-100 mb-2">
+                Slug (URL)
+              </label>
+              <input
+                type="text"
+                id="slug"
+                name="slug"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="auto-generated-from-title"
+              />
+              <p class="text-xs text-neutral-400 mt-1">Auto-generated from title if left empty</p>
+            </div>
           </div>
 
           <!-- Description -->
@@ -104,19 +122,203 @@ if (!isEditor) {
             ></textarea>
           </div>
 
-          <!-- Affiliate Link -->
+          <!-- Grid: Cover Image URL, ISBN, Rating, Level, Category -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- Cover Image URL -->
+            <div>
+              <label for="cover_image_url" class="block text-sm font-medium text-amber-100 mb-2">
+                Cover Image URL
+              </label>
+              <input
+                type="url"
+                id="cover_image_url"
+                name="cover_image_url"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="https://example.com/book-cover.jpg"
+              />
+              <p class="text-xs text-neutral-400 mt-1">Direct URL to book cover image (optional)</p>
+            </div>
+
+            <!-- ISBN -->
+            <div>
+              <label for="isbn" class="block text-sm font-medium text-amber-100 mb-2">
+                ISBN
+              </label>
+              <input
+                type="text"
+                id="isbn"
+                name="isbn"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="978-0-123456-78-9"
+              />
+              <p class="text-xs text-neutral-400 mt-1">Used for cover image lookup if no custom URL provided</p>
+            </div>
+
+            <!-- Rating -->
+            <div>
+              <label for="rating" class="block text-sm font-medium text-amber-100 mb-2">
+                Rating (1-5)
+              </label>
+              <select
+                id="rating"
+                name="rating"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              >
+                <option value="">No rating</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Very Good</option>
+                <option value="3">3 - Good</option>
+                <option value="2">2 - Fair</option>
+                <option value="1">1 - Poor</option>
+              </select>
+            </div>
+
+            <!-- Level -->
+            <div>
+              <label for="level" class="block text-sm font-medium text-amber-100 mb-2">
+                Level
+              </label>
+              <select
+                id="level"
+                name="level"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              >
+                <option value="intermediate">Intermediate</option>
+                <option value="beginner">Beginner</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+
+            <!-- Category -->
+            <div>
+              <label for="category" class="block text-sm font-medium text-amber-100 mb-2">
+                Category
+              </label>
+              <input
+                type="text"
+                id="category"
+                name="category"
+                value="General"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="General"
+              />
+            </div>
+          </div>
+
+          <!-- Grid: Published Year, Publisher, Pages -->
+          <div class="grid md:grid-cols-3 gap-4">
+            <!-- Published Year -->
+            <div>
+              <label for="published_year" class="block text-sm font-medium text-amber-100 mb-2">
+                Published Year
+              </label>
+              <input
+                type="number"
+                id="published_year"
+                name="published_year"
+                min="1000"
+                max="9999"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="2024"
+              />
+            </div>
+
+            <!-- Publisher -->
+            <div>
+              <label for="publisher" class="block text-sm font-medium text-amber-100 mb-2">
+                Publisher
+              </label>
+              <input
+                type="text"
+                id="publisher"
+                name="publisher"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="Publisher name"
+              />
+            </div>
+
+            <!-- Pages -->
+            <div>
+              <label for="pages" class="block text-sm font-medium text-amber-100 mb-2">
+                Pages
+              </label>
+              <input
+                type="number"
+                id="pages"
+                name="pages"
+                min="1"
+                class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                placeholder="300"
+              />
+            </div>
+          </div>
+
+          <!-- Affiliate Information -->
+          <div class="border-t border-neutral-700 pt-6">
+            <h3 class="text-lg font-semibold text-amber-100 mb-4">Affiliate Information</h3>
+            
+            <div class="grid md:grid-cols-3 gap-4">
+              <!-- Affiliate Label -->
+              <div>
+                <label for="affiliate_label" class="block text-sm font-medium text-amber-100 mb-2">
+                  Affiliate Label
+                </label>
+                <input
+                  type="text"
+                  id="affiliate_label"
+                  name="affiliate_label"
+                  class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="Buy on Amazon"
+                />
+              </div>
+
+              <!-- Affiliate URL -->
           <div>
             <label for="affiliate_url" class="block text-sm font-medium text-amber-100 mb-2">
-              Affiliate Link
+                  Affiliate URL *
             </label>
             <input
               type="url"
               id="affiliate_url"
               name="affiliate_url"
+                  required
               class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="https://amazon.com/dp/..."
             />
-            <p class="text-xs text-neutral-400 mt-1">Amazon or other affiliate link</p>
+              </div>
+
+              <!-- Affiliate Merchant -->
+              <div>
+                <label for="affiliate_merchant" class="block text-sm font-medium text-amber-100 mb-2">
+                  Merchant
+                </label>
+                <select
+                  id="affiliate_merchant"
+                  name="affiliate_merchant"
+                  class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                >
+                  <option value="amazon">Amazon</option>
+                  <option value="christianbook">ChristianBook</option>
+                  <option value="barnesandnoble">Barnes & Noble</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alternative Links -->
+          <div class="border-t border-neutral-700 pt-6">
+            <h3 class="text-lg font-semibold text-amber-100 mb-4">Alternative Links</h3>
+            <div id="alternative-links-container" class="space-y-4">
+              <!-- Alternative links will be added dynamically -->
+            </div>
+            <button
+              type="button"
+              id="add-alternative-link"
+              class="mt-4 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg transition-colors text-sm"
+            >
+              + Add Alternative Link
+            </button>
           </div>
 
           <!-- Topics -->
@@ -131,6 +333,34 @@ if (!isEditor) {
               class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="bible study, prophecy, prayer, etc. (comma-separated)"
             />
+          </div>
+
+          <!-- Why Recommended -->
+          <div>
+            <label for="why_recommended" class="block text-sm font-medium text-amber-100 mb-2">
+              Why Recommended
+            </label>
+            <textarea
+              id="why_recommended"
+              name="why_recommended"
+              rows="3"
+              class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              placeholder="Explain why this book is recommended..."
+            ></textarea>
+          </div>
+
+          <!-- Warnings -->
+          <div>
+            <label for="warnings" class="block text-sm font-medium text-amber-100 mb-2">
+              Warnings
+            </label>
+            <textarea
+              id="warnings"
+              name="warnings"
+              rows="2"
+              class="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-amber-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              placeholder="Any warnings or cautions about this book..."
+            ></textarea>
           </div>
 
           <!-- Body -->
@@ -148,6 +378,21 @@ if (!isEditor) {
             <p class="text-xs text-neutral-400 mt-1">Supports Markdown formatting</p>
           </div>
 
+          <!-- Featured & Status -->
+          <div class="grid md:grid-cols-2 gap-4 border-t border-neutral-700 pt-6">
+            <!-- Featured -->
+            <div class="flex items-center">
+              <input
+                type="checkbox"
+                id="featured"
+                name="featured"
+                class="w-4 h-4 rounded border-neutral-700 bg-neutral-800 text-amber-700 focus:ring-amber-500 focus:ring-offset-neutral-950"
+              />
+              <label for="featured" class="ml-2 text-sm font-medium text-amber-100">
+                Featured Book
+              </label>
+          </div>
+
           <!-- Status -->
           <div>
             <label for="status" class="block text-sm font-medium text-amber-100 mb-2">
@@ -161,6 +406,7 @@ if (!isEditor) {
               <option value="draft">Draft</option>
               <option value="published">Published</option>
             </select>
+            </div>
           </div>
 
           <!-- Form Actions -->
@@ -190,6 +436,54 @@ if (!isEditor) {
     </div>
 
     <script>
+      // Alternative links management
+      let alternativeLinkCount = 0;
+      const alternativeLinksContainer = document.getElementById('alternative-links-container');
+      const addAlternativeLinkBtn = document.getElementById('add-alternative-link');
+
+      function addAlternativeLink() {
+        const linkDiv = document.createElement('div');
+        linkDiv.className = 'grid md:grid-cols-3 gap-4 p-4 bg-neutral-800 rounded-lg border border-neutral-700';
+        linkDiv.innerHTML = `
+          <div>
+            <label class="block text-sm font-medium text-amber-100 mb-2">Label</label>
+            <input type="text" name="alt_label_${alternativeLinkCount}" class="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-amber-100" placeholder="Buy on ChristianBook">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-amber-100 mb-2">URL</label>
+            <input type="url" name="alt_url_${alternativeLinkCount}" class="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-amber-100" placeholder="https://...">
+          </div>
+          <div class="flex items-end">
+            <button type="button" class="remove-alt-link bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors text-sm" data-index="${alternativeLinkCount}">
+              Remove
+            </button>
+          </div>
+        `;
+        alternativeLinksContainer?.appendChild(linkDiv);
+        
+        linkDiv.querySelector('.remove-alt-link')?.addEventListener('click', () => {
+          linkDiv.remove();
+        });
+        
+        alternativeLinkCount++;
+      }
+
+      addAlternativeLinkBtn?.addEventListener('click', addAlternativeLink);
+
+      // Auto-generate slug from title
+      const titleInput = document.getElementById('title') as HTMLInputElement;
+      titleInput?.addEventListener('input', function() {
+        const slugInput = document.getElementById('slug') as HTMLInputElement;
+        if (slugInput && !slugInput.value) {
+          const slug = this.value.toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .trim();
+          slugInput.value = slug;
+        }
+      });
+
       // Form submission
       const bookForm = document.getElementById('book-form') as HTMLFormElement;
       if (bookForm) {
@@ -197,13 +491,43 @@ if (!isEditor) {
           e.preventDefault();
           
           const formData = new FormData(this);
+          
+          // Collect alternative links
+          const alternativeLinks: Array<{label: string, url: string, merchant: string}> = [];
+          for (let i = 0; i < alternativeLinkCount; i++) {
+            const label = formData.get(`alt_label_${i}`) as string;
+            const url = formData.get(`alt_url_${i}`) as string;
+            if (label && url) {
+              alternativeLinks.push({
+                label: label.trim(),
+                url: url.trim(),
+                merchant: 'other' // Default, could be enhanced
+              });
+            }
+          }
+          
           const data = {
             title: formData.get('title') as string,
             author: formData.get('author') as string,
             description: formData.get('description') as string,
+            slug: formData.get('slug') as string || undefined,
+            cover_image_url: formData.get('cover_image_url') as string || undefined,
+            isbn: formData.get('isbn') as string || undefined,
+            rating: formData.get('rating') ? parseInt(formData.get('rating') as string) : undefined,
+            level: formData.get('level') as string || 'intermediate',
+            category: formData.get('category') as string || 'General',
+            published_year: formData.get('published_year') ? parseInt(formData.get('published_year') as string) : undefined,
+            publisher: formData.get('publisher') as string || undefined,
+            pages: formData.get('pages') ? parseInt(formData.get('pages') as string) : undefined,
+            affiliate_label: formData.get('affiliate_label') as string || undefined,
             affiliate_url: formData.get('affiliate_url') as string,
+            affiliate_merchant: formData.get('affiliate_merchant') as string || 'amazon',
+            alternative_links: alternativeLinks.length > 0 ? alternativeLinks : undefined,
             topics: formData.get('topics') ? (formData.get('topics') as string).split(',').map((topic: string) => topic.trim()).filter((topic: string) => topic) : [],
+            why_recommended: formData.get('why_recommended') as string || undefined,
+            warnings: formData.get('warnings') as string || undefined,
             body: formData.get('body') as string,
+            featured: formData.get('featured') === 'on',
             status: formData.get('status') as string
           };
 
@@ -262,13 +586,43 @@ if (!isEditor) {
           if (!form) return;
           
           const formData = new FormData(form);
+          
+          // Collect alternative links
+          const alternativeLinks: Array<{label: string, url: string, merchant: string}> = [];
+          for (let i = 0; i < alternativeLinkCount; i++) {
+            const label = formData.get(`alt_label_${i}`) as string;
+            const url = formData.get(`alt_url_${i}`) as string;
+            if (label && url) {
+              alternativeLinks.push({
+                label: label.trim(),
+                url: url.trim(),
+                merchant: 'other'
+              });
+            }
+          }
+          
           const data = {
             title: formData.get('title') as string,
             author: formData.get('author') as string,
             description: formData.get('description') as string,
+            slug: formData.get('slug') as string || undefined,
+            cover_image_url: formData.get('cover_image_url') as string || undefined,
+            isbn: formData.get('isbn') as string || undefined,
+            rating: formData.get('rating') ? parseInt(formData.get('rating') as string) : undefined,
+            level: formData.get('level') as string || 'intermediate',
+            category: formData.get('category') as string || 'General',
+            published_year: formData.get('published_year') ? parseInt(formData.get('published_year') as string) : undefined,
+            publisher: formData.get('publisher') as string || undefined,
+            pages: formData.get('pages') ? parseInt(formData.get('pages') as string) : undefined,
+            affiliate_label: formData.get('affiliate_label') as string || undefined,
             affiliate_url: formData.get('affiliate_url') as string,
+            affiliate_merchant: formData.get('affiliate_merchant') as string || 'amazon',
+            alternative_links: alternativeLinks.length > 0 ? alternativeLinks : undefined,
             topics: formData.get('topics') ? (formData.get('topics') as string).split(',').map((topic: string) => topic.trim()).filter((topic: string) => topic) : [],
+            why_recommended: formData.get('why_recommended') as string || undefined,
+            warnings: formData.get('warnings') as string || undefined,
             body: formData.get('body') as string,
+            featured: formData.get('featured') === 'on',
             status: 'draft'
           };
 

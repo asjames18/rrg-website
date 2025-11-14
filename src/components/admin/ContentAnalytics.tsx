@@ -42,10 +42,24 @@ export default function ContentAnalytics() {
         throw new Error(errorMsg);
       }
 
-      setViewsByType(data.views_by_type || {});
-      setTrending(data.trending_content || []);
-      setViewsOverTime(data.views_over_time || {});
+      const viewsByTypeData = data.views_by_type || {};
+      const trendingData = data.trending_content || [];
+      const viewsOverTimeData = data.views_over_time || {};
+      
+      console.log('[ContentAnalytics] Setting data:', {
+        viewsByType: Object.keys(viewsByTypeData).length,
+        trending: trendingData.length,
+        viewsOverTime: Object.keys(viewsOverTimeData).length
+      });
+      
+      setViewsByType(viewsByTypeData);
+      setTrending(trendingData);
+      setViewsOverTime(viewsOverTimeData);
+      
       console.log('[ContentAnalytics] Analytics loaded successfully');
+      console.log('[ContentAnalytics] Views by type:', viewsByTypeData);
+      console.log('[ContentAnalytics] Trending:', trendingData);
+      console.log('[ContentAnalytics] Views over time:', viewsOverTimeData);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to load analytics';
       console.error('[ContentAnalytics] Exception:', error);
@@ -55,15 +69,21 @@ export default function ContentAnalytics() {
     }
   };
 
-  const viewsByTypeData = Object.entries(viewsByType).map(([type, views]) => ({
+  const viewsByTypeData = Object.entries(viewsByType || {}).map(([type, views]) => ({
     name: type.charAt(0).toUpperCase() + type.slice(1),
-    views
+    views: typeof views === 'number' ? views : 0
   }));
 
-  const viewsTimeData = Object.entries(viewsOverTime).map(([date, views]) => ({
+  const viewsTimeData = Object.entries(viewsOverTime || {}).map(([date, views]) => ({
     date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    views
-  }));
+    views: typeof views === 'number' ? views : 0
+  })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  console.log('[ContentAnalytics] Processed data:', {
+    viewsByTypeData: viewsByTypeData.length,
+    viewsTimeData: viewsTimeData.length,
+    trending: trending.length
+  });
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -121,10 +141,10 @@ export default function ContentAnalytics() {
       </div>
 
       {/* Views by Type */}
-      {viewsByTypeData.length > 0 && (
-        <div>
-          <h3 className="text-xl font-bold text-amber-100 mb-4">Views by Content Type</h3>
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+      <div>
+        <h3 className="text-xl font-bold text-amber-100 mb-4">Views by Content Type</h3>
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+          {viewsByTypeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={viewsByTypeData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
@@ -140,15 +160,23 @@ export default function ContentAnalytics() {
                 <Bar dataKey="views" fill="#F59E0B" name="Total Views" />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-neutral-500">
+              <div className="text-center">
+                <div className="text-4xl mb-2">📊</div>
+                <p>No view data available</p>
+                <p className="text-sm mt-2">Analytics will appear once content views are tracked</p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Views Over Time */}
-      {viewsTimeData.length > 0 && (
-        <div>
-          <h3 className="text-xl font-bold text-amber-100 mb-4">Views Over Time</h3>
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+      <div>
+        <h3 className="text-xl font-bold text-amber-100 mb-4">Views Over Time</h3>
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+          {viewsTimeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={viewsTimeData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
@@ -172,9 +200,17 @@ export default function ContentAnalytics() {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-neutral-500">
+              <div className="text-center">
+                <div className="text-4xl mb-2">📈</div>
+                <p>No view data over time</p>
+                <p className="text-sm mt-2">Time-based analytics will appear once tracking is enabled</p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Trending Content */}
       <div>
@@ -192,7 +228,12 @@ export default function ContentAnalytics() {
                         {item.content_type}
                       </span>
                     </div>
-                    <div className="text-neutral-400 text-sm mt-1">ID: {item.content_id}</div>
+                    <div className="text-neutral-200 font-medium mt-1">
+                      {(item as any).title || `Content ID: ${item.content_id}`}
+                    </div>
+                    {!((item as any).title) && (
+                      <div className="text-neutral-400 text-xs mt-1">ID: {item.content_id}</div>
+                    )}
                   </div>
                   <div className="flex gap-6 text-sm">
                     <div className="text-center">
@@ -229,9 +270,14 @@ export default function ContentAnalytics() {
             <div className="text-amber-400 text-sm font-medium">Total</div>
           </div>
           <div className="text-3xl font-bold text-neutral-100 mb-1">
-            {Object.values(viewsByType).reduce((sum, views) => sum + views, 0)}
+            {Object.values(viewsByType).reduce((sum, views) => sum + views, 0) || 
+             Object.keys(viewsByType).length}
           </div>
-          <div className="text-sm text-neutral-400">Total Views</div>
+          <div className="text-sm text-neutral-400">
+            {Object.values(viewsByType).reduce((sum, views) => sum + views, 0) > 0 
+              ? 'Total Views' 
+              : 'Content Types'}
+          </div>
         </div>
 
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
@@ -242,7 +288,9 @@ export default function ContentAnalytics() {
           <div className="text-3xl font-bold text-neutral-100 mb-1">
             {trending.length}
           </div>
-          <div className="text-sm text-neutral-400">Trending Items</div>
+          <div className="text-sm text-neutral-400">
+            {trending.length > 0 ? 'Trending Items' : 'No trending content'}
+          </div>
         </div>
 
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
@@ -251,7 +299,7 @@ export default function ContentAnalytics() {
             <div className="text-green-400 text-sm font-medium">Average</div>
           </div>
           <div className="text-3xl font-bold text-neutral-100 mb-1">
-            {trending.length > 0
+            {trending.length > 0 && trending.some(item => item.avg_engagement > 0)
               ? Math.round(trending.reduce((sum, item) => sum + item.avg_engagement, 0) / trending.length)
               : 0}s
           </div>

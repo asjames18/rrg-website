@@ -5,7 +5,7 @@ interface BlogCardProps {
       title: string;
       summary: string;
       excerpt?: string;
-      publishedAt: Date;
+      publishedAt: Date | string; // Can be Date object or ISO string
       readingTime: number;
       author: string;
       featured?: boolean;
@@ -19,7 +19,12 @@ interface BlogCardProps {
 }
 
 export default function BlogCard({ post, viewMode = 'list', featured = false }: BlogCardProps) {
-  const formattedDate = post.data.publishedAt.toLocaleDateString('en-US', {
+  // Handle both Date objects and ISO strings
+  const publishedDate = post.data.publishedAt instanceof Date 
+    ? post.data.publishedAt 
+    : new Date(post.data.publishedAt as any);
+  
+  const formattedDate = publishedDate.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -46,7 +51,7 @@ export default function BlogCard({ post, viewMode = 'list', featured = false }: 
               {post.data.category}
             </span>
             <span>•</span>
-            <time dateTime={post.data.publishedAt.toISOString()}>{formattedDate}</time>
+            <time dateTime={publishedDate.toISOString()}>{formattedDate}</time>
             <span>•</span>
             <span>{post.data.readingTime} min</span>
           </div>
@@ -61,13 +66,16 @@ export default function BlogCard({ post, viewMode = 'list', featured = false }: 
             {post.data.excerpt || post.data.summary}
           </p>
 
-          {post.data.tags.length > 0 && (
+          {post.data.tags && Array.isArray(post.data.tags) && post.data.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-auto">
-              {post.data.tags.slice(0, 3).map((tag, i) => (
-                <span key={i} className="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
-                  {tag}
-                </span>
-              ))}
+              {post.data.tags
+                .slice(0, 3)
+                .filter((tag): tag is string => typeof tag === 'string')
+                .map((tag, i) => (
+                  <span key={i} className="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
+                    {tag}
+                  </span>
+                ))}
             </div>
           )}
         </div>
@@ -88,7 +96,7 @@ export default function BlogCard({ post, viewMode = 'list', featured = false }: 
             <div className="flex items-center gap-2 text-xs text-neutral-500">
               <span className="text-amber-400">{post.data.category}</span>
               <span>•</span>
-              <time dateTime={post.data.publishedAt.toISOString()}>{formattedDate}</time>
+              <time dateTime={publishedDate.toISOString()}>{formattedDate}</time>
               <span>•</span>
               <span>{post.data.readingTime} min</span>
             </div>
@@ -119,7 +127,7 @@ export default function BlogCard({ post, viewMode = 'list', featured = false }: 
           <div className="flex items-center gap-2 text-sm text-neutral-500 mb-2">
             <span>{post.data.author}</span>
             <span>•</span>
-            <time dateTime={post.data.publishedAt.toISOString()}>{formattedDate}</time>
+            <time dateTime={publishedDate.toISOString()}>{formattedDate}</time>
             <span>•</span>
             <span>{post.data.readingTime} min read</span>
             {post.data.featured && (
@@ -145,13 +153,16 @@ export default function BlogCard({ post, viewMode = 'list', featured = false }: 
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {post.data.tags.length > 0 && (
+              {post.data.tags && Array.isArray(post.data.tags) && post.data.tags.length > 0 && (
                 <div className="flex gap-2">
-                  {post.data.tags.slice(0, 2).map((tag, i) => (
-                    <span key={i} className="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
-                      {tag}
-                    </span>
-                  ))}
+                  {post.data.tags
+                    .slice(0, 2)
+                    .filter((tag): tag is string => typeof tag === 'string')
+                    .map((tag, i) => (
+                      <span key={i} className="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded">
+                        {tag}
+                      </span>
+                    ))}
                   {post.data.tags.length > 2 && (
                     <span className="text-xs text-neutral-500">+{post.data.tags.length - 2}</span>
                   )}

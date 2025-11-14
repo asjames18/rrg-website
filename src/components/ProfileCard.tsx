@@ -114,37 +114,112 @@ export default function ProfileCard({ showActions = true, className = '' }: Prof
   };
 
   const handleSignOut = async () => {
+    // Prevent multiple simultaneous sign out attempts (shared with header.js)
+    if ((window as any).__headerSignOutInProgress) {
+      console.log('[ProfileCard] Sign out already in progress, ignoring duplicate call');
+      return;
+    }
+    
+    (window as any).__headerSignOutInProgress = true;
+    console.log('[ProfileCard] Sign out clicked');
+    
     try {
-      console.log('[ProfileCard] Sign out clicked');
       const supabase = getSupabase();
       
-      // Clear client-side state
-      await supabase.auth.signOut();
-      
-      // Clear all storage
-      if (typeof window !== 'undefined') {
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Clear all cookies
-        document.cookie.split(';').forEach(function(c) {
-          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-        });
-        
-        // Delete Supabase client instance
-        if (window.__supabaseClient) {
-          delete window.__supabaseClient;
+      // Clear client-side Supabase session with timeout
+      if (supabase) {
+        try {
+          console.log('[ProfileCard] Attempting Supabase signout...');
+          const signOutPromise = supabase.auth.signOut();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Signout timeout')), 3000)
+          );
+          await Promise.race([signOutPromise, timeoutPromise]);
+          console.log('[ProfileCard] Supabase client signed out');
+        } catch (supabaseError) {
+          console.warn('[ProfileCard] Supabase signout error or timeout (continuing anyway):', supabaseError);
         }
       }
       
-      // Call server-side signout
-      await fetch('/api/auth/signout', { method: 'POST' }).catch(() => {});
+      // Clear all storage
+      if (typeof window !== 'undefined') {
+        try {
+          console.log('[ProfileCard] Clearing storage...');
+          localStorage.clear();
+          sessionStorage.clear();
+          console.log('[ProfileCard] Cleared localStorage and sessionStorage');
+        } catch (storageError) {
+          console.warn('[ProfileCard] Error clearing storage:', storageError);
+        }
+        
+        // Clear all cookies
+        try {
+          console.log('[ProfileCard] Clearing cookies...');
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i];
+            const eqPos = cookie.indexOf('=');
+            const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+            // Clear cookie with various path and domain options
+            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=' + window.location.hostname;
+            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.' + window.location.hostname;
+          }
+          console.log('[ProfileCard] Cleared cookies');
+        } catch (cookieError) {
+          console.warn('[ProfileCard] Error clearing cookies:', cookieError);
+        }
+        
+        // Delete Supabase client instance
+        if ((window as any).__supabaseClient) {
+          delete (window as any).__supabaseClient;
+          console.log('[ProfileCard] Deleted Supabase client instance');
+        }
+      }
+      
+      // Call server-side signout (don't wait for it)
+      console.log('[ProfileCard] Calling server signout API...');
+      fetch('/api/auth/signout', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      }).then(response => {
+        if (response.ok) {
+          console.log('[ProfileCard] Server signout successful');
+        } else {
+          console.warn('[ProfileCard] Server signout returned status:', response.status);
+        }
+      }).catch(apiError => {
+        console.warn('[ProfileCard] Server signout API error (continuing anyway):', apiError);
+      });
+      
+      // Update UI state if showSignedOutState is available (from header.js)
+      if (typeof (window as any).__showSignedOutState === 'function') {
+        console.log('[ProfileCard] Calling header showSignedOutState...');
+        (window as any).__showSignedOutState();
+      }
       
       console.log('[ProfileCard] Sign out complete, redirecting to home');
-      window.location.href = '/';
+      // Use replace instead of href to prevent back button issues
+      window.location.replace('/');
+      
     } catch (error) {
       console.error('[ProfileCard] Sign out error:', error);
-      window.location.href = '/';
+      // Update UI state if available
+      if (typeof (window as any).__showSignedOutState === 'function') {
+        try {
+          (window as any).__showSignedOutState();
+        } catch (uiError) {
+          console.error('[ProfileCard] Error updating UI state:', uiError);
+        }
+      }
+      // Force redirect even if everything fails
+      window.location.replace('/');
+    } finally {
+      // Reset flag after a delay in case redirect doesn't happen (shared with header.js)
+      setTimeout(() => {
+        (window as any).__headerSignOutInProgress = false;
+      }, 1000);
     }
   };
 

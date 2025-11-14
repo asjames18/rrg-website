@@ -1,9 +1,27 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
 import { logger } from '../../../lib/logger';
+import { supabaseAdmin } from '../../../lib/supabase-admin';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
+    // Use authenticated user from middleware
+    const user = locals.user;
+    const isAdmin = locals.isAdmin;
+    
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const body = await request.json();
     const { email, role = 'admin' } = body;
 
@@ -21,10 +39,8 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const admin = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL!,
-      import.meta.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Use supabaseAdmin helper
+    const admin = supabaseAdmin();
 
     // Check if user exists
     const { data: u, error: e1 } = await admin.auth.admin.getUserByEmail(email);

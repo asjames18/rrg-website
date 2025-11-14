@@ -31,7 +31,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     const body = await request.json();
-    const { title, author, description, affiliate_url, topics, body: content, status } = body;
+    const { 
+      title, 
+      author, 
+      description, 
+      slug,
+      cover_image_url,
+      isbn,
+      rating,
+      level,
+      category,
+      published_year,
+      publisher,
+      pages,
+      affiliate_label,
+      affiliate_url, 
+      affiliate_merchant,
+      alternative_links,
+      topics, 
+      why_recommended,
+      warnings,
+      body: content, 
+      featured,
+      status 
+    } = body;
 
     // Validate required fields
     if (!title || !author || !description) {
@@ -41,14 +64,46 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
+    // Generate slug from title if not provided
+    let bookSlug = slug;
+    if (!bookSlug) {
+      bookSlug = title.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+    }
+
+    // Prepare metadata object for additional fields
+    const metadata: any = {};
+    if (cover_image_url) metadata.coverImageUrl = cover_image_url;
+    if (isbn) metadata.isbn = isbn;
+    if (rating) metadata.rating = rating;
+    if (level) metadata.level = level;
+    if (category) metadata.category = category;
+    if (published_year) metadata.publishedYear = published_year;
+    if (publisher) metadata.publisher = publisher;
+    if (pages) metadata.pages = pages;
+    if (why_recommended) metadata.whyRecommended = why_recommended;
+    if (warnings) metadata.warnings = warnings;
+    if (alternative_links && alternative_links.length > 0) {
+      metadata.alternativeLinks = alternative_links;
+    }
+
+    // Prepare affiliate object
+    const affiliate: any = {};
+    if (affiliate_url) {
+      affiliate.url = affiliate_url;
+      affiliate.label = affiliate_label || 'Buy Now';
+      affiliate.merchant = affiliate_merchant || 'amazon';
+    }
+
     // Create book
-    const { data, error } = await supabase
-      .from('books')
-      .insert({
+    const bookData: any = {
         title,
+      slug: bookSlug,
         author_name: author,
         description,
-        affiliate_url: affiliate_url || null,
         topics: topics || [],
         body_md: content || null,
         published: status === 'published',
@@ -56,7 +111,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         author: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      })
+    };
+
+    // Add optional fields if they exist
+    if (Object.keys(affiliate).length > 0) {
+      bookData.affiliate_url = affiliate.url;
+      bookData.affiliate_label = affiliate.label;
+      bookData.affiliate_merchant = affiliate.merchant;
+    }
+
+    // Store metadata as JSON if we have any
+    if (Object.keys(metadata).length > 0) {
+      bookData.metadata = metadata;
+    }
+
+    // Add featured flag if provided
+    if (featured !== undefined) {
+      bookData.featured = featured;
+    }
+
+    const { data, error } = await supabase
+      .from('books')
+      .insert(bookData)
       .select()
       .single();
 

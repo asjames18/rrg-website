@@ -9,6 +9,7 @@ interface BookCardProps {
       title: string;
       author: string;
       isbn?: string;
+      coverImageUrl?: string;
       rating?: number;
       level: 'beginner' | 'intermediate' | 'advanced';
       category: string;
@@ -37,7 +38,11 @@ export default function BookCard({ book, viewMode = 'grid' }: BookCardProps) {
   const [imgError, setImgError] = useState(false);
   const [showQuickLook, setShowQuickLook] = useState(false);
   
-  const coverUrl = getBookCoverUrl(book.data.isbn, 'M');
+  const coverUrl = getBookCoverUrl({
+    isbn: book.data.isbn,
+    coverImageUrl: book.data.coverImageUrl,
+    size: 'M'
+  });
   const hasValidCover = coverUrl && !imgError;
 
   if (viewMode === 'list') {

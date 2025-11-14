@@ -4,29 +4,15 @@ import UniversalVideoEmbed from '../../components/UniversalVideoEmbed';
 import VideoCard from '../../components/VideoCard';
 import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 
-export const prerender = false; // Changed to false for dynamic content
+// Set prerender to false because Base.astro uses cookies/request headers for auth
+// which aren't available during prerendering
+export const prerender = false;
 
-export async function getStaticPaths() {
-  try {
-    const result = await SupabaseCMSAPI.getContent({
-      type: 'video',
-      status: 'published',
-      limit: 100
-    });
-    
-    return result.content.map((video) => ({
-      params: { slug: video.slug },
-      props: { video },
-    }));
-  } catch (error) {
-    
-    return [];
-  }
-}
+// Get slug from params
+const { slug } = Astro.params;
+let video = null;
 
-let { video } = Astro.props;
-
-// Fallback fetch for dynamic paths not present in getStaticPaths (because prerender=false)
+// Fetch video by slug dynamically (server-side rendering)
 if (!video) {
   const slugParam = Array.isArray(Astro.params.slug) ? Astro.params.slug.join('/') : (Astro.params.slug || '');
   if (slugParam) {

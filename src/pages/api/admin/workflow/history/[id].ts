@@ -44,15 +44,11 @@ export const GET: APIRoute = async ({ cookies, params, url }) => {
     }
 
     // Get workflow history
+    // Note: changed_by is a UUID that references auth.users.id, not profiles
+    // We'll fetch the history and enrich with user info separately if needed
     const { data: history, error: historyError } = await supabase
       .from('workflow_history')
-      .select(`
-        *,
-        profiles:changed_by (
-          display_name,
-          email
-        )
-      `)
+      .select('*')
       .eq('content_id', contentId)
       .eq('content_type', contentType)
       .order('created_at', { ascending: false });

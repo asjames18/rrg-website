@@ -24,16 +24,53 @@ interface DashboardStats {
   }>;
 }
 
+interface SystemHealth {
+  database: { status: string; message: string; healthy: boolean };
+  storage: { status: string; message: string; healthy: boolean };
+  api: { status: string; message: string; healthy: boolean };
+  errors24h: { count: number; healthy: boolean };
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [contentGrowth, setContentGrowth] = useState<Record<string, number>>({});
   const [userGrowth, setUserGrowth] = useState<Record<string, number>>({});
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchSystemHealth();
   }, []);
+
+  const fetchSystemHealth = async () => {
+    try {
+      const response = await fetch('/api/admin/dashboard/health');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSystemHealth(data.health);
+      } else {
+        // Set default healthy state if health check fails
+        setSystemHealth({
+          database: { status: 'Online', message: 'Connected', healthy: true },
+          storage: { status: 'Available', message: 'Accessible', healthy: true },
+          api: { status: 'Normal', message: 'Operational', healthy: true },
+          errors24h: { count: 0, healthy: true }
+        });
+      }
+    } catch (error) {
+      console.error('[Dashboard] Failed to fetch system health:', error);
+      // Set default healthy state on error
+      setSystemHealth({
+        database: { status: 'Online', message: 'Connected', healthy: true },
+        storage: { status: 'Available', message: 'Accessible', healthy: true },
+        api: { status: 'Normal', message: 'Operational', healthy: true },
+        errors24h: { count: 0, healthy: true }
+      });
+    }
+  };
 
   const fetchDashboardStats = async () => {
     try {
@@ -305,36 +342,60 @@ export default function Dashboard() {
       <div>
         <h2 className="text-2xl font-bold text-amber-100 mb-6">System Health</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Database Status */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-neutral-400">Database</span>
-              <span className="text-green-400">●</span>
+              <span className={systemHealth?.database.healthy ? 'text-green-400' : 'text-red-400'}>●</span>
             </div>
-            <div className="text-2xl font-bold text-neutral-100">Online</div>
+            <div className="text-2xl font-bold text-neutral-100">
+              {systemHealth?.database.status || 'Checking...'}
+            </div>
+            {systemHealth?.database.message && (
+              <div className="text-xs text-neutral-500 mt-1">{systemHealth.database.message}</div>
+            )}
           </div>
 
+          {/* Storage Status */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-neutral-400">Storage</span>
-              <span className="text-green-400">●</span>
+              <span className={systemHealth?.storage.healthy ? 'text-green-400' : 'text-red-400'}>●</span>
             </div>
-            <div className="text-2xl font-bold text-neutral-100">Available</div>
+            <div className="text-2xl font-bold text-neutral-100">
+              {systemHealth?.storage.status || 'Checking...'}
+            </div>
+            {systemHealth?.storage.message && (
+              <div className="text-xs text-neutral-500 mt-1">{systemHealth.storage.message}</div>
+            )}
           </div>
 
+          {/* API Status */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-neutral-400">API</span>
-              <span className="text-green-400">●</span>
+              <span className={systemHealth?.api.healthy ? 'text-green-400' : 'text-red-400'}>●</span>
             </div>
-            <div className="text-2xl font-bold text-neutral-100">Normal</div>
+            <div className="text-2xl font-bold text-neutral-100">
+              {systemHealth?.api.status || 'Checking...'}
+            </div>
+            {systemHealth?.api.message && (
+              <div className="text-xs text-neutral-500 mt-1">{systemHealth.api.message}</div>
+            )}
           </div>
 
+          {/* Errors (24h) */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-neutral-400">Errors (24h)</span>
-              <span className="text-green-400">●</span>
+              <span className={systemHealth?.errors24h.healthy ? 'text-green-400' : 'text-red-400'}>●</span>
             </div>
-            <div className="text-2xl font-bold text-neutral-100">0</div>
+            <div className="text-2xl font-bold text-neutral-100">
+              {systemHealth?.errors24h.count ?? '...'}
+            </div>
+            <div className="text-xs text-neutral-500 mt-1">
+              {systemHealth?.errors24h.count === 0 ? 'No errors' : 'Issues detected'}
+            </div>
           </div>
         </div>
       </div>

@@ -1,93 +1,226 @@
 ---
 /**
- * Blog Post Detail Page
+ * Blog Post Detail Page - Loads from Supabase CMS
  * Enhanced with related posts, social sharing, scripture references, author bio, TOC
  */
 import Base from '../../layouts/Base.astro';
-import { getCollection, getEntry } from 'astro:content';
-import type { CollectionEntry } from 'astro:content';
+import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 
-export async function getStaticPaths() {
-  const blogPosts = await getCollection('blog');
-  return blogPosts.map(post => ({
-    params: { slug: post.slug },
-    props: { post },
-  }));
+// Helper function to escape HTML
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-interface Props {
-  post: CollectionEntry<'blog'>;
+// Minimal Markdown renderer for server-side use without external deps
+function renderBasicMarkdown(markdown: string): string {
+  if (!markdown) return '';
+
+  // Normalize line endings
+  let md = markdown.replace(/\r\n/g, '\n');
+
+  // Code blocks ``` ```
+  md = md.replace(/```([\s\S]*?)```/g, (_m, code) => {
+    return `<pre class="bg-neutral-900 border border-neutral-800 rounded-lg p-4 overflow-x-auto"><code>${escapeHtml(code)}</code></pre>`;
+  });
+
+  // Inline code `code`
+  md = md.replace(/`([^`]+)`/g, (_m, code) => `<code class="bg-neutral-900 text-amber-300 px-1.5 py-0.5 rounded text-sm">${escapeHtml(code)}</code>`);
+
+  // Headings ####, ###, ##, #
+  md = md
+    .replace(/^\s*######\s+(.*)$/gm, (_, text) => `<h6 class="text-lg font-bold text-neutral-100 mt-6 mb-3" id="${slugify(text)}">${text}</h6>`)
+    .replace(/^\s*#####\s+(.*)$/gm, (_, text) => `<h5 class="text-xl font-bold text-neutral-100 mt-6 mb-3" id="${slugify(text)}">${text}</h5>`)
+    .replace(/^\s*####\s+(.*)$/gm, (_, text) => `<h4 class="text-2xl font-bold text-neutral-100 mt-6 mb-4" id="${slugify(text)}">${text}</h4>`)
+    .replace(/^\s*###\s+(.*)$/gm, (_, text) => `<h3 class="text-2xl font-bold text-neutral-100 mt-8 mb-4" id="${slugify(text)}">${text}</h3>`)
+    .replace(/^\s*##\s+(.*)$/gm, (_, text) => `<h2 class="text-3xl font-bold text-neutral-100 mt-10 mb-6" id="${slugify(text)}">${text}</h2>`)
+    .replace(/^\s*#\s+(.*)$/gm, (_, text) => `<h1 class="text-4xl font-bold text-neutral-100 mt-10 mb-6" id="${slugify(text)}">${text}</h1>`);
+
+  // Bold and italics
+  md = md
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-neutral-200">$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em class="italic">$1</em>')
+    .replace(/__([^_]+)__/g, '<strong class="font-semibold text-neutral-200">$1</strong>')
+    .replace(/_([^_]+)_/g, '<em class="italic">$1</em>');
+
+  // Links [text](url)
+  md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-amber-500 hover:text-amber-400 underline" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // Unordered lists (handle both - and *)
+  md = md.replace(/(?:^\s*[-*]\s+.*(?:\n|$))+?/gm, (block) => {
+    const items = block
+      .trim()
+      .split('\n')
+      .map((line) => line.replace(/^\s*[-*]\s+/, '').trim())
+      .filter(Boolean)
+      .map((item) => `<li class="text-neutral-300 mb-2 ml-4">${item}</li>`)
+      .join('');
+    return items ? `<ul class="list-disc list-inside space-y-2 my-4 text-neutral-300">${items}</ul>\n` : block;
+  });
+
+  // Ordered lists
+  md = md.replace(/(?:^\s*\d+\.\s+.*(?:\n|$))+?/gm, (block) => {
+    const items = block
+      .trim()
+      .split('\n')
+      .map((line) => line.replace(/^\s*\d+\.\s+/, '').trim())
+      .filter(Boolean)
+      .map((item) => `<li class="text-neutral-300 mb-2 ml-4">${item}</li>`)
+      .join('');
+    return items ? `<ol class="list-decimal list-inside space-y-2 my-4 text-neutral-300">${items}</ol>\n` : block;
+  });
+
+  // Blockquotes
+  md = md.replace(/^>\s+(.*)$/gm, '<blockquote class="border-l-4 border-amber-700 bg-amber-900/20 pl-4 py-2 my-4 text-neutral-300 italic">$1</blockquote>');
+
+  // Horizontal rules
+  md = md.replace(/^---$/gm, '<hr class="border-neutral-800 my-8" />');
+  md = md.replace(/^\*\*\*$/gm, '<hr class="border-neutral-800 my-8" />');
+
+  // Paragraphs: wrap leftover text blocks separated by blank lines
+  md = md
+    .split(/\n{2,}/)
+    .map((chunk) => {
+      const trimmed = chunk.trim();
+      if (!trimmed) return '';
+      if (/^<h\d|^<ul|^<ol|^<pre|^<blockquote|^<table|^<p|^<code|^<hr/.test(trimmed)) {
+        return trimmed;
+      }
+      // Join single newlines within paragraph
+      const joined = trimmed.replace(/\n+/g, ' ');
+      return `<p class="text-neutral-300 leading-relaxed mb-4">${joined}</p>`;
+    })
+    .join('\n');
+
+  return md;
 }
 
-let { post } = Astro.props;
+// Helper to create slug from heading text
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+}
 
-// Fallback: fetch by slug when navigating to a path not pre-generated
-if (!post) {
-  const slugParam = Array.isArray(Astro.params.slug) ? Astro.params.slug.join('/') : (Astro.params.slug || '');
-  if (slugParam) {
-    try {
-      // Prefer getEntry when available; otherwise find in collection
-      try {
-        post = await getEntry('blog', slugParam) as any;
-      } catch {
-        const all = await getCollection('blog');
-        post = all.find(p => p.slug === slugParam) as any;
-      }
-      if (!post) {
-        Astro.response.status = 404;
-      }
-    } catch {
+// Set prerender to false because Base.astro uses cookies/request headers for auth
+// which aren't available during prerendering
+export const prerender = false;
+
+// Fetch blog post by slug dynamically (server-side rendering)
+const slugParam = Array.isArray(Astro.params.slug) ? Astro.params.slug.join('/') : (Astro.params.slug || '');
+let cmsPost = null;
+
+if (slugParam) {
+  try {
+    cmsPost = await SupabaseCMSAPI.getContentBySlug(slugParam, { 
+      type: 'blog', 
+      status: 'published' 
+    });
+    if (!cmsPost) {
       Astro.response.status = 404;
     }
-  } else {
+  } catch (error) {
+    console.error('Error fetching blog post by slug:', error);
     Astro.response.status = 404;
   }
+} else {
+  Astro.response.status = 404;
 }
 
-let Content: any = null;
-let headings: any[] = [];
-if (post) {
-  const rendered = await post.render();
-  Content = rendered.Content;
-  headings = rendered.headings;
-}
+// Transform CMS post to expected format
+const post = cmsPost ? {
+  slug: cmsPost.slug,
+  data: {
+    title: cmsPost.title,
+    summary: cmsPost.summary || '',
+    excerpt: cmsPost.summary || '',
+    publishedAt: new Date(cmsPost.published_at || cmsPost.created_at),
+    updatedAt: cmsPost.updated_at ? new Date(cmsPost.updated_at) : null,
+    featured: cmsPost.featured || false,
+    category: cmsPost.metadata?.category || 'General',
+    tags: cmsPost.tags?.map((t: any) => t.name || t) || [],
+    readingTime: cmsPost.metadata?.readingTime || 5,
+    author: cmsPost.metadata?.author || 'Real & Raw Gospel',
+    authorBio: cmsPost.metadata?.authorBio,
+    coverImage: cmsPost.metadata?.coverImage,
+    scriptures: cmsPost.metadata?.scriptures || [],
+    body_md: cmsPost.body_md,
+    body_html: cmsPost.body_html
+  }
+} : null;
 
 // Get all posts for related posts
-const allPosts = await getCollection('blog');
+let allPosts: any[] = [];
+try {
+  const result = await SupabaseCMSAPI.getContent({
+    type: 'blog',
+    status: 'published',
+    limit: 100
+  });
+  allPosts = result.content || [];
+} catch (error) {
+  console.error('Error fetching all posts for related posts:', error);
+  allPosts = [];
+}
 
 // Find related posts based on tags and category
-function getRelatedPosts(currentPost: CollectionEntry<'blog'>, limit = 3): CollectionEntry<'blog'>[] {
+function getRelatedPosts(currentPost: any, limit = 3): any[] {
   const related = allPosts
-    .filter(p => p.slug !== currentPost.slug)
-    .map(p => {
+    .filter((p: any) => p.id !== currentPost?.id && p.slug !== currentPost?.slug)
+    .map((p: any) => {
       let score = 0;
+      const pCategory = p.metadata?.category || 'General';
+      const pTags = p.tags?.map((t: any) => t.name || t) || [];
+      const currentCategory = currentPost?.data?.category || 'General';
+      const currentTags = currentPost?.data?.tags || [];
+      
       // Same category gets high score
-      if (p.data.category === currentPost.data.category) score += 10;
+      if (pCategory === currentCategory) score += 10;
       // Shared tags
-      const sharedTags = p.data.tags.filter(tag => currentPost.data.tags.includes(tag));
+      const sharedTags = pTags.filter((tag: string) => currentTags.includes(tag));
       score += sharedTags.length * 3;
       // Explicitly listed as related
-      if (currentPost.data.relatedPosts?.includes(p.slug)) score += 20;
+      if (currentPost?.data?.relatedPosts?.includes(p.slug)) score += 20;
       return { post: p, score };
     })
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map(({ post }) => post);
+    .map(({ post }) => ({
+      slug: post.slug,
+      data: {
+        title: post.title,
+        summary: post.summary || '',
+        excerpt: post.summary || '',
+        publishedAt: new Date(post.published_at || post.created_at),
+        category: post.metadata?.category || 'General',
+        tags: post.tags?.map((t: any) => t.name || t) || [],
+        readingTime: post.metadata?.readingTime || 5
+      }
+    }));
 
   return related;
 }
 
-const relatedPosts = getRelatedPosts(post);
+const relatedPosts = post ? getRelatedPosts(post) : [];
 
 // Format publish date
-const publishDate = new Date(post.data.publishedAt).toLocaleDateString('en-US', {
+const publishDate = post ? new Date(post.data.publishedAt).toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'long',
   day: 'numeric'
-});
+}) : '';
 
-const updateDate = post.data.updatedAt 
+const updateDate = post?.data?.updatedAt 
   ? new Date(post.data.updatedAt).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -97,8 +230,8 @@ const updateDate = post.data.updatedAt
 
 // Build share URLs
 const pageUrl = encodeURIComponent(Astro.url.href);
-const pageTitle = encodeURIComponent(post.data.title);
-const shareText = encodeURIComponent(post.data.excerpt || post.data.summary);
+const pageTitle = encodeURIComponent(post?.data?.title || '');
+const shareText = encodeURIComponent(post?.data?.excerpt || post?.data?.summary || '');
 
 ---
 
@@ -279,11 +412,12 @@ const shareText = encodeURIComponent(post.data.excerpt || post.data.summary);
           </div>
         )}
 
-        {/* MDX Content */}
-        {Content && (
-          <div class="prose prose-invert prose-lg max-w-none prose-headings:text-neutral-100 prose-p:text-neutral-300 prose-a:text-amber-500 hover:prose-a:text-amber-400 prose-strong:text-neutral-200 prose-code:text-amber-400 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800">
-            <Content />
-          </div>
+        {/* Blog Content (Markdown/HTML) */}
+        {post.data.body_html && (
+          <div class="prose prose-invert prose-lg max-w-none prose-headings:text-neutral-100 prose-p:text-neutral-300 prose-a:text-amber-500 hover:prose-a:text-amber-400 prose-strong:text-neutral-200 prose-code:text-amber-400 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800" set:html={post.data.body_html} />
+        )}
+        {post.data.body_md && !post.data.body_html && (
+          <div class="prose prose-invert prose-lg max-w-none prose-headings:text-neutral-100 prose-p:text-neutral-300 prose-a:text-amber-500 hover:prose-a:text-amber-400 prose-strong:text-neutral-200 prose-code:text-amber-400 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800" set:html={renderBasicMarkdown(post.data.body_md)} />
         )}
 
         {/* Author bio */}
@@ -304,32 +438,6 @@ const shareText = encodeURIComponent(post.data.excerpt || post.data.summary);
 
       <!-- Sidebar -->
       <aside class="space-y-6">
-        {/* Table of Contents */}
-        {headings && headings.length > 0 && (
-          <div class="sticky top-8 p-6 bg-neutral-900 border border-neutral-800 rounded-lg">
-            <h3 class="text-lg font-bold text-neutral-100 mb-4 flex items-center gap-2">
-              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
-              </svg>
-              Table of Contents
-            </h3>
-            <nav id="toc" class="space-y-2">
-              {headings
-                .filter(h => h.depth <= 3)
-                .map(heading => (
-                  <a 
-                    href={`#${heading.slug}`}
-                    class="toc-link block text-sm text-neutral-400 hover:text-amber-400 transition-colors"
-                    style={`padding-left: ${(heading.depth - 1) * 12}px`}
-                    data-heading-id={heading.slug}
-                  >
-                    {heading.text}
-                  </a>
-                ))}
-            </nav>
-          </div>
-        )}
-
         {/* Quick Links */}
         <div class="p-6 bg-neutral-900 border border-neutral-800 rounded-lg">
           <h3 class="text-lg font-bold text-neutral-100 mb-4">Quick Links</h3>
@@ -445,33 +553,6 @@ const shareText = encodeURIComponent(post.data.excerpt || post.data.summary);
       }
     });
 
-    // Highlight active TOC link on scroll
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const id = entry.target.id;
-          const tocLink = document.querySelector(`[data-heading-id="${id}"]`);
-          if (tocLink) {
-            if (entry.isIntersecting) {
-              // Remove active class from all links
-              document.querySelectorAll('.toc-link').forEach(link => {
-                link.classList.remove('text-amber-400', 'font-semibold');
-                link.classList.add('text-neutral-400');
-              });
-              // Add active class to current link
-              tocLink.classList.remove('text-neutral-400');
-              tocLink.classList.add('text-amber-400', 'font-semibold');
-            }
-          }
-        });
-      },
-      { rootMargin: '-80px 0px -80% 0px' }
-    );
-
-    // Observe all headings
-    document.querySelectorAll('h2[id], h3[id], h4[id]').forEach((heading) => {
-      observer.observe(heading);
-    });
   </script>
 </Base>
 )

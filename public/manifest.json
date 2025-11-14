@@ -1,0 +1,53 @@
+{
+  "name": "Real & Raw Gospel",
+  "short_name": "RRG",
+  "description": "Training the Remnant in the Ways of YAHUAH - Biblical teachings, videos, books, and resources for spiritual growth",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0b",
+  "theme_color": "#d97706",
+  "categories": ["education", "religion", "lifestyle"],
+  "icons": [
+    {
+      "src": "/rrg-logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/rrg-logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Videos",
+      "short_name": "Videos",
+      "description": "Browse teaching videos",
+      "url": "/videos",
+      "icons": [{ "src": "/rrg-logo.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Blog",
+      "short_name": "Blog",
+      "description": "Read articles and teachings",
+      "url": "/blog",
+      "icons": [{ "src": "/rrg-logo.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Books",
+      "short_name": "Books",
+      "description": "Recommended resources",
+      "url": "/books",
+      "icons": [{ "src": "/rrg-logo.jpg", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
+

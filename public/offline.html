@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline | Real & Raw Gospel</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #0a0a0b 0%, #171717 100%);
+      color: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+    
+    .logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 0 auto 24px;
+      object-fit: cover;
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: #d97706;
+      font-weight: 700;
+    }
+    
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #a3a3a3;
+      margin-bottom: 32px;
+    }
+    
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    button, a {
+      display: inline-block;
+      padding: 14px 28px;
+      background: #d97706;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    button:hover, a:hover {
+      background: #b45309;
+      transform: translateY(-2px);
+    }
+    
+    button:active, a:active {
+      transform: translateY(0);
+    }
+    
+    .secondary {
+      background: transparent;
+      border: 2px solid #404040;
+      color: #d4d4d4;
+    }
+    
+    .secondary:hover {
+      background: #262626;
+      border-color: #525252;
+    }
+    
+    .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    @media (min-width: 640px) {
+      .buttons {
+        flex-direction: row;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/rrg-logo.jpg" alt="RRG Logo" class="logo" onerror="this.style.display='none'">
+    
+    <div class="icon">📡</div>
+    
+    <h1>You're Offline</h1>
+    
+    <p>
+      It looks like you've lost your connection. Some content may still be available from your device cache.
+    </p>
+    
+    <div class="buttons">
+      <button onclick="window.location.reload()">Try Again</button>
+      <a href="/" class="secondary">Go Home</a>
+    </div>
+    
+    <p style="margin-top: 32px; font-size: 14px;">
+      Cached pages you can visit:<br>
+      <a href="/start-here" style="background: none; padding: 4px; font-size: 14px; color: #d97706;">Start Here</a> • 
+      <a href="/videos" style="background: none; padding: 4px; font-size: 14px; color: #d97706;">Videos</a> • 
+      <a href="/blog" style="background: none; padding: 4px; font-size: 14px; color: #d97706;">Blog</a> • 
+      <a href="/books" style="background: none; padding: 4px; font-size: 14px; color: #d97706;">Books</a>
+    </p>
+  </div>
+  
+  <script>
+    // Auto-retry when online
+    window.addEventListener('online', () => {
+      console.log('Connection restored');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    });
+    
+    // Check connection status
+    if (navigator.onLine) {
+      document.querySelector('h1').textContent = 'Connection Issue';
+      document.querySelector('p').textContent = 'There was a problem loading this page. Please try again.';
+    }
+  </script>
+</body>
+</html>
+

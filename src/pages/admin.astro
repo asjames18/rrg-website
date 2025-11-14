@@ -9,6 +9,7 @@ export const prerender = false;
 
 import { supabaseServer } from '../lib/supabase-server';
 import AdminShell from '../components/admin/AdminShell';
+import '../styles/global.css';
 
 // Authentication check
 let user = null;
@@ -86,11 +87,6 @@ if (!isEditor) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Center | Real & Raw Gospel</title>
   <link rel="icon" href="/rrg-logo.jpg" type="image/jpeg" />
-  <link rel="stylesheet" href="/src/styles/global.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    // Tailwind will be configured via CDN
-  </script>
   <style>
     /* Critical fallback styles - Dark theme */
     body {
@@ -119,6 +115,15 @@ if (!isEditor) {
     h1, h2, h3, h4, h5, h6 {
       font-family: Cinzel, ui-serif, Georgia, serif !important;
     }
+    
+    /* Hide scrollbar for horizontal scrolling elements */
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
   </style>
 </head>
 <body class="bg-neutral-950 text-amber-100">
@@ -127,7 +132,7 @@ if (!isEditor) {
       userRole={userRole} 
       userName={user?.user_metadata?.full_name || user?.email} 
       userEmail={user?.email} 
-      client:load 
+      client:only="react"
     />
   </div>
 </body>

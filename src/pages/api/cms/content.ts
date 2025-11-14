@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { SupabaseCMSAPI } from '../../../lib/cms/supabase-cms-api';
 import { logger } from '../../../lib/logger';
+import { supabaseServer } from '../../../lib/supabase-server';
 
 export const GET: APIRoute = async ({ request, url }) => {
   try {
@@ -45,20 +46,68 @@ export const GET: APIRoute = async ({ request, url }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
+    // Check authentication
+    const supabase = supabaseServer(cookies);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Check if user has editor or admin role
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    const isEditor = userRoles && userRoles.some(role => ['admin', 'editor'].includes(role.role));
+    if (!isEditor) {
+      return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const body = await request.json();
+    
+    logger.info('[Content API] POST request received:', {
+      title: body.title,
+      content_type: body.content_type,
+      status: body.status,
+      hasMetadata: !!body.metadata,
+      userId: user.id
+    });
+
+    // Set author_id if not provided
+    if (!body.author_id) {
+      body.author_id = user.id;
+    }
+
     const content = await SupabaseCMSAPI.createContent(body);
 
     return new Response(JSON.stringify(content), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
     });
-  } catch (error) {
-    logger.error('Error creating content:', error);
+  } catch (error: any) {
+    logger.error('[Content API] Error creating content:', {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    });
+    
     return new Response(JSON.stringify({ 
       error: 'Failed to create content',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error?.message || 'Unknown error',
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

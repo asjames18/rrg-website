@@ -3,15 +3,63 @@
  * Helpers for book covers, ISBN handling, etc.
  */
 
-export function getBookCoverUrl(isbn?: string, size: 'S' | 'M' | 'L' = 'M'): string | null {
-  if (!isbn) return null;
+export interface BookCoverOptions {
+  isbn?: string;
+  coverImageUrl?: string;
+  size?: 'S' | 'M' | 'L';
+}
+
+/**
+ * Get book cover URL with fallback logic:
+ * 1. Custom cover image URL (if provided)
+ * 2. Open Library API (if ISBN provided)
+ * 3. null (if neither available)
+ */
+export function getBookCoverUrl(
+  isbn?: string, 
+  size: 'S' | 'M' | 'L' = 'M',
+  coverImageUrl?: string
+): string | null;
+export function getBookCoverUrl(options: BookCoverOptions): string | null;
+export function getBookCoverUrl(
+  isbnOrOptions?: string | BookCoverOptions,
+  size: 'S' | 'M' | 'L' = 'M',
+  coverImageUrl?: string
+): string | null {
+  // Handle overloaded function signature
+  let isbn: string | undefined;
+  let coverUrl: string | undefined;
+  let coverSize: 'S' | 'M' | 'L' = size;
   
-  // Clean ISBN (remove hyphens)
-  const cleanIsbn = isbn.replace(/-/g, '');
+  if (typeof isbnOrOptions === 'object' && isbnOrOptions !== null) {
+    // Called with options object
+    isbn = isbnOrOptions.isbn;
+    coverUrl = isbnOrOptions.coverImageUrl;
+    coverSize = isbnOrOptions.size || 'M';
+  } else {
+    // Called with individual parameters (backward compatibility)
+    isbn = isbnOrOptions;
+    coverUrl = coverImageUrl;
+    coverSize = size;
+  }
   
-  // Open Library Covers API
-  // Sizes: S (small), M (medium), L (large)
-  return `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-${size}.jpg`;
+  // Priority 1: Custom cover image URL (if provided)
+  if (coverUrl && coverUrl.trim()) {
+    return coverUrl.trim();
+  }
+  
+  // Priority 2: Open Library API (if ISBN provided)
+  if (isbn) {
+    // Clean ISBN (remove hyphens)
+    const cleanIsbn = isbn.replace(/-/g, '');
+    
+    // Open Library Covers API
+    // Sizes: S (small), M (medium), L (large)
+    return `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-${coverSize}.jpg`;
+  }
+  
+  // No cover available
+  return null;
 }
 
 export function getGoogleBooksCoverUrl(isbn?: string): string | null {

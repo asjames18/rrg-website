@@ -32,34 +32,60 @@ if (!isEditor) {
     <!-- Header -->
     <header class="bg-neutral-900 border-b border-neutral-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <div class="flex items-center">
-            <h1 class="text-2xl font-bold text-amber-100">CMS Dashboard</h1>
-            <span class="ml-3 px-3 py-1 bg-amber-900/30 text-amber-200 text-sm rounded-full">
+        <div class="flex items-center justify-between h-14 sm:h-16">
+          <div class="flex items-center min-w-0 flex-1">
+            <h1 class="text-lg sm:text-2xl font-bold text-amber-100 truncate">CMS Dashboard</h1>
+            <span class="ml-2 sm:ml-3 px-2 sm:px-3 py-1 bg-amber-900/30 text-amber-200 text-xs sm:text-sm rounded-full whitespace-nowrap">
               {userRole}
             </span>
           </div>
-          <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-1 sm:space-x-3 flex-shrink-0">
             <a 
               href="/" 
-              class="text-neutral-400 hover:text-amber-400 transition-colors"
+              class="hidden sm:inline text-neutral-400 hover:text-amber-400 transition-colors text-sm"
+              title="View Site"
             >
               View Site
             </a>
             <a 
-              href="/auth" 
-              class="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg transition-colors"
+              href="/" 
+              class="sm:hidden inline-flex items-center justify-center w-9 h-9 text-neutral-400 hover:text-amber-400 hover:bg-neutral-800 rounded-lg transition-colors"
+              title="View Site"
             >
-              Sign Out
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </a>
+            <a 
+              href="/admin" 
+              class="hidden sm:inline text-neutral-400 hover:text-amber-400 transition-colors text-sm"
+            >
+              Admin Dashboard
+            </a>
+            <a 
+              href="/admin" 
+              class="sm:hidden inline-flex items-center justify-center w-9 h-9 text-neutral-400 hover:text-amber-400 hover:bg-neutral-800 rounded-lg transition-colors"
+              title="Admin Dashboard"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </a>
+            <a 
+              href="/auth" 
+              class="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm"
+            >
+              <span class="hidden sm:inline">Sign Out</span>
+              <span class="sm:hidden">Out</span>
             </a>
           </div>
         </div>
       </div>
     </header>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       <!-- Quick Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
         <div class="bg-gradient-to-br from-amber-900/20 to-amber-800/10 border border-amber-700/30 rounded-xl p-6">
           <div class="flex items-center justify-between">
             <div>
@@ -118,9 +144,9 @@ if (!isEditor) {
       </div>
 
       <!-- Main Content Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         <!-- Content Management -->
-        <div class="lg:col-span-2">
+        <div class="lg:col-span-2 order-2 lg:order-1">
           <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-xl font-bold text-amber-100">Content Management</h2>
@@ -135,7 +161,7 @@ if (!isEditor) {
             </div>
 
             <!-- Content Type Tabs -->
-            <div class="flex space-x-1 mb-6 bg-neutral-800 rounded-lg p-1">
+            <div class="flex space-x-1 mb-4 sm:mb-6 bg-neutral-800 rounded-lg p-1 overflow-x-auto scrollbar-hide">
               <button 
                 class="content-tab px-4 py-2 rounded-md text-sm font-medium transition-colors active"
                 data-type="all"
@@ -191,7 +217,7 @@ if (!isEditor) {
         </div>
 
         <!-- Sidebar -->
-        <div class="space-y-6">
+        <div class="space-y-4 sm:space-y-6 order-1 lg:order-2">
           <!-- Quick Actions -->
           <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <h3 class="text-lg font-bold text-amber-100 mb-4">Quick Actions</h3>
@@ -491,6 +517,15 @@ if (!isEditor) {
     
     .content-tab:not(.active) {
       @apply text-neutral-400 hover:text-neutral-200;
+    }
+    
+    /* Hide scrollbar for horizontal scrolling elements */
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
     }
   </style>
 </Base>

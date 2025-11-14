@@ -1,13 +1,59 @@
 ---
 /**
  * Books Index Page - Enhanced with filtering, search, multiple view modes
+ * Loads books from Supabase CMS
  */
 import Base from '../../layouts/Base.astro';
-import { getCollection } from 'astro:content';
+import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 import BookCard from '../../components/BookCard';
 import BookFilters from '../../components/BookFilters';
 
-const bookContent = await getCollection('books');
+// Load books from Supabase CMS
+let bookContent: any[] = [];
+
+try {
+  const result = await SupabaseCMSAPI.getContent({
+    type: 'book',
+    status: 'published',
+    limit: 100,
+    sortBy: 'published_at',
+    sortOrder: 'desc'
+  });
+  
+  const cmsBooks = result.content || [];
+  
+  // Transform CMS content to match expected format for BookCard
+  bookContent = cmsBooks.map(book => ({
+    id: book.id,
+    slug: book.slug,
+    data: {
+      title: book.title,
+      author: book.metadata?.author || 'Unknown Author',
+      isbn: book.metadata?.isbn,
+      coverImageUrl: book.metadata?.coverImageUrl,
+      rating: book.metadata?.rating,
+      level: book.metadata?.level || 'intermediate',
+      category: book.metadata?.category || 'General',
+      publishedYear: book.metadata?.publishedYear,
+      publisher: book.metadata?.publisher,
+      pages: book.metadata?.pages,
+      whyRecommended: book.metadata?.whyRecommended,
+      featured: book.featured || false,
+      addedDate: book.published_at || book.created_at, // For sorting
+      affiliate: book.metadata?.affiliate || {
+        label: '',
+        url: '',
+        merchant: 'amazon'
+      },
+      alternativeLinks: book.metadata?.alternativeLinks || [],
+      topics: book.tags?.map((t: any) => t.name || t) || []
+    }
+  }));
+} catch (error) {
+  console.error('Error loading books from CMS:', error);
+  // Fallback to empty array if CMS fails
+  bookContent = [];
+}
 
 // Get URL parameters for initial state
 const searchParams = Astro.url.searchParams;

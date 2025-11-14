@@ -1,0 +1,546 @@
+---
+/**
+ * PWA Test Page - Verify VAPID Keys and Push Notifications
+ */
+import Base from '../layouts/Base.astro';
+
+const vapidPublicKey = import.meta.env.PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = import.meta.env.VAPID_PRIVATE_KEY;
+
+// Don't expose private key to client
+const hasPublicKey = !!vapidPublicKey;
+const hasPrivateKey = !!vapidPrivateKey;
+const publicKeyPreview = vapidPublicKey ? vapidPublicKey.substring(0, 20) + '...' : 'Not set';
+---
+
+<Base title="PWA Test" description="Test PWA and Push Notifications">
+  <div class="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-black py-20 px-4">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl font-bold text-amber-100 mb-8">🧪 PWA Test Page</h1>
+      
+      <!-- Environment Variables Status -->
+      <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
+        <h2 class="text-2xl font-bold text-amber-100 mb-4">Environment Variables</h2>
+        
+        <div class="space-y-4">
+          <!-- Public Key -->
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+              {hasPublicKey ? (
+                <svg class="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+              ) : (
+                <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              )}
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-amber-100">PUBLIC_VAPID_PUBLIC_KEY</h3>
+              <p class="text-neutral-400 text-sm mt-1">
+                {hasPublicKey ? `✅ Configured: ${publicKeyPreview}` : '❌ Not configured'}
+              </p>
+            </div>
+          </div>
+
+          <!-- Private Key -->
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+              {hasPrivateKey ? (
+                <svg class="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+              ) : (
+                <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              )}
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-amber-100">VAPID_PRIVATE_KEY</h3>
+              <p class="text-neutral-400 text-sm mt-1">
+                {hasPrivateKey ? '✅ Configured (server-only, not exposed)' : '❌ Not configured'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Browser API Support -->
+      <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
+        <h2 class="text-2xl font-bold text-amber-100 mb-4">Browser Support</h2>
+        <div id="browser-support" class="space-y-2 text-neutral-300">
+          <p>Checking browser capabilities...</p>
+        </div>
+      </div>
+
+      <!-- Service Worker Status -->
+      <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
+        <h2 class="text-2xl font-bold text-amber-100 mb-4">Service Worker</h2>
+        <div id="sw-status" class="space-y-2 text-neutral-300">
+          <p>Checking service worker...</p>
+        </div>
+      </div>
+
+      <!-- Push Notification Test -->
+      <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mb-6">
+        <h2 class="text-2xl font-bold text-amber-100 mb-4">Push Notifications Test</h2>
+        
+        <div id="push-status" class="mb-4 space-y-2 text-neutral-300">
+          <p>Ready to test push notifications</p>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Step 1: Request Permission -->
+          <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-2xl">1️⃣</span>
+              <h3 class="text-lg font-semibold text-amber-100">Request Permission</h3>
+            </div>
+            <p class="text-sm text-neutral-400 mb-3">Click the button below and then click "Allow" in the browser prompt</p>
+            <button
+              id="request-permission-btn"
+              class="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Request Permission
+            </button>
+            
+            <!-- Permission Denied Help -->
+            <div id="permission-denied-help" class="hidden mt-4 p-4 bg-red-900/20 border border-red-800 rounded-lg">
+              <h4 class="text-red-400 font-semibold mb-2">⚠️ Permission Denied - How to Fix:</h4>
+              <div class="text-sm text-neutral-300 space-y-2">
+                <p><strong>Chrome/Edge:</strong></p>
+                <ol class="list-decimal list-inside ml-2 space-y-1">
+                  <li>Click the 🔒 lock icon in the address bar</li>
+                  <li>Find "Notifications" → Change to "Allow"</li>
+                  <li>Refresh this page</li>
+                </ol>
+                <p class="mt-3"><strong>Or via Settings:</strong></p>
+                <ol class="list-decimal list-inside ml-2 space-y-1">
+                  <li>Settings → Privacy → Site Settings → Notifications</li>
+                  <li>Find "localhost:4321" or "Not allowed" sites</li>
+                  <li>Click the trash icon to remove the block</li>
+                  <li>Refresh this page and try again</li>
+                </ol>
+                <p class="mt-3"><strong>Firefox:</strong></p>
+                <ol class="list-decimal list-inside ml-2 space-y-1">
+                  <li>Click the 🔒 lock icon in the address bar</li>
+                  <li>Click "More Information" → Permissions tab</li>
+                  <li>Find "Notifications" → Change to "Allow"</li>
+                  <li>Refresh this page</li>
+                </ol>
+                <p class="mt-3"><strong>Safari:</strong></p>
+                <ol class="list-decimal list-inside ml-2 space-y-1">
+                  <li>Safari → Settings → Websites → Notifications</li>
+                  <li>Find "localhost" → Change to "Allow"</li>
+                  <li>Refresh this page</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Subscribe -->
+          <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-2xl">2️⃣</span>
+              <h3 class="text-lg font-semibold text-amber-100">Subscribe to Push</h3>
+            </div>
+            <p class="text-sm text-neutral-400 mb-3">After granting permission, click to subscribe</p>
+            <button
+              id="subscribe-btn"
+              class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+            >
+              Subscribe to Push
+            </button>
+          </div>
+
+          <!-- Step 3: Test -->
+          <div class="flex flex-wrap gap-4">
+            <button
+              id="test-notification-btn"
+              class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+            >
+              Send Test Notification
+            </button>
+            
+            <button
+              id="unsubscribe-btn"
+              class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+            >
+              Unsubscribe
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Console Output -->
+      <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+        <h2 class="text-2xl font-bold text-amber-100 mb-4">Console Output</h2>
+        <div 
+          id="console-output" 
+          class="bg-black rounded-lg p-4 font-mono text-sm text-green-400 h-64 overflow-y-auto"
+        >
+          <div class="text-neutral-500">Waiting for actions...</div>
+        </div>
+      </div>
+
+      <!-- Back Link -->
+      <div class="mt-8 text-center">
+        <a href="/" class="text-amber-400 hover:text-amber-300 underline">
+          ← Back to Home
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { pushNotifications } from '../lib/push/notifications';
+
+    // Console output helper
+    const consoleOutput = document.getElementById('console-output');
+    function log(message: string, type: 'info' | 'success' | 'error' | 'warning' = 'info') {
+      const colors = {
+        info: 'text-blue-400',
+        success: 'text-green-400',
+        error: 'text-red-400',
+        warning: 'text-yellow-400'
+      };
+      
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = colors[type];
+      entry.textContent = `[${timestamp}] ${message}`;
+      consoleOutput?.appendChild(entry);
+      consoleOutput?.scrollTo(0, consoleOutput.scrollHeight);
+      
+      console.log(`[PWA Test] ${message}`);
+    }
+
+    // Check browser support
+    async function checkBrowserSupport() {
+      const supportDiv = document.getElementById('browser-support');
+      if (!supportDiv) return;
+
+      const checks = [
+        {
+          name: 'Service Workers',
+          supported: 'serviceWorker' in navigator,
+          required: true
+        },
+        {
+          name: 'Push Manager',
+          supported: 'PushManager' in window,
+          required: true
+        },
+        {
+          name: 'Notifications',
+          supported: 'Notification' in window,
+          required: true
+        },
+        {
+          name: 'Background Sync',
+          supported: 'sync' in ServiceWorkerRegistration.prototype,
+          required: false
+        }
+      ];
+
+      supportDiv.innerHTML = checks.map(check => `
+        <div class="flex items-center gap-2">
+          ${check.supported ? '✅' : '❌'} 
+          <span class="${check.supported ? 'text-green-400' : 'text-red-400'}">
+            ${check.name}
+          </span>
+          ${!check.required ? '<span class="text-neutral-500">(optional)</span>' : ''}
+        </div>
+      `).join('');
+
+      log('Browser support check completed', 'info');
+    }
+
+    // Check service worker status
+    async function checkServiceWorker() {
+      const statusDiv = document.getElementById('sw-status');
+      if (!statusDiv) return;
+
+      if (!('serviceWorker' in navigator)) {
+        statusDiv.innerHTML = '<p class="text-red-400">❌ Service Worker not supported</p>';
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        
+        statusDiv.innerHTML = `
+          <div class="space-y-2">
+            <p class="text-green-400">✅ Service Worker: Active</p>
+            <p class="text-neutral-300">Scope: ${registration.scope}</p>
+            <p class="${subscription ? 'text-green-400' : 'text-yellow-400'}">
+              ${subscription ? '✅ Push Subscription: Active' : '⚠️ Push Subscription: Not subscribed'}
+            </p>
+          </div>
+        `;
+        
+        log('Service worker is active', 'success');
+        
+        if (subscription) {
+          log('Already subscribed to push notifications', 'info');
+          enableButton('test-notification-btn');
+          enableButton('unsubscribe-btn');
+        } else {
+          enableButton('subscribe-btn');
+        }
+      } catch (error) {
+        statusDiv.innerHTML = '<p class="text-red-400">❌ Service Worker: Error</p>';
+        log(`Service worker error: ${error}`, 'error');
+      }
+    }
+
+    // Helper to enable/disable buttons
+    function enableButton(id: string) {
+      const btn = document.getElementById(id) as HTMLButtonElement;
+      if (btn) btn.disabled = false;
+    }
+
+    function disableButton(id: string) {
+      const btn = document.getElementById(id) as HTMLButtonElement;
+      if (btn) btn.disabled = true;
+    }
+
+    // Request notification permission
+    document.getElementById('request-permission-btn')?.addEventListener('click', async () => {
+      log('Requesting notification permission...', 'info');
+      log('⏳ Waiting for browser permission dialog...', 'info');
+      log('💡 Look for the browser prompt and click "Allow"', 'info');
+      
+      // Disable button while waiting
+      const btn = document.getElementById('request-permission-btn') as HTMLButtonElement;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Waiting for permission...';
+      }
+      
+      try {
+        const permission = await pushNotifications.requestPermission();
+        
+        // Re-enable button
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Request Permission';
+        }
+        
+        if (permission === 'granted') {
+          log('✅ Permission granted! You can now subscribe to push notifications', 'success');
+          enableButton('subscribe-btn');
+          disableButton('request-permission-btn');
+          const btn = document.getElementById('request-permission-btn') as HTMLButtonElement;
+          if (btn) {
+            btn.textContent = '✅ Permission Granted';
+            btn.classList.add('bg-green-600', 'hover:bg-green-700');
+            btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+          }
+          log('💡 Click "Subscribe to Push" button to complete setup', 'info');
+        } else if (permission === 'denied') {
+          log('❌ Permission denied. Check browser settings to allow notifications', 'error');
+          log('💡 See instructions below to fix this', 'info');
+          disableButton('request-permission-btn');
+          const btn = document.getElementById('request-permission-btn') as HTMLButtonElement;
+          if (btn) {
+            btn.textContent = '❌ Permission Denied';
+            btn.classList.add('bg-red-600', 'hover:bg-red-700');
+            btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+          }
+          // Show help instructions
+          const helpDiv = document.getElementById('permission-denied-help');
+          if (helpDiv) {
+            helpDiv.classList.remove('hidden');
+          }
+        } else {
+          log('⚠️ Permission prompt was dismissed (not answered)', 'warning');
+          log('💡 Click "Request Permission" again and make sure to click "Allow"', 'info');
+          log('💡 The browser prompt appears near the address bar - look for it!', 'info');
+        }
+      } catch (error: any) {
+        log(`❌ Error requesting permission: ${error.message || error}`, 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Request Permission';
+        }
+      }
+    });
+
+    // Subscribe to push
+    document.getElementById('subscribe-btn')?.addEventListener('click', async () => {
+      log('Initializing push notifications...', 'info');
+      
+      try {
+        await pushNotifications.initialize();
+        log('Push service initialized', 'success');
+        
+        // Check permission first
+        const currentPermission = pushNotifications.getPermission();
+        log(`Current permission status: ${currentPermission}`, 'info');
+        
+        if (currentPermission !== 'granted') {
+          log('⚠️ Permission not granted. Please click "Request Permission" first', 'warning');
+          return;
+        }
+        
+        const vapidKey = import.meta.env.PUBLIC_VAPID_PUBLIC_KEY;
+        
+        if (!vapidKey) {
+          log('❌ VAPID public key not configured!', 'error');
+          return;
+        }
+        
+        log(`Using VAPID key: ${vapidKey.substring(0, 20)}...`, 'info');
+        log('Subscribing to push notifications...', 'info');
+        
+        const subscription = await pushNotifications.subscribe(vapidKey);
+        
+        if (subscription) {
+          log('✅ Successfully subscribed!', 'success');
+          log(`Endpoint: ${subscription.endpoint.substring(0, 50)}...`, 'info');
+          
+          // Send subscription to backend
+          log('Sending subscription to backend...', 'info');
+          const sent = await pushNotifications.sendSubscriptionToBackend(subscription);
+          
+          if (sent) {
+            log('✅ Subscription saved to backend', 'success');
+          } else {
+            log('⚠️ Failed to save subscription to backend', 'warning');
+          }
+          
+          disableButton('subscribe-btn');
+          enableButton('test-notification-btn');
+          enableButton('unsubscribe-btn');
+          
+          await checkServiceWorker();
+        } else {
+          log('❌ Subscription failed - check browser console for details', 'error');
+        }
+      } catch (error: any) {
+        log(`❌ Error: ${error.message || error}`, 'error');
+        console.error('[PWA Test] Full error:', error);
+      }
+    });
+
+    // Send test notification
+    document.getElementById('test-notification-btn')?.addEventListener('click', async () => {
+      log('Sending test notification...', 'info');
+      
+      try {
+        await pushNotifications.showNotification({
+          title: '🎉 Test Notification',
+          body: 'Your push notifications are working perfectly!',
+          icon: '/rrg-logo.jpg',
+          badge: '/rrg-logo.jpg',
+          tag: 'test-notification',
+          requireInteraction: false
+        });
+        
+        log('✅ Test notification sent', 'success');
+      } catch (error) {
+        log(`❌ Error: ${error}`, 'error');
+      }
+    });
+
+    // Unsubscribe
+    document.getElementById('unsubscribe-btn')?.addEventListener('click', async () => {
+      log('Unsubscribing...', 'info');
+      
+      try {
+        const subscription = pushNotifications.getSubscription();
+        if (subscription) {
+          await pushNotifications.removeSubscriptionFromBackend(subscription);
+        }
+        
+        const success = await pushNotifications.unsubscribe();
+        
+        if (success) {
+          log('✅ Unsubscribed successfully', 'success');
+          disableButton('test-notification-btn');
+          disableButton('unsubscribe-btn');
+          enableButton('subscribe-btn');
+          await checkServiceWorker();
+        } else {
+          log('❌ Unsubscribe failed', 'error');
+        }
+      } catch (error) {
+        log(`❌ Error: ${error}`, 'error');
+      }
+    });
+
+    // Check permission status periodically
+    function checkPermissionStatus() {
+      if ('Notification' in window) {
+        const permission = Notification.permission;
+        
+        if (permission === 'granted') {
+          log('✅ Permission is granted! You can subscribe now', 'success');
+          enableButton('subscribe-btn');
+          disableButton('request-permission-btn');
+          const btn = document.getElementById('request-permission-btn') as HTMLButtonElement;
+          if (btn) {
+            btn.textContent = '✅ Permission Granted';
+            btn.classList.add('bg-green-600', 'hover:bg-green-700');
+            btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+          }
+        } else if (permission === 'denied') {
+          log('❌ Permission was denied. Check browser settings', 'error');
+          log('💡 See instructions below to fix this', 'info');
+          disableButton('request-permission-btn');
+          const btn = document.getElementById('request-permission-btn') as HTMLButtonElement;
+          if (btn) {
+            btn.textContent = '❌ Permission Denied';
+            btn.classList.add('bg-red-600', 'hover:bg-red-700');
+            btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+          }
+          // Show help instructions
+          const helpDiv = document.getElementById('permission-denied-help');
+          if (helpDiv) {
+            helpDiv.classList.remove('hidden');
+          }
+        }
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      log('🚀 PWA Test Page loaded', 'info');
+      log(`VAPID key configured: ${!!import.meta.env.PUBLIC_VAPID_PUBLIC_KEY}`, 'info');
+      
+      await checkBrowserSupport();
+      await checkServiceWorker();
+      
+      // Check current permission
+      if ('Notification' in window) {
+        const permission = Notification.permission;
+        log(`Current permission: ${permission}`, 'info');
+        
+        checkPermissionStatus();
+        
+        if (permission === 'default') {
+          log('💡 Click "Request Permission" and then click "Allow" in the browser prompt', 'info');
+        }
+      }
+      
+      // Check permission status every 500ms (in case user grants it)
+      const permissionCheckInterval = setInterval(() => {
+        if (Notification.permission !== 'default') {
+          checkPermissionStatus();
+          clearInterval(permissionCheckInterval);
+        }
+      }, 500);
+      
+      // Stop checking after 30 seconds
+      setTimeout(() => clearInterval(permissionCheckInterval), 30000);
+    });
+  </script>
+</Base>
+

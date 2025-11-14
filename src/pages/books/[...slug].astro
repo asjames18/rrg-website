@@ -1,78 +1,236 @@
 ---
+/**
+ * Book Detail Page - Loads from Supabase CMS
+ */
 import Base from '../../layouts/Base.astro';
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 import BookCard from '../../components/BookCard';
 import { getBookCoverUrl, formatRating, getLevelLabel, getLevelBadgeColor, getCategoryIcon } from '../../lib/book-utils';
 
-export async function getStaticPaths() {
-  const bookEntries = await getCollection('books');
-  return bookEntries.map(entry => ({
-    params: { slug: entry.slug },
-    props: { entry },
-  }));
+// Helper function to escape HTML
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-type Props = {
-  entry: CollectionEntry<'books'>;
-};
+// Minimal Markdown renderer for server-side use without external deps
+function renderBasicMarkdown(markdown: string): string {
+  if (!markdown) return '';
 
-let { entry } = Astro.props;
+  // Normalize line endings
+  let md = markdown.replace(/\r\n/g, '\n');
 
-// Fallback: fetch by slug when navigating to non-prebuilt path
-if (!entry) {
-  const slugParam = Array.isArray(Astro.params.slug) ? Astro.params.slug.join('/') : (Astro.params.slug || '');
-  if (slugParam) {
-    try {
-      const all = await getCollection('books');
-      entry = all.find(e => e.slug === slugParam) as any;
-      if (!entry) {
-        Astro.response.status = 404;
+  // Code blocks ``` ```
+  md = md.replace(/```([\s\S]*?)```/g, (_m, code) => {
+    return `<pre class="bg-neutral-900 border border-neutral-800 rounded-lg p-4 overflow-x-auto"><code>${escapeHtml(code)}</code></pre>`;
+  });
+
+  // Inline code `code`
+  md = md.replace(/`([^`]+)`/g, (_m, code) => `<code class="bg-neutral-900 text-amber-300 px-1.5 py-0.5 rounded text-sm">${escapeHtml(code)}</code>`);
+
+  // Headings ####, ###, ##, #
+  md = md
+    .replace(/^\s*######\s+(.*)$/gm, '<h6 class="text-lg font-bold text-amber-100 mt-6 mb-3">$1</h6>')
+    .replace(/^\s*#####\s+(.*)$/gm, '<h5 class="text-xl font-bold text-amber-100 mt-6 mb-3">$1</h5>')
+    .replace(/^\s*####\s+(.*)$/gm, '<h4 class="text-2xl font-bold text-amber-100 mt-6 mb-4">$1</h4>')
+    .replace(/^\s*###\s+(.*)$/gm, '<h3 class="text-2xl font-bold text-amber-100 mt-8 mb-4">$1</h3>')
+    .replace(/^\s*##\s+(.*)$/gm, '<h2 class="text-3xl font-bold text-amber-100 mt-10 mb-6">$1</h2>')
+    .replace(/^\s*#\s+(.*)$/gm, '<h1 class="text-4xl font-bold text-amber-100 mt-10 mb-6">$1</h1>');
+
+  // Bold and italics
+  md = md
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-amber-100">$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em class="italic">$1</em>')
+    .replace(/__([^_]+)__/g, '<strong class="font-semibold text-amber-100">$1</strong>')
+    .replace(/_([^_]+)_/g, '<em class="italic">$1</em>');
+
+  // Links [text](url)
+  md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-amber-400 hover:text-amber-300 underline" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // Unordered lists (handle both - and *)
+  md = md.replace(/(?:^\s*[-*]\s+.*(?:\n|$))+?/gm, (block) => {
+    const items = block
+      .trim()
+      .split('\n')
+      .map((line) => line.replace(/^\s*[-*]\s+/, '').trim())
+      .filter(Boolean)
+      .map((item) => `<li class="text-neutral-300 mb-2 ml-4">${item}</li>`)
+      .join('');
+    return items ? `<ul class="list-disc list-inside space-y-2 my-4 text-neutral-300">${items}</ul>\n` : block;
+  });
+
+  // Ordered lists
+  md = md.replace(/(?:^\s*\d+\.\s+.*(?:\n|$))+?/gm, (block) => {
+    const items = block
+      .trim()
+      .split('\n')
+      .map((line) => line.replace(/^\s*\d+\.\s+/, '').trim())
+      .filter(Boolean)
+      .map((item) => `<li class="text-neutral-300 mb-2 ml-4">${item}</li>`)
+      .join('');
+    return items ? `<ol class="list-decimal list-inside space-y-2 my-4 text-neutral-300">${items}</ol>\n` : block;
+  });
+
+  // Blockquotes
+  md = md.replace(/^>\s+(.*)$/gm, '<blockquote class="border-l-4 border-amber-700 bg-amber-900/20 pl-4 py-2 my-4 text-neutral-300 italic">$1</blockquote>');
+
+  // Horizontal rules
+  md = md.replace(/^---$/gm, '<hr class="border-neutral-800 my-8" />');
+  md = md.replace(/^\*\*\*$/gm, '<hr class="border-neutral-800 my-8" />');
+
+  // Paragraphs: wrap leftover text blocks separated by blank lines
+  md = md
+    .split(/\n{2,}/)
+    .map((chunk) => {
+      const trimmed = chunk.trim();
+      if (!trimmed) return '';
+      if (/^<h\d|^<ul|^<ol|^<pre|^<blockquote|^<table|^<p|^<code|^<hr/.test(trimmed)) {
+        return trimmed;
       }
-    } catch {
+      // Join single newlines within paragraph
+      const joined = trimmed.replace(/\n+/g, ' ');
+      return `<p class="text-neutral-300 leading-relaxed mb-4">${joined}</p>`;
+    })
+    .join('\n');
+
+  return md;
+}
+
+// Set prerender to false because Base.astro uses cookies/request headers for auth
+// which aren't available during prerendering
+export const prerender = false;
+
+// Fetch book by slug dynamically (server-side rendering)
+const slugParam = Array.isArray(Astro.params.slug) ? Astro.params.slug.join('/') : (Astro.params.slug || '');
+let cmsBook = null;
+
+if (slugParam) {
+  try {
+    cmsBook = await SupabaseCMSAPI.getContentBySlug(slugParam, { 
+      type: 'book', 
+      status: 'published' 
+    });
+    if (!cmsBook) {
       Astro.response.status = 404;
     }
-  } else {
+  } catch (error) {
+    console.error('Error fetching book by slug:', error);
     Astro.response.status = 404;
+  }
+} else {
+  Astro.response.status = 404;
+}
+
+// Transform CMS book to expected format
+const book = cmsBook ? {
+  id: cmsBook.id,
+  slug: cmsBook.slug,
+  title: cmsBook.title,
+  author: cmsBook.metadata?.author || 'Unknown Author',
+  isbn: cmsBook.metadata?.isbn,
+  coverImageUrl: cmsBook.metadata?.coverImageUrl,
+  rating: cmsBook.metadata?.rating,
+  level: cmsBook.metadata?.level || 'intermediate',
+  category: cmsBook.metadata?.category || 'General',
+  publishedYear: cmsBook.metadata?.publishedYear,
+  publisher: cmsBook.metadata?.publisher,
+  pages: cmsBook.metadata?.pages,
+  whyRecommended: cmsBook.metadata?.whyRecommended,
+  warnings: cmsBook.metadata?.warnings,
+  featured: cmsBook.featured || false,
+  affiliate: cmsBook.metadata?.affiliate || {
+    label: '',
+    url: '',
+    merchant: 'amazon'
+  },
+  alternativeLinks: cmsBook.metadata?.alternativeLinks || [],
+  topics: cmsBook.tags?.map((t: any) => t.name || t) || [],
+  body_md: cmsBook.body_md,
+  body_html: cmsBook.body_html
+} : null;
+
+// Get related books (same category or topics)
+let relatedBooks: any[] = [];
+if (book) {
+  try {
+    const result = await SupabaseCMSAPI.getContent({
+      type: 'book',
+      status: 'published',
+      limit: 100
+    });
+    
+    const allBooks = result.content || [];
+    relatedBooks = allBooks
+      .filter((b: any) => b.id !== book.id)
+      .map((b: any) => {
+        let relevanceScore = 0;
+        const bCategory = b.metadata?.category || 'General';
+        const bTopics = b.tags?.map((t: any) => t.name || t) || [];
+        const bAuthor = b.metadata?.author || 'Unknown Author';
+        
+        // Same category gets highest score
+        if (book.category === bCategory) {
+          relevanceScore += 10;
+        }
+        
+        // Matching topics
+        if (book.topics && bTopics.length > 0) {
+          const matchingTopics = book.topics.filter((t: string) => bTopics.includes(t));
+          relevanceScore += matchingTopics.length * 5;
+        }
+        
+        // Same author
+        if (book.author === bAuthor) {
+          relevanceScore += 3;
+        }
+        
+        return {
+          id: b.id,
+          slug: b.slug,
+          data: {
+            title: b.title,
+            author: bAuthor,
+            isbn: b.metadata?.isbn,
+            coverImageUrl: b.metadata?.coverImageUrl,
+            rating: b.metadata?.rating,
+            level: b.metadata?.level || 'intermediate',
+            category: bCategory,
+            publishedYear: b.metadata?.publishedYear,
+            publisher: b.metadata?.publisher,
+            pages: b.metadata?.pages,
+            whyRecommended: b.metadata?.whyRecommended,
+            featured: b.featured || false,
+            affiliate: b.metadata?.affiliate || {
+              label: '',
+              url: '',
+              merchant: 'amazon'
+            },
+            alternativeLinks: b.metadata?.alternativeLinks || [],
+            topics: bTopics
+          },
+          relevanceScore
+        };
+      })
+      .filter((b: any) => b.relevanceScore > 0)
+      .sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 3);
+  } catch (error) {
+    console.error('Error fetching related books:', error);
+    relatedBooks = [];
   }
 }
 
-let Content: any = null;
-const book = entry ? entry.data : null as any;
-if (entry) {
-  const rendered = await entry.render();
-  Content = rendered.Content;
-}
-
-// Get related books (same category or topics)
-const allBooks = await getCollection('books');
-const relatedBooks = allBooks
-  .filter(b => b.slug !== entry.slug)
-  .map(b => {
-    let relevanceScore = 0;
-    
-    // Same category gets highest score
-    if (book.category === b.data.category) {
-      relevanceScore += 10;
-    }
-    
-    // Matching topics
-    if (book.topics && b.data.topics) {
-      const matchingTopics = book.topics.filter(t => b.data.topics.includes(t));
-      relevanceScore += matchingTopics.length * 5;
-    }
-    
-    // Same author
-    if (book.author === b.data.author) {
-      relevanceScore += 3;
-    }
-    
-    return { ...b, relevanceScore };
-  })
-  .filter(b => b.relevanceScore > 0)
-  .sort((a, b) => b.relevanceScore - a.relevanceScore)
-  .slice(0, 3);
-
-const coverUrl = getBookCoverUrl(book.isbn, 'L');
+const coverUrl = getBookCoverUrl({
+  isbn: book?.isbn,
+  coverImageUrl: book?.coverImageUrl,
+  size: 'L'
+});
 
 ---
 
@@ -222,11 +380,12 @@ const coverUrl = getBookCoverUrl(book.isbn, 'L');
           )}
         </header>
 
-        {/* Book description (MDX content) */}
-        {Content && (
-          <div class="prose prose-lg prose-invert max-w-none">
-            <Content />
-          </div>
+        {/* Book description (Markdown/HTML content) */}
+        {book.body_html && (
+          <div class="prose prose-lg prose-invert max-w-none" set:html={book.body_html} />
+        )}
+        {book.body_md && !book.body_html && (
+          <div class="prose prose-lg prose-invert max-w-none" set:html={renderBasicMarkdown(book.body_md)} />
         )}
       </div>
     </div>

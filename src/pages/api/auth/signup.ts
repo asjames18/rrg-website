@@ -126,6 +126,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             }
           });
         
+        // Trigger welcome email workflow (non-blocking)
+        // This will automatically retry if it fails and can resume if interrupted
+        try {
+          const { workflow } = await import('workflow');
+          const { welcomeNewUser } = await import('../../../lib/workflows/welcome-email');
+          
+          // Execute workflow asynchronously - don't block the signup response
+          workflow(welcomeNewUser)(data.user.id, email).catch((workflowError) => {
+            logger.error('[Signup API] Welcome email workflow failed (non-critical):', workflowError);
+            // Don't fail signup if welcome email fails
+          });
+          
+          logger.info('[Signup API] Welcome email workflow triggered for:', email);
+        } catch (workflowImportError) {
+          logger.warn('[Signup API] Could not trigger welcome email workflow:', workflowImportError);
+          // Continue - welcome email is non-critical
+        }
+        
       } catch (profileErr) {
         logger.error('[Signup API] Profile creation exception:', profileErr);
         // Don't fail the signup if profile creation fails

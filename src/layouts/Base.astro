@@ -6,7 +6,10 @@
  * TODO: Consider adding dark/light theme toggle (currently dark-only)
  */
 import '../styles/global.css';
+import '../styles/mobile.css';
 import { supabaseServerReadOnly } from '../lib/supabase-server';
+import Analytics from '@vercel/analytics/astro';
+import MobileNav from '../components/mobile/MobileNav';
 
 interface Props {
   title: string;
@@ -14,8 +17,6 @@ interface Props {
 }
 
 const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH' } = Astro.props;
-// Use Vite's ?url import to get the bundled script URL
-const { default: headerScriptSrc } = await import('../scripts/header.js?url');
 
 // Server-side: detect current session and user email for first paint
 let isSignedIn = false;
@@ -24,26 +25,532 @@ let initialSession: { access_token: string; refresh_token: string } | null = nul
 
 try {
   const s = supabaseServerReadOnly(Astro.cookies);
-  const { data: sess } = await s.auth.getSession();
-  if (sess?.session) {
+  
+  // Use getUser() instead of getSession() for better security
+  // getUser() authenticates with the Supabase Auth server
+  const { data: userData, error: userError } = await s.auth.getUser();
+  
+  // Handle invalid refresh token errors gracefully
+  if (userError) {
+    // If it's a refresh token error, clear the invalid session
+    if (userError.message?.includes('refresh_token') || userError.code === 'refresh_token_not_found') {
+      // Clear invalid cookies
+      try {
+        Astro.cookies.delete('sb-access-token', { path: '/' });
+        Astro.cookies.delete('sb-refresh-token', { path: '/' });
+      } catch (cookieError) {
+        // Ignore cookie deletion errors
+      }
+    }
+    // Don't throw - just continue without session
+    isSignedIn = false;
+    userEmail = '';
+    initialSession = null;
+  } else if (userData?.user) {
+    // User is authenticated
     isSignedIn = true;
-    userEmail = sess.session.user?.email ?? '';
+    userEmail = userData.user.email ?? '';
+    
+    // Get session for initial client-side bootstrap (if needed)
+    // But we use getUser() for authentication check
+    try {
+      const { data: sess } = await s.auth.getSession();
+      if (sess?.session) {
     initialSession = {
       access_token: sess.session.access_token,
       refresh_token: sess.session.refresh_token,
     };
   }
-} catch {}
+    } catch (sessionError) {
+      // If getSession fails, we still have the user from getUser()
+      // Just don't set initialSession
+      initialSession = null;
+    }
+  }
+} catch (error: any) {
+  // Handle all auth errors gracefully - don't crash the page
+  if (error?.code === 'refresh_token_not_found' || error?.message?.includes('refresh_token')) {
+    // Clear invalid cookies
+    try {
+      Astro.cookies.delete('sb-access-token', { path: '/' });
+      Astro.cookies.delete('sb-refresh-token', { path: '/' });
+    } catch (cookieError) {
+      // Ignore cookie deletion errors
+    }
+  }
+  // Continue without session
+  isSignedIn = false;
+  userEmail = '';
+  initialSession = null;
+}
 ---
 
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content={description} />
+    <meta name="theme-color" content="#d97706" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RRG" />
     <link rel="icon" type="image/jpeg" href="/rrg-logo.jpg" />
+    <link rel="apple-touch-icon" href="/rrg-logo.jpg" />
+    <link rel="manifest" href="/manifest.json" />
     <title>{title} | Real & Raw Gospel</title>
+    <style>
+      /* Global Theme Switching Styles */
+      html[data-theme="light"] body {
+        background-color: #ffffff !important;
+        color: #171717 !important;
+      }
+      
+      /* Background colors */
+      html[data-theme="light"] .bg-gradient-to-br,
+      html[data-theme="light"] .bg-neutral-900,
+      html[data-theme="light"] .bg-neutral-950,
+      html[data-theme="light"] .bg-black {
+        background-color: #ffffff !important;
+        background: linear-gradient(to bottom right, #ffffff, #f9fafb, #ffffff) !important;
+      }
+      
+      html[data-theme="light"] .bg-neutral-800,
+      html[data-theme="light"] .bg-neutral-700 {
+        background-color: #f3f4f6 !important;
+      }
+      
+      /* Text colors - ensure dark text on light backgrounds */
+      html[data-theme="light"] .text-neutral-100,
+      html[data-theme="light"] .text-neutral-200,
+      html[data-theme="light"] .text-neutral-300,
+      html[data-theme="light"] .text-neutral-400,
+      html[data-theme="light"] .text-amber-100,
+      html[data-theme="light"] .text-white {
+        color: #171717 !important;
+      }
+      
+      /* Amber text - keep amber but darker for visibility */
+      html[data-theme="light"] .text-amber-200 {
+        color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] .text-amber-300 {
+        color: #f59e0b !important;
+      }
+      
+      html[data-theme="light"] .text-amber-400 {
+        color: #f59e0b !important;
+      }
+      
+      /* Neutral text - adjust for better contrast */
+      html[data-theme="light"] .text-neutral-500 {
+        color: #6b7280 !important;
+      }
+      
+      /* Borders */
+      html[data-theme="light"] .border-neutral-700,
+      html[data-theme="light"] .border-neutral-800 {
+        border-color: #e5e7eb !important;
+      }
+      
+      /* Header theme switching */
+      html[data-theme="light"] header {
+        background-color: rgba(249, 250, 251, 0.95) !important;
+        border-bottom-color: #e5e7eb !important;
+      }
+      
+      html[data-theme="light"] header a,
+      html[data-theme="light"] header button {
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] header .text-amber-400,
+      html[data-theme="light"] header .text-amber-300 {
+        color: #f59e0b !important;
+      }
+      
+      /* Footer theme switching */
+      html[data-theme="light"] footer {
+        background-color: #f9fafb !important;
+        border-top-color: #e5e7eb !important;
+      }
+      
+      html[data-theme="light"] footer .text-amber-100 {
+        color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] footer .text-neutral-400 {
+        color: #6b7280 !important;
+      }
+      
+      html[data-theme="light"] footer .text-neutral-500 {
+        color: #6b7280 !important;
+      }
+      
+      html[data-theme="light"] footer a {
+        color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] footer a:hover {
+        color: #b45309 !important;
+      }
+      
+      /* Card backgrounds - ensure cards are visible */
+      html[data-theme="light"] article.bg-neutral-900,
+      html[data-theme="light"] .bg-neutral-900 {
+        background-color: #ffffff !important;
+        border-color: #e5e7eb !important;
+      }
+      
+      /* Button hover states */
+      html[data-theme="light"] .bg-neutral-800:hover,
+      html[data-theme="light"] .hover\:bg-neutral-700:hover {
+        background-color: #e5e7eb !important;
+      }
+      
+      html[data-theme="light"] .hover\:bg-neutral-800:hover {
+        background-color: #f3f4f6 !important;
+      }
+      
+      /* Card hover borders */
+      html[data-theme="light"] .hover\:border-amber-700:hover {
+        border-color: #d97706 !important;
+      }
+      
+      /* Section backgrounds */
+      html[data-theme="light"] section.bg-black,
+      html[data-theme="light"] section.bg-neutral-950 {
+        background-color: #ffffff !important;
+      }
+      
+      /* Links in light mode */
+      html[data-theme="light"] a.text-neutral-400 {
+        color: #6b7280 !important;
+      }
+      
+      html[data-theme="light"] a.text-neutral-400:hover {
+        color: #d97706 !important;
+      }
+      
+      /* Badge/tag backgrounds */
+      html[data-theme="light"] .bg-amber-900\/30 {
+        background-color: rgba(217, 119, 6, 0.1) !important;
+      }
+      
+      html[data-theme="light"] .bg-amber-900\/20 {
+        background-color: rgba(217, 119, 6, 0.1) !important;
+      }
+      
+      html[data-theme="light"] .border-amber-800 {
+        border-color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] .border-amber-800\/50 {
+        border-color: rgba(217, 119, 6, 0.3) !important;
+      }
+      
+      /* Text in badges */
+      html[data-theme="light"] .text-amber-200 {
+        color: #d97706 !important;
+      }
+      
+      /* Shadow adjustments for light mode */
+      html[data-theme="light"] .shadow-md {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+      }
+      
+      html[data-theme="light"] .shadow-xl {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+      }
+      
+      /* Dropdown menus */
+      html[data-theme="light"] #user-dropdown {
+        background-color: #ffffff !important;
+        border-color: #e5e7eb !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+      }
+      
+      html[data-theme="light"] #user-dropdown a,
+      html[data-theme="light"] #user-dropdown button {
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] #user-dropdown a:hover,
+      html[data-theme="light"] #user-dropdown button:hover {
+        background-color: #f3f4f6 !important;
+      }
+      
+      html[data-theme="light"] #user-dropdown .hover\:text-amber-100:hover {
+        color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] #user-dropdown .hover\:text-red-400:hover {
+        color: #dc2626 !important;
+      }
+      
+      html[data-theme="light"] #user-dropdown .border-neutral-700 {
+        border-color: #e5e7eb !important;
+      }
+      
+      /* Mobile menu */
+      html[data-theme="light"] #mobile-menu {
+        background-color: #ffffff !important;
+      }
+      
+      html[data-theme="light"] #mobile-menu a,
+      html[data-theme="light"] #mobile-menu button {
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] #mobile-menu .text-neutral-300 {
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] #mobile-menu .text-neutral-400 {
+        color: #6b7280 !important;
+      }
+      
+      html[data-theme="light"] #mobile-menu .text-amber-100 {
+        color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] #mobile-menu .text-amber-300 {
+        color: #f59e0b !important;
+      }
+      
+      html[data-theme="light"] #mobile-menu .border-neutral-700 {
+        border-color: #e5e7eb !important;
+      }
+      
+      /* Hero section text */
+      html[data-theme="light"] section .text-white {
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] section .text-amber-100 {
+        color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] section .text-amber-200 {
+        color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] section .text-neutral-300 {
+        color: #6b7280 !important;
+      }
+      
+      /* Buttons - ensure visibility */
+      html[data-theme="light"] .bg-neutral-800 {
+        background-color: #f3f4f6 !important;
+      }
+      
+      html[data-theme="light"] .bg-neutral-800.text-neutral-200 {
+        color: #171717 !important;
+      }
+      
+      /* Focus ring adjustments for light mode */
+      html[data-theme="light"] .focus\:ring-offset-black:focus {
+        --tw-ring-offset-color: #ffffff !important;
+      }
+      
+      /* Form inputs - search bars, selects, text inputs - MORE SPECIFIC */
+      html[data-theme="light"] input[type="text"],
+      html[data-theme="light"] input[type="search"],
+      html[data-theme="light"] select,
+      html[data-theme="light"] textarea {
+        background-color: #ffffff !important;
+        border-color: #e5e7eb !important;
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] input::placeholder,
+      html[data-theme="light"] textarea::placeholder {
+        color: #9ca3af !important;
+      }
+      
+      /* Target all inputs/selects with dark background classes */
+      html[data-theme="light"] input[class*="bg-neutral-900"],
+      html[data-theme="light"] input[class*="bg-neutral-800"],
+      html[data-theme="light"] select[class*="bg-neutral-900"],
+      html[data-theme="light"] select[class*="bg-neutral-800"] {
+        background-color: #ffffff !important;
+        border-color: #e5e7eb !important;
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] input[class*="text-neutral-100"],
+      html[data-theme="light"] input[class*="text-neutral-200"],
+      html[data-theme="light"] input[class*="text-neutral-300"],
+      html[data-theme="light"] select[class*="text-neutral-100"],
+      html[data-theme="light"] select[class*="text-neutral-200"],
+      html[data-theme="light"] select[class*="text-neutral-300"] {
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] input[class*="placeholder-neutral-500"]::placeholder,
+      html[data-theme="light"] input[class*="placeholder-neutral-400"]::placeholder {
+        color: #9ca3af !important;
+      }
+      
+      /* Filter buttons and controls - MORE SPECIFIC */
+      html[data-theme="light"] button[class*="bg-neutral-900"],
+      html[data-theme="light"] button[class*="bg-neutral-800"] {
+        background-color: #f3f4f6 !important;
+        border-color: #e5e7eb !important;
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] button[class*="bg-neutral-900"]:hover,
+      html[data-theme="light"] button[class*="bg-neutral-800"]:hover,
+      html[data-theme="light"] button[class*="hover:bg-neutral-800"]:hover {
+        background-color: #e5e7eb !important;
+      }
+      
+      html[data-theme="light"] button[class*="text-neutral-100"],
+      html[data-theme="light"] button[class*="text-neutral-200"],
+      html[data-theme="light"] button[class*="text-neutral-300"],
+      html[data-theme="light"] button[class*="text-neutral-400"] {
+        color: #171717 !important;
+      }
+      
+      /* View toggle buttons - inactive state */
+      html[data-theme="light"] button[class*="bg-neutral-900"][class*="border-neutral-800"] {
+        background-color: #ffffff !important;
+        border-color: #e5e7eb !important;
+        color: #6b7280 !important;
+      }
+      
+      html[data-theme="light"] button[class*="bg-neutral-900"][class*="border-neutral-800"]:hover {
+        background-color: #f3f4f6 !important;
+      }
+      
+      /* Empty state boxes - MORE SPECIFIC */
+      html[data-theme="light"] div[class*="bg-neutral-900"][class*="border-neutral-800"],
+      html[data-theme="light"] .bg-neutral-900.border-neutral-800 {
+        background-color: #f9fafb !important;
+        border-color: #e5e7eb !important;
+      }
+      
+      html[data-theme="light"] div[class*="bg-neutral-900"] .text-neutral-400,
+      html[data-theme="light"] div[class*="bg-neutral-900"] .text-neutral-500,
+      html[data-theme="light"] div[class*="bg-neutral-900"] .text-neutral-600,
+      html[data-theme="light"] .bg-neutral-900.border-neutral-800 .text-neutral-400,
+      html[data-theme="light"] .bg-neutral-900.border-neutral-800 .text-neutral-500,
+      html[data-theme="light"] .bg-neutral-900.border-neutral-800 .text-neutral-600 {
+        color: #6b7280 !important;
+      }
+      
+      /* Pagination buttons */
+      html[data-theme="light"] .pagination-btn.bg-neutral-800 {
+        background-color: #f3f4f6 !important;
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] .pagination-btn.bg-neutral-800:hover {
+        background-color: #e5e7eb !important;
+      }
+      
+      html[data-theme="light"] .pagination-btn.text-neutral-300 {
+        color: #171717 !important;
+      }
+      
+      /* Filter panel backgrounds */
+      html[data-theme="light"] .bg-neutral-900.border-neutral-800.rounded-lg {
+        background-color: #ffffff !important;
+        border-color: #e5e7eb !important;
+      }
+      
+      /* Filter button tags */
+      html[data-theme="light"] button.bg-neutral-800.border-neutral-700 {
+        background-color: #f3f4f6 !important;
+        border-color: #e5e7eb !important;
+        color: #171717 !important;
+      }
+      
+      html[data-theme="light"] button.bg-neutral-800.border-neutral-700:hover {
+        background-color: #e5e7eb !important;
+      }
+      
+      html[data-theme="light"] button.bg-neutral-800.border-neutral-700.text-neutral-300 {
+        color: #171717 !important;
+      }
+      
+      /* Checkboxes */
+      html[data-theme="light"] input[type="checkbox"] {
+        background-color: #ffffff !important;
+        border-color: #d1d5db !important;
+      }
+      
+      html[data-theme="light"] input[type="checkbox"]:checked {
+        background-color: #d97706 !important;
+        border-color: #d97706 !important;
+      }
+      
+      /* SVG icons in inputs */
+      html[data-theme="light"] svg.text-neutral-500 {
+        color: #9ca3af !important;
+      }
+      
+      /* Continue training section */
+      html[data-theme="light"] .bg-neutral-950.border-neutral-800 {
+        background-color: #f9fafb !important;
+        border-color: #e5e7eb !important;
+      }
+      
+      /* Results count text */
+      html[data-theme="light"] .text-neutral-500 {
+        color: #6b7280 !important;
+      }
+      
+      html[data-theme="light"] .text-neutral-300 {
+        color: #171717 !important;
+      }
+      
+      /* Book and Video cards - ensure they're light - MORE SPECIFIC */
+      html[data-theme="light"] article[class*="bg-neutral-900"],
+      html[data-theme="light"] article.bg-neutral-900.border-neutral-800 {
+        background-color: #ffffff !important;
+        border-color: #e5e7eb !important;
+      }
+      
+      /* Card content text */
+      html[data-theme="light"] article[class*="bg-neutral-900"] .text-amber-100,
+      html[data-theme="light"] article .text-amber-100 {
+        color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] article[class*="bg-neutral-900"] .text-neutral-400,
+      html[data-theme="light"] article .text-neutral-400 {
+        color: #6b7280 !important;
+      }
+      
+      html[data-theme="light"] article[class*="bg-neutral-900"] .bg-neutral-800,
+      html[data-theme="light"] article .bg-neutral-800 {
+        background-color: #f3f4f6 !important;
+      }
+      
+      html[data-theme="light"] article[class*="bg-neutral-900"] [class*="bg-amber-900"],
+      html[data-theme="light"] article .bg-amber-900\/20 {
+        background-color: rgba(217, 119, 6, 0.1) !important;
+      }
+      
+      html[data-theme="light"] article[class*="bg-neutral-900"] .text-amber-200,
+      html[data-theme="light"] article .text-amber-200 {
+        color: #d97706 !important;
+      }
+      
+      /* Card hover states */
+      html[data-theme="light"] article[class*="hover:border-amber-700"]:hover,
+      html[data-theme="light"] article.hover\:border-amber-700:hover {
+        border-color: #d97706 !important;
+      }
+      
+      html[data-theme="light"] article[class*="bg-neutral-900"] .group-hover\:text-amber-200:hover,
+      html[data-theme="light"] article .group-hover\:text-amber-200:hover {
+        color: #b45309 !important;
+      }
+    </style>
   </head>
   <body class="min-h-screen flex flex-col bg-black text-neutral-100" data-initial-session={initialSession ? JSON.stringify(initialSession) : ''}>
     <header role="banner" class="sticky top-0 z-50 bg-neutral-950/95 backdrop-blur border-b border-neutral-800">
@@ -89,7 +596,7 @@ try {
                 <!-- Auth Section -->
                 <li id="auth-nav-item" class={isSignedIn ? '' : 'hidden'}>
                   <div id="user-menu" class="relative">
-                    <button id="user-menu-button" class="flex items-center gap-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1 transition-colors">
+                    <button type="button" id="user-menu-button" class="flex items-center gap-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-2 py-1 transition-colors">
                       <span id="user-email" class="text-sm">{userEmail}</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -101,7 +608,6 @@ try {
                         <div class="border-t border-neutral-700 my-2"></div>
                         <a href="/cms" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">CMS Dashboard</a>
                         <a href="/admin-dashboard" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">Admin Dashboard</a>
-                        <a href="/admin" class="block px-4 py-2 text-sm text-amber-300 hover:bg-neutral-700 hover:text-amber-100 transition-colors">User Management</a>
                       </div>
                       <button id="sign-out-btn" class="block w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-700 hover:text-red-400 transition-colors">Sign Out</button>
                     </div>
@@ -135,7 +641,6 @@ try {
                   <div class="border-t border-neutral-700 my-2"></div>
                   <a href="/cms" class="block py-2 text-amber-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">CMS Dashboard</a>
                   <a href="/admin-dashboard" class="block py-2 text-amber-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Admin Dashboard</a>
-                  <a href="/admin" class="block py-2 text-amber-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">User Management</a>
                 </div>
                 <div class="space-y-2">
                   <a href="/profile" class="block py-2 text-neutral-300 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black rounded px-1 transition-colors">Profile</a>
@@ -186,13 +691,283 @@ try {
       </div>
     </footer>
 
-
-    <script type="module" src={headerScriptSrc}></script>
-    
-    <!-- Fallback: Ensure mobile menu always works even if module fails to load -->
+    <!-- Global Theme Initialization -->
     <script is:inline>
-      // Mobile menu toggle - inline to ensure it always works
+      // Apply theme preference on page load (site-wide)
       (function() {
+        try {
+          // First check localStorage
+          let savedTheme = localStorage.getItem('user-theme');
+          
+          // If not in localStorage, try to load from database (async, won't block initial render)
+          if (!savedTheme) {
+            fetch('/api/user/preferences')
+              .then(res => res.json())
+              .then(data => {
+                if (data.preferences && data.preferences.theme) {
+                  savedTheme = data.preferences.theme;
+                  localStorage.setItem('user-theme', savedTheme);
+                  applyTheme(savedTheme);
+                }
+              })
+              .catch(() => {
+                // If fetch fails, use default
+                savedTheme = 'dark';
+              });
+          }
+          
+          // Use saved theme or default to dark
+          savedTheme = savedTheme || 'dark';
+          
+          const html = document.documentElement;
+          const body = document.body;
+          
+          // Determine actual theme
+          let actualTheme = savedTheme;
+          if (savedTheme === 'auto') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            actualTheme = prefersDark ? 'dark' : 'light';
+          }
+          
+          // Set data-theme attribute
+          html.setAttribute('data-theme', actualTheme);
+          html.classList.add(`theme-${savedTheme}`);
+          html.style.setProperty('color-scheme', actualTheme);
+          
+          // Function to apply theme (used by async fetch above and storage events)
+          function applyTheme(theme) {
+            const html = document.documentElement;
+            const body = document.body;
+            
+            let actualTheme = theme;
+            if (theme === 'auto') {
+              const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              actualTheme = prefersDark ? 'dark' : 'light';
+            }
+            
+            html.setAttribute('data-theme', actualTheme);
+            html.classList.remove('theme-dark', 'theme-light', 'theme-auto');
+            html.classList.add(`theme-${theme}`);
+            html.style.setProperty('color-scheme', actualTheme);
+            
+            if (actualTheme === 'light') {
+              body.style.setProperty('background-color', '#ffffff', 'important');
+              body.style.setProperty('color', '#171717', 'important');
+              
+              const header = document.querySelector('header');
+              if (header) {
+                header.style.setProperty('background-color', 'rgba(249, 250, 251, 0.95)', 'important');
+                header.style.setProperty('border-bottom-color', '#e5e7eb', 'important');
+              }
+              
+              const footer = document.querySelector('footer');
+              if (footer) {
+                footer.style.setProperty('background-color', '#f9fafb', 'important');
+                footer.style.setProperty('border-top-color', '#e5e7eb', 'important');
+              }
+              
+              // Apply to React components
+              setTimeout(() => {
+                document.querySelectorAll('input[class*="bg-neutral-900"], input[class*="bg-neutral-800"]').forEach((el) => {
+                  el.style.setProperty('background-color', '#ffffff', 'important');
+                  el.style.setProperty('border-color', '#e5e7eb', 'important');
+                  el.style.setProperty('color', '#171717', 'important');
+                });
+                
+                document.querySelectorAll('select[class*="bg-neutral-900"], select[class*="bg-neutral-800"]').forEach((el) => {
+                  el.style.setProperty('background-color', '#ffffff', 'important');
+                  el.style.setProperty('border-color', '#e5e7eb', 'important');
+                  el.style.setProperty('color', '#171717', 'important');
+                });
+                
+                document.querySelectorAll('button[class*="bg-neutral-900"], button[class*="bg-neutral-800"]').forEach((el) => {
+                  if (!el.classList.contains('bg-amber-700') && !el.classList.contains('bg-amber-600')) {
+                    el.style.setProperty('background-color', '#f3f4f6', 'important');
+                    el.style.setProperty('border-color', '#e5e7eb', 'important');
+                    el.style.setProperty('color', '#171717', 'important');
+                  }
+                });
+                
+                document.querySelectorAll('article[class*="bg-neutral-900"], div[class*="bg-neutral-900"].border-neutral-800').forEach((el) => {
+                  el.style.setProperty('background-color', '#ffffff', 'important');
+                  el.style.setProperty('border-color', '#e5e7eb', 'important');
+                });
+              }, 100);
+            } else {
+              // Dark theme - remove light overrides
+              body.style.removeProperty('background-color');
+              body.style.removeProperty('color');
+            }
+          }
+          
+          // Listen for storage events (theme changes from other tabs/pages)
+          window.addEventListener('storage', (e) => {
+            if (e.key === 'user-theme' && e.newValue) {
+              applyTheme(e.newValue);
+            }
+          });
+          
+          // Apply light theme styles if needed
+          if (actualTheme === 'light') {
+            body.style.setProperty('background-color', '#ffffff', 'important');
+            body.style.setProperty('color', '#171717', 'important');
+            
+            // Style header
+            const header = document.querySelector('header');
+            if (header) {
+              header.style.setProperty('background-color', 'rgba(249, 250, 251, 0.95)', 'important');
+              header.style.setProperty('border-bottom-color', '#e5e7eb', 'important');
+            }
+            
+            // Style footer
+            const footer = document.querySelector('footer');
+            if (footer) {
+              footer.style.setProperty('background-color', '#f9fafb', 'important');
+              footer.style.setProperty('border-top-color', '#e5e7eb', 'important');
+            }
+            
+            // Apply to elements with dark backgrounds
+            setTimeout(() => {
+              document.querySelectorAll('.bg-neutral-900, .bg-neutral-950, .bg-black, .bg-neutral-800, [class*="bg-neutral-800"], [class*="bg-neutral-900"]').forEach((el) => {
+                el.style.setProperty('background-color', '#f9fafb', 'important');
+              });
+              
+              // Apply to elements with light text
+              document.querySelectorAll('.text-neutral-100, .text-neutral-200, .text-neutral-300, .text-neutral-400, .text-amber-100, .text-white, h1, h2, h3, h4, h5, h6').forEach((el) => {
+                const classes = el.className;
+                if (typeof classes === 'string' && (
+                  classes.includes('text-neutral-100') || 
+                  classes.includes('text-neutral-200') || 
+                  classes.includes('text-neutral-300') ||
+                  classes.includes('text-neutral-400') ||
+                  classes.includes('text-amber-100') ||
+                  classes.includes('text-white')
+                )) {
+                  el.style.setProperty('color', '#171717', 'important');
+                }
+              });
+              
+              // Update main containers
+              document.querySelectorAll('.bg-gradient-to-br').forEach((el) => {
+                el.style.setProperty('background', 'linear-gradient(to bottom right, #ffffff, #f9fafb, #ffffff)', 'important');
+              });
+              
+              // Update borders
+              document.querySelectorAll('.border-neutral-700, .border-neutral-800, [class*="border-neutral-700"], [class*="border-neutral-800"]').forEach((el) => {
+                el.style.setProperty('border-color', '#e5e7eb', 'important');
+              });
+              
+              // Update sections
+              document.querySelectorAll('section.bg-black, section.bg-neutral-950').forEach((el) => {
+                el.style.setProperty('background-color', '#ffffff', 'important');
+              });
+              
+              // Force style React components (inputs, selects, buttons, cards)
+              document.querySelectorAll('input[class*="bg-neutral-900"], input[class*="bg-neutral-800"]').forEach((el) => {
+                el.style.setProperty('background-color', '#ffffff', 'important');
+                el.style.setProperty('border-color', '#e5e7eb', 'important');
+                el.style.setProperty('color', '#171717', 'important');
+              });
+              
+              document.querySelectorAll('select[class*="bg-neutral-900"], select[class*="bg-neutral-800"]').forEach((el) => {
+                el.style.setProperty('background-color', '#ffffff', 'important');
+                el.style.setProperty('border-color', '#e5e7eb', 'important');
+                el.style.setProperty('color', '#171717', 'important');
+              });
+              
+              document.querySelectorAll('button[class*="bg-neutral-900"], button[class*="bg-neutral-800"]').forEach((el) => {
+                // Skip amber buttons (active state)
+                if (!el.classList.contains('bg-amber-700') && !el.classList.contains('bg-amber-600')) {
+                  el.style.setProperty('background-color', '#f3f4f6', 'important');
+                  el.style.setProperty('border-color', '#e5e7eb', 'important');
+                  el.style.setProperty('color', '#171717', 'important');
+                }
+              });
+              
+              document.querySelectorAll('article[class*="bg-neutral-900"], div[class*="bg-neutral-900"].border-neutral-800').forEach((el) => {
+                el.style.setProperty('background-color', '#ffffff', 'important');
+                el.style.setProperty('border-color', '#e5e7eb', 'important');
+              });
+            }, 50);
+            
+            // Apply again after React components render (longer delay)
+            setTimeout(() => {
+              document.querySelectorAll('input[class*="bg-neutral-900"], input[class*="bg-neutral-800"]').forEach((el) => {
+                el.style.setProperty('background-color', '#ffffff', 'important');
+                el.style.setProperty('border-color', '#e5e7eb', 'important');
+                el.style.setProperty('color', '#171717', 'important');
+              });
+              
+              document.querySelectorAll('select[class*="bg-neutral-900"], select[class*="bg-neutral-800"]').forEach((el) => {
+                el.style.setProperty('background-color', '#ffffff', 'important');
+                el.style.setProperty('border-color', '#e5e7eb', 'important');
+                el.style.setProperty('color', '#171717', 'important');
+              });
+              
+              document.querySelectorAll('button[class*="bg-neutral-900"], button[class*="bg-neutral-800"]').forEach((el) => {
+                if (!el.classList.contains('bg-amber-700') && !el.classList.contains('bg-amber-600')) {
+                  el.style.setProperty('background-color', '#f3f4f6', 'important');
+                  el.style.setProperty('border-color', '#e5e7eb', 'important');
+                  el.style.setProperty('color', '#171717', 'important');
+                }
+              });
+              
+              document.querySelectorAll('article[class*="bg-neutral-900"], div[class*="bg-neutral-900"].border-neutral-800').forEach((el) => {
+                el.style.setProperty('background-color', '#ffffff', 'important');
+                el.style.setProperty('border-color', '#e5e7eb', 'important');
+              });
+            }, 500);
+            
+            // Watch for dynamically added React components
+            const observer = new MutationObserver(() => {
+              if (actualTheme === 'light') {
+                document.querySelectorAll('input[class*="bg-neutral-900"], input[class*="bg-neutral-800"]').forEach((el) => {
+                  el.style.setProperty('background-color', '#ffffff', 'important');
+                  el.style.setProperty('border-color', '#e5e7eb', 'important');
+                  el.style.setProperty('color', '#171717', 'important');
+                });
+                
+                document.querySelectorAll('select[class*="bg-neutral-900"], select[class*="bg-neutral-800"]').forEach((el) => {
+                  el.style.setProperty('background-color', '#ffffff', 'important');
+                  el.style.setProperty('border-color', '#e5e7eb', 'important');
+                  el.style.setProperty('color', '#171717', 'important');
+                });
+                
+                document.querySelectorAll('button[class*="bg-neutral-900"], button[class*="bg-neutral-800"]').forEach((el) => {
+                  if (!el.classList.contains('bg-amber-700') && !el.classList.contains('bg-amber-600')) {
+                    el.style.setProperty('background-color', '#f3f4f6', 'important');
+                    el.style.setProperty('border-color', '#e5e7eb', 'important');
+                    el.style.setProperty('color', '#171717', 'important');
+                  }
+                });
+                
+                document.querySelectorAll('article[class*="bg-neutral-900"], div[class*="bg-neutral-900"].border-neutral-800').forEach((el) => {
+                  el.style.setProperty('background-color', '#ffffff', 'important');
+                  el.style.setProperty('border-color', '#e5e7eb', 'important');
+                });
+              }
+            });
+            
+            observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+          }
+        } catch (e) {
+          // Silently fail if localStorage is not available
+        }
+      })();
+    </script>
+
+    <!-- Header script with Supabase integration - client-side only -->
+    <!-- Static import so Vite processes and bundles all dependencies correctly -->
+    <script>
+      import '../scripts/header.js';
+    </script>
+    
+    <!-- Fallback: Ensure mobile menu and dropdown always work even if module fails to load -->
+    <script is:inline>
+      // Fallback header initialization - runs if main script fails
+      function initHeaderFallback() {
+        try {
+          // Mobile menu toggle
         const toggle = document.getElementById('mobile-menu-toggle');
         const menu = document.getElementById('mobile-menu');
         
@@ -212,8 +987,144 @@ try {
               toggle.setAttribute('aria-expanded', 'false');
             }
           });
+          }
+          
+          // User dropdown fallback - use event delegation to avoid conflicts
+          const userMenuButton = document.getElementById('user-menu-button');
+          const userDropdown = document.getElementById('user-dropdown');
+          
+          if (userMenuButton && userDropdown) {
+            // Use a flag to track if we've already set up listeners
+            if (userMenuButton.dataset.fallbackWired === 'true') {
+              return; // Already wired
+            }
+            userMenuButton.dataset.fallbackWired = 'true';
+            
+            // Use capture phase and stopPropagation to ensure our handler runs first
+            userMenuButton.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              
+              const isHidden = userDropdown.classList.contains('hidden');
+              if (isHidden) {
+                userDropdown.classList.remove('hidden');
+                userMenuButton.setAttribute('aria-expanded', 'true');
+              } else {
+                userDropdown.classList.add('hidden');
+                userMenuButton.setAttribute('aria-expanded', 'false');
+              }
+            }, true); // Use capture phase
+            
+            // Close dropdown when clicking outside - use capture phase
+            document.addEventListener('click', function(e) {
+              const target = e.target;
+              if (userDropdown && !userDropdown.classList.contains('hidden')) {
+                if (!userDropdown.contains(target) && !userMenuButton.contains(target)) {
+                  userDropdown.classList.add('hidden');
+                  userMenuButton.setAttribute('aria-expanded', 'false');
+                }
+              }
+            }, true);
+            
+            // Close on Escape key
+            document.addEventListener('keydown', function(e) {
+              if (e.key === 'Escape' && !userDropdown.classList.contains('hidden')) {
+                userDropdown.classList.add('hidden');
+                userMenuButton.setAttribute('aria-expanded', 'false');
+              }
+            }, true);
+            
+            // Prevent dropdown clicks from bubbling
+            userDropdown.addEventListener('click', function(e) {
+              e.stopPropagation();
+            }, true);
+          }
+        } catch (error) {
+          console.error('[Base] Error in header fallback:', error);
+        }
+      }
+      
+      // Mobile menu toggle - inline to ensure it always works
+      (function() {
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initMobileMenu);
+        } else {
+          initMobileMenu();
+        }
+        
+        function initMobileMenu() {
+          const toggle = document.getElementById('mobile-menu-toggle');
+          const menu = document.getElementById('mobile-menu');
+          
+          if (!toggle || !menu) {
+            console.warn('[Base] Mobile menu elements not found');
+            return;
+          }
+          
+          // Prevent duplicate listeners
+          if (toggle.dataset.fallbackWired === 'true') {
+            return;
+          }
+          toggle.dataset.fallbackWired = 'true';
+          
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            console.log('[Base] Mobile menu toggle clicked (fallback)');
+            const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+            const newState = !isExpanded;
+            toggle.setAttribute('aria-expanded', String(newState));
+            if (newState) {
+              menu.classList.remove('hidden');
+              console.log('[Base] Mobile menu opened');
+            } else {
+              menu.classList.add('hidden');
+              console.log('[Base] Mobile menu closed');
+            }
+          }, true); // Use capture phase
+          
+          // Close menu when clicking outside
+          document.addEventListener('click', function(e) {
+            const target = e.target;
+            if (menu && !menu.classList.contains('hidden') && !menu.contains(target) && !toggle.contains(target)) {
+              menu.classList.add('hidden');
+              toggle.setAttribute('aria-expanded', 'false');
+            }
+          }, true); // Use capture phase
         }
       })();
+      
+      // Also try to initialize fallback after page loads and all scripts execute
+      function initHeaderAfterPageScripts() {
+        // Wait a bit longer to ensure page scripts have run
+        setTimeout(() => {
+          initHeaderFallback();
+        }, 500);
+      }
+      
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initHeaderAfterPageScripts);
+      } else {
+        initHeaderAfterPageScripts();
+      }
+      
+      // Also try after window load (when all resources are loaded)
+      window.addEventListener('load', function() {
+        setTimeout(initHeaderFallback, 1000);
+      });
     </script>
+    
+    <slot />
+    
+    <!-- Mobile Bottom Navigation (PWA) -->
+    <MobileNav client:load currentPath={Astro.url.pathname} />
+    
+    <Analytics />
+    
+    <!-- PWA Service Worker Registration -->
+    <script src="/src/scripts/pwa-register.js"></script>
   </body>
 </html>

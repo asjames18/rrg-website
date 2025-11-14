@@ -41,23 +41,49 @@ export const GET: APIRoute = async ({ locals, cookies, url }) => {
     const { data: settings, error } = await query;
 
     if (error) {
-      logger.error('Settings fetch error:', error);
+      logger.error('[Settings API] Settings fetch error:', error);
+      // If table doesn't exist, return empty settings
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        logger.warn('[Settings API] system_settings table does not exist, returning empty settings');
+        return new Response(JSON.stringify({ settings: {} }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
       return new Response(JSON.stringify({ error: 'Failed to fetch settings' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Convert to key-value map
+    logger.info(`[Settings API] Found ${settings?.length || 0} settings in database`);
+
+    // Convert to key-value map and parse JSONB values
     const settingsMap: Record<string, any> = {};
     settings?.forEach(setting => {
+      let parsedValue = setting.value;
+      
+      // If value is a JSONB object, try to parse it
+      if (typeof setting.value === 'object' && setting.value !== null) {
+        parsedValue = setting.value;
+      } else if (typeof setting.value === 'string') {
+        // Try to parse as JSON, fallback to string
+        try {
+          parsedValue = JSON.parse(setting.value);
+        } catch {
+          parsedValue = setting.value;
+        }
+      }
+      
       settingsMap[setting.key] = {
-        value: setting.value,
+        value: parsedValue,
         category: setting.category,
         description: setting.description,
         updated_at: setting.updated_at
       };
     });
+
+    logger.info(`[Settings API] Returning ${Object.keys(settingsMap).length} settings`);
 
     return new Response(JSON.stringify({ settings: settingsMap }), {
       status: 200,
@@ -108,12 +134,25 @@ export const PUT: APIRoute = async ({ locals, cookies, request }) => {
       });
     }
 
+    // Prepare value for JSONB storage
+    let jsonbValue: any = value;
+    if (typeof value === 'string') {
+      // Try to parse as JSON, if it fails, store as string
+      try {
+        jsonbValue = JSON.parse(value);
+      } catch {
+        jsonbValue = value;
+      }
+    }
+
+    logger.info(`[Settings API] Updating setting: ${key} = ${JSON.stringify(jsonbValue)} (category: ${category})`);
+
     // Upsert setting
     const { error: upsertError } = await supabase
       .from('system_settings')
       .upsert({
         key,
-        value: typeof value === 'string' ? value : JSON.stringify(value),
+        value: jsonbValue, // Store as JSONB directly
         category,
         updated_by: user.id,
         updated_at: new Date().toISOString()
@@ -122,12 +161,17 @@ export const PUT: APIRoute = async ({ locals, cookies, request }) => {
       });
 
     if (upsertError) {
-      logger.error('Settings update error:', upsertError);
-      return new Response(JSON.stringify({ error: 'Failed to update setting' }), {
+      logger.error('[Settings API] Settings update error:', upsertError);
+      return new Response(JSON.stringify({ 
+        error: 'Failed to update setting',
+        details: upsertError.message 
+      }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    logger.info(`[Settings API] Setting ${key} updated successfully`);
 
     // Log activity
     await supabase

@@ -25,10 +25,19 @@ export const GET: APIRoute = async ({ locals }) => {
 
     const supabase = supabaseAdmin();
 
+    // Fetch all auth users first to ensure we get all users
+    const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers();
+    
+    if (authUsersError) {
+      logger.error('Error fetching auth users:', authUsersError);
+    }
+    
+    logger.info(`[Users API] Found ${authUsers?.users?.length || 0} users in auth.users`);
+
     // Fetch all profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, display_name, role, created_at')
+      .select('id, email, display_name, role, created_at, last_login, status')
       .order('created_at', { ascending: false });
 
     if (profilesError) {
@@ -38,6 +47,69 @@ export const GET: APIRoute = async ({ locals }) => {
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    logger.info(`[Users API] Found ${profiles?.length || 0} profiles in database`);
+    
+    // Create a map of profile IDs for quick lookup
+    const profileMap = new Map();
+    if (profiles) {
+      profiles.forEach(profile => {
+        profileMap.set(profile.id, profile);
+        logger.info(`[Users API] Profile: ${profile.email}, role: ${profile.role || 'null/undefined'}, id: ${profile.id}`);
+      });
+    }
+    
+    // Create profiles for auth users that don't have profiles yet
+    if (authUsers?.users) {
+      for (const authUser of authUsers.users) {
+        if (!profileMap.has(authUser.id)) {
+          logger.info(`[Users API] Creating missing profile for user: ${authUser.email}`);
+          try {
+            const { error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: authUser.id,
+                email: authUser.email || '',
+                display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'User',
+                role: 'user', // Default role
+                status: 'active',
+                created_at: authUser.created_at || new Date().toISOString()
+              });
+            
+            if (createError) {
+              logger.error(`[Users API] Failed to create profile for ${authUser.email}:`, createError);
+            } else {
+              logger.info(`[Users API] Created profile for ${authUser.email}`);
+              // Add to profileMap so it's included in results
+              profileMap.set(authUser.id, {
+                id: authUser.id,
+                email: authUser.email || '',
+                display_name: authUser.user_metadata?.display_name || authUser.email?.split('@')[0] || 'User',
+                role: 'user',
+                status: 'active',
+                created_at: authUser.created_at || new Date().toISOString(),
+                last_login: null
+              });
+            }
+          } catch (error) {
+            logger.error(`[Users API] Error creating profile for ${authUser.email}:`, error);
+          }
+        }
+      }
+    }
+    
+    // Re-fetch profiles to get the newly created ones
+    const { data: allProfiles, error: allProfilesError } = await supabase
+      .from('profiles')
+      .select('id, email, display_name, role, created_at, last_login, status')
+      .order('created_at', { ascending: false });
+    
+    if (allProfilesError) {
+      logger.error('Error re-fetching profiles:', allProfilesError);
+    }
+    
+    const finalProfiles = allProfiles || profiles || [];
+    logger.info(`[Users API] Final profile count: ${finalProfiles.length}`);
 
     // Fetch all user roles to supplement profile roles
     const { data: userRoles, error: rolesError } = await supabase
@@ -60,13 +132,37 @@ export const GET: APIRoute = async ({ locals }) => {
     }
 
     // Format the response, using user_roles if available, otherwise profile role
-    const users = profiles.map(profile => ({
-      id: profile.id,
-      email: profile.email,
-      displayName: profile.display_name,
-      role: roleMap.get(profile.id) || profile.role || 'user',
-      lastActive: new Date(profile.created_at).toLocaleDateString()
-    }));
+    const users = finalProfiles.map(profile => {
+      // Get role from user_roles table first, then profile, then default to 'user'
+      const userRoleFromTable = roleMap.get(profile.id);
+      const profileRole = profile.role;
+      
+      // Handle null, undefined, or empty string roles
+      let finalRole = 'user'; // Default
+      if (userRoleFromTable && userRoleFromTable.trim() !== '') {
+        finalRole = userRoleFromTable;
+      } else if (profileRole && profileRole.trim() !== '') {
+        finalRole = profileRole;
+      }
+      
+      logger.info(`[Users API] User ${profile.email}: profile.role="${profileRole}", user_roles="${userRoleFromTable}", final="${finalRole}"`);
+      
+      return {
+        id: profile.id,
+        email: profile.email,
+        displayName: profile.display_name,
+        role: finalRole,
+        lastActive: profile.last_login 
+          ? new Date(profile.last_login).toLocaleDateString() 
+          : profile.created_at 
+            ? new Date(profile.created_at).toLocaleDateString() 
+            : 'Never',
+        createdAt: profile.created_at,
+        status: profile.status || 'active'
+      };
+    });
+
+    logger.info(`[Users API] Returning ${users.length} users:`, users.map(u => ({ email: u.email, role: u.role })));
 
     return new Response(JSON.stringify({ users }), {
       status: 200,
@@ -120,10 +216,14 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       .update({ role })
       .eq('id', userId);
 
+    if (profileError) {
+      logger.error('Error updating profile role:', profileError);
+    }
+
+    // Upsert user role (insert or update)
     const { error: userRoleError } = await supabase
       .from('user_roles')
-      .upsert({ user_id: userId, role })
-      .eq('user_id', userId);
+      .upsert({ user_id: userId, role }, { onConflict: 'user_id' });
 
     if (profileError || userRoleError) {
       logger.error('Error updating user role:', profileError || userRoleError);

@@ -307,9 +307,41 @@ export class SupabaseCMSAPI {
       // Filter out relationship fields that aren't columns in the content table
       const { tags, media, ...contentData } = content;
       
+      // Ensure required fields are set
+      const now = new Date().toISOString();
+      const insertData: any = {
+        ...contentData,
+        // Ensure metadata is an object, not null or undefined
+        metadata: contentData.metadata || {},
+        // Set timestamps if not provided
+        created_at: contentData.created_at || now,
+        updated_at: contentData.updated_at || now,
+        // Ensure featured is a boolean
+        featured: contentData.featured ?? false,
+        // Ensure status is set (default to draft)
+        status: contentData.status || 'draft',
+      };
+
+      // Filter out undefined/null values that might cause issues
+      Object.keys(insertData).forEach(key => {
+        if (insertData[key] === undefined) {
+          delete insertData[key];
+        }
+      });
+
+      logger.info('[createContent] Inserting content with data:', {
+        title: insertData.title,
+        slug: insertData.slug,
+        content_type: insertData.content_type,
+        status: insertData.status,
+        featured: insertData.featured,
+        hasMetadata: !!insertData.metadata,
+        metadataKeys: insertData.metadata ? Object.keys(insertData.metadata) : []
+      });
+
       const { data, error } = await supabase
         .from('content')
-        .insert([contentData])
+        .insert([insertData])
         .select(`
           *,
           tags:content_tags(tags(*)),
@@ -317,10 +349,74 @@ export class SupabaseCMSAPI {
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        logger.error('[createContent] Database error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          insertData: {
+            title: insertData.title,
+            slug: insertData.slug,
+            content_type: insertData.content_type,
+            status: insertData.status
+          }
+        });
+        throw error;
+      }
+      
+      // Create tag relationships if tags were provided
+      if (tags && Array.isArray(tags) && tags.length > 0 && data.id) {
+        try {
+          const tagRelationships = tags.map((tagId: string) => ({
+            content_id: data.id,
+            tag_id: tagId
+          }));
+          
+          const { error: tagError } = await supabase
+            .from('content_tags')
+            .insert(tagRelationships);
+          
+          if (tagError) {
+            logger.warn('[createContent] Error creating tag relationships:', tagError);
+            // Don't fail the entire operation if tags fail
+          } else {
+            logger.info('[createContent] Created tag relationships:', tags.length);
+          }
+        } catch (tagErr) {
+          logger.warn('[createContent] Exception creating tag relationships:', tagErr);
+          // Don't fail the entire operation if tags fail
+        }
+      }
+      
+      // Fetch the content again with updated tag relationships
+      if (tags && Array.isArray(tags) && tags.length > 0) {
+        const { data: updatedContent, error: fetchError } = await supabase
+          .from('content')
+          .select(`
+            *,
+            tags:content_tags(tags(*)),
+            media:content_media(media_library(*))
+          `)
+          .eq('id', data.id)
+          .single();
+        
+        if (!fetchError && updatedContent) {
+          logger.info('[createContent] Content created successfully with tags:', data.id);
+          return updatedContent;
+        }
+      }
+      
+      logger.info('[createContent] Content created successfully:', data.id);
       return data;
-    } catch (error) {
-      logger.error('Error creating content:', error);
+    } catch (error: any) {
+      logger.error('[createContent] Error creating content:', {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        stack: error?.stack
+      });
       throw error;
     }
   }
@@ -335,9 +431,39 @@ export class SupabaseCMSAPI {
       // Filter out relationship fields that aren't columns in the content table
       const { tags, media, ...contentUpdates } = updates;
       
+      // If status is being changed to 'published', ensure published_at is set
+      // First, check if we need to fetch current content to see existing published_at
+      if (contentUpdates.status === 'published') {
+        // If published_at is not in the updates, we need to check if it exists in the database
+        if (!contentUpdates.published_at) {
+          // Fetch current content to check if published_at already exists
+          const { data: currentContent } = await supabase
+            .from('content')
+            .select('published_at')
+            .eq('id', id)
+            .single();
+          
+          // Only set published_at if it doesn't already exist
+          if (!currentContent?.published_at) {
+            contentUpdates.published_at = new Date().toISOString();
+            logger.info(`[SupabaseCMSAPI] Auto-setting published_at for content ${id}`);
+          } else {
+            logger.info(`[SupabaseCMSAPI] Content ${id} already has published_at, keeping existing value`);
+          }
+        }
+      }
+      
+      // Remove any undefined or null values that might cause issues
+      // But preserve published_at even if it's in the original updates
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(contentUpdates).filter(([_, v]) => v !== undefined && v !== null)
+      );
+      
+      logger.info(`[SupabaseCMSAPI] Updating content ${id} with fields:`, Object.keys(cleanUpdates));
+      
       const { data, error } = await supabase
         .from('content')
-        .update(contentUpdates)
+        .update(cleanUpdates)
         .eq('id', id)
         .select(`
           *,
@@ -346,11 +472,23 @@ export class SupabaseCMSAPI {
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        logger.error('[SupabaseCMSAPI] Supabase error updating content:', error);
+        throw new Error(`Database error: ${error.message || JSON.stringify(error)}`);
+      }
+      
+      if (!data) {
+        throw new Error('Content not found or update returned no data');
+      }
+      
       return data;
     } catch (error) {
-      logger.error('Error updating content:', error);
+      logger.error('[SupabaseCMSAPI] Error updating content:', error);
+      // Re-throw with better error message
+      if (error instanceof Error) {
       throw error;
+      }
+      throw new Error(`Failed to update content: ${String(error)}`);
     }
   }
 
@@ -495,6 +633,8 @@ export class SupabaseCMSAPI {
       const supabase = supabaseAdmin();
       
       // Get workflow history (content state changes)
+      // Note: changed_by is a UUID referencing auth.users.id, not profiles
+      // We'll fetch without the join to avoid foreign key errors
       const { data: workflowData, error: workflowError } = await supabase
         .from('workflow_history')
         .select(`
@@ -505,8 +645,7 @@ export class SupabaseCMSAPI {
           to_state,
           changed_by,
           comment,
-          created_at,
-          changer:profiles!changed_by(id, display_name, email)
+          created_at
         `)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -516,6 +655,8 @@ export class SupabaseCMSAPI {
       }
 
       // Get user activities related to content (views, edits, etc.)
+      // Note: user_id is a UUID referencing auth.users.id, not profiles
+      // We'll fetch without the join to avoid foreign key errors
       const { data: userActivityData, error: activityError } = await supabase
         .from('user_activity')
         .select(`
@@ -524,8 +665,7 @@ export class SupabaseCMSAPI {
           activity_type,
           description,
           metadata,
-          created_at,
-          user:profiles!user_id(id, display_name, email)
+          created_at
         `)
         .in('activity_type', ['content_created', 'content_updated', 'content_deleted', 'content_published'])
         .order('created_at', { ascending: false })

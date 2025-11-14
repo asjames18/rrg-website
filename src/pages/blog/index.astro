@@ -1,20 +1,112 @@
 ---
 /**
  * Blog Index Page - Enhanced with filtering, search, featured posts, multiple view modes
+ * Loads posts from Supabase CMS
  */
 import Base from '../../layouts/Base.astro';
-import { getCollection } from 'astro:content';
+import { SupabaseCMSAPI } from '../../lib/cms/supabase-cms-api';
 import BlogCard from '../../components/BlogCard';
 import BlogFilters from '../../components/BlogFilters';
 
-const blogPosts = await getCollection('blog');
-const sortedPosts = blogPosts.sort((a, b) => 
-  b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
-);
+// Load blog posts from Supabase CMS
+let blogPosts: any[] = [];
+let featuredPosts: any[] = [];
+let regularPosts: any[] = [];
+
+try {
+  let result;
+  try {
+    result = await SupabaseCMSAPI.getContent({
+      type: 'blog',
+      status: 'published',
+      limit: 100,
+      sortBy: 'published_at',
+      sortOrder: 'desc'
+    });
+  } catch (apiError: any) {
+    console.error('SupabaseCMSAPI.getContent error:', apiError);
+    console.error('Error details:', {
+      message: apiError?.message,
+      code: apiError?.code,
+      details: apiError?.details,
+      hint: apiError?.hint
+    });
+    throw apiError;
+  }
+  
+  blogPosts = result?.content || [];
+  
+  // Transform CMS content to match expected format
+  blogPosts = blogPosts
+    .filter(post => post && post.slug && post.title) // Filter out invalid posts
+    .map(post => {
+      try {
+        const publishedAt = post.published_at || post.created_at;
+        const publishedDate = publishedAt ? new Date(publishedAt) : new Date();
+        const publishedISO = publishedAt || publishedDate.toISOString();
+        
+        return {
+          slug: post.slug || '',
+          data: {
+            title: post.title || '',
+            summary: post.summary || '',
+            excerpt: post.summary || '',
+            publishedAt: publishedDate,
+            publishedAtISO: publishedISO, // For JSON serialization
+            featured: Boolean(post.featured),
+            category: post.metadata?.category || 'General',
+            tags: (() => {
+              // Handle different tag formats from CMS
+              if (!post.tags) return [];
+              if (Array.isArray(post.tags)) {
+                return post.tags
+                  .map((t: any) => {
+                    if (typeof t === 'string') return t;
+                    if (t && typeof t === 'object') {
+                      // Handle tag objects with name property
+                      if (t.name) return String(t.name);
+                      // Handle tag objects that might have other structures
+                      if (t.tag) return String(t.tag);
+                      if (t.slug) return String(t.slug);
+                    }
+                    return null;
+                  })
+                  .filter((tag): tag is string => Boolean(tag) && typeof tag === 'string');
+              }
+              // If tags is an object, try to extract array from it
+              if (post.tags && typeof post.tags === 'object' && !Array.isArray(post.tags)) {
+                if (Array.isArray(post.tags.tags)) {
+                  return post.tags.tags
+                    .map((t: any) => (typeof t === 'string' ? t : t?.name || String(t)))
+                    .filter(Boolean);
+                }
+              }
+              return [];
+            })(),
+            readingTime: Number(post.metadata?.readingTime) || 5,
+            author: post.metadata?.author || 'Real & Raw Gospel',
+            coverImage: post.metadata?.coverImage || undefined
+          }
+        };
+      } catch (transformError) {
+        console.error('Error transforming blog post:', transformError, post);
+        return null;
+      }
+    })
+    .filter((post): post is NonNullable<typeof post> => post !== null); // Remove null entries
 
 // Separate featured posts
-const featuredPosts = sortedPosts.filter(p => p.data.featured);
-const regularPosts = sortedPosts.filter(p => !p.data.featured);
+  featuredPosts = blogPosts.filter(p => p.data.featured);
+  regularPosts = blogPosts.filter(p => !p.data.featured);
+} catch (error) {
+  console.error('Error loading blog posts from CMS:', error);
+  // Fallback to empty arrays if CMS fails
+  blogPosts = [];
+  featuredPosts = [];
+  regularPosts = [];
+}
+
+const sortedPosts = blogPosts;
 
 // Get URL parameters for initial state
 const searchParams = Astro.url.searchParams;
@@ -37,8 +129,34 @@ const postsPerPage = 15;
     </div>
 
     <div id="blog-app" 
-      data-posts={JSON.stringify(sortedPosts)}
-      data-featured-posts={JSON.stringify(featuredPosts)}
+      data-posts={(() => {
+        try {
+          return JSON.stringify((sortedPosts || []).map(p => ({
+            ...p,
+            data: {
+              ...p.data,
+              publishedAt: p.data?.publishedAtISO || (p.data?.publishedAt instanceof Date ? p.data.publishedAt.toISOString() : String(p.data?.publishedAt || new Date().toISOString()))
+            }
+          })));
+        } catch (e) {
+          console.error('Error serializing posts:', e);
+          return '[]';
+        }
+      })()}
+      data-featured-posts={(() => {
+        try {
+          return JSON.stringify((featuredPosts || []).map(p => ({
+            ...p,
+            data: {
+              ...p.data,
+              publishedAt: p.data?.publishedAtISO || (p.data?.publishedAt instanceof Date ? p.data.publishedAt.toISOString() : String(p.data?.publishedAt || new Date().toISOString()))
+            }
+          })));
+        } catch (e) {
+          console.error('Error serializing featured posts:', e);
+          return '[]';
+        }
+      })()}
       data-initial-view-mode={initialViewMode}
       data-initial-search={initialSearch}
       data-initial-tags={JSON.stringify(initialTags)}
@@ -47,13 +165,13 @@ const postsPerPage = 15;
       data-initial-page={initialPage}
       data-posts-per-page={postsPerPage}
     >
-      {sortedPosts.length > 0 ? (
+      {sortedPosts && sortedPosts.length > 0 ? (
         <div class="space-y-12">
           {/* Filters will be rendered by React */}
           <div id="filters-container"></div>
 
           {/* Featured Posts Section - Server-rendered initially */}
-          {featuredPosts.length > 0 && (
+          {featuredPosts && featuredPosts.length > 0 && (
             <div id="featured-section">
               <h2 class="text-2xl font-bold text-amber-100 mb-6 flex items-center gap-2">
                 <svg class="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
@@ -62,9 +180,18 @@ const postsPerPage = 15;
                 Featured Posts
               </h2>
               <div class="grid md:grid-cols-2 gap-6 mb-12">
-                {featuredPosts.slice(0, 2).map((post) => (
-                  <BlogCard post={post} viewMode="grid" featured={true} client:load />
-                ))}
+                {featuredPosts.map((post, index) => {
+                  if (!post || !post.slug || !post.data) return null;
+                  // Ensure publishedAt is an ISO string for client-side rendering
+                  const postWithISO = {
+                    ...post,
+                    data: {
+                      ...post.data,
+                      publishedAt: post.data.publishedAtISO || (post.data.publishedAt instanceof Date ? post.data.publishedAt.toISOString() : String(post.data.publishedAt || new Date().toISOString()))
+                    }
+                  };
+                  return <BlogCard key={post.slug || index} post={postWithISO} viewMode="grid" featured={true} client:load />;
+                })}
               </div>
             </div>
           )}
@@ -78,9 +205,18 @@ const postsPerPage = 15;
           <div id="posts-container">
             {/* Initial server-rendered content */}
             <div class="space-y-8">
-              {regularPosts.slice(0, postsPerPage).map((post) => (
-                <BlogCard post={post} viewMode="list" client:load />
-              ))}
+              {regularPosts.slice(0, postsPerPage).map((post, index) => {
+                if (!post || !post.slug || !post.data) return null;
+                // Ensure publishedAt is an ISO string for client-side rendering
+                const postWithISO = {
+                  ...post,
+                  data: {
+                    ...post.data,
+                    publishedAt: post.data.publishedAtISO || (post.data.publishedAt instanceof Date ? post.data.publishedAt.toISOString() : String(post.data.publishedAt || new Date().toISOString()))
+                  }
+                };
+                return <BlogCard key={post.slug || index} post={postWithISO} viewMode="list" client:load />;
+              })}
             </div>
           </div>
 
@@ -196,7 +332,9 @@ const postsPerPage = 15;
 
     // Filter and sort posts
     function getFilteredPosts() {
-      let filtered = [...allPosts].filter(p => !p.data.featured); // Exclude featured from main list
+      // Exclude featured posts from main list (they're shown in featured section above)
+      // This way featured posts are highlighted, and all other posts are accessible below
+      let filtered = [...allPosts].filter(p => !p.data.featured);
 
       // Apply search
       if (searchTerm) {
@@ -226,13 +364,25 @@ const postsPerPage = 15;
       filtered.sort((a: any, b: any) => {
         switch (sortBy) {
           case 'oldest':
-            return new Date(a.data.publishedAt).getTime() - new Date(b.data.publishedAt).getTime();
+            const dateA = a.data.publishedAt instanceof Date 
+              ? a.data.publishedAt 
+              : new Date(a.data.publishedAt);
+            const dateB = b.data.publishedAt instanceof Date 
+              ? b.data.publishedAt 
+              : new Date(b.data.publishedAt);
+            return dateA.getTime() - dateB.getTime();
           case 'popular':
             // For now, use reading time as proxy for popularity
-            return b.data.readingTime - a.data.readingTime;
+            return (b.data.readingTime || 0) - (a.data.readingTime || 0);
           case 'newest':
           default:
-            return new Date(b.data.publishedAt).getTime() - new Date(a.data.publishedAt).getTime();
+            const dateANew = a.data.publishedAt instanceof Date 
+              ? a.data.publishedAt 
+              : new Date(a.data.publishedAt);
+            const dateBNew = b.data.publishedAt instanceof Date 
+              ? b.data.publishedAt 
+              : new Date(b.data.publishedAt);
+            return dateBNew.getTime() - dateANew.getTime();
         }
       });
 
