@@ -1,0 +1,17 @@
+# robots.txt for Real & Raw Gospel
+# https://realandrawgospel.com
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin-dashboard
+Disallow: /cms
+Disallow: /api/
+Disallow: /profile
+Disallow: /auth
+
+# Allow sitemap
+Sitemap: https://realandrawgospel.com/sitemap.xml
+
+# Crawl-delay (optional, be nice to servers)
+Crawl-delay: 1
