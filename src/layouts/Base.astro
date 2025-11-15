@@ -18,6 +18,11 @@ interface Props {
 
 const { title, description = 'Real & Raw Gospel - Training the Remnant of YAHUAH' } = Astro.props;
 
+// SEO: Get site URL and canonical URL
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || import.meta.env.PUBLIC_APP_URL || 'https://realandrawgospel.com';
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+const ogImage = `${siteUrl}/rrg-logo.jpg`;
+
 // Server-side: detect current session and user email for first paint
 let isSignedIn = false;
 let userEmail = '';
@@ -99,6 +104,36 @@ try {
     <link rel="apple-touch-icon" href="/rrg-logo.jpg" />
     <link rel="manifest" href="/manifest.json" />
     <title>{title} | Real & Raw Gospel</title>
+    
+    <!-- SEO: Canonical URL -->
+    <link rel="canonical" href={canonicalUrl} />
+    
+    <!-- SEO: Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={`${title} | Real & Raw Gospel`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content="Real & Raw Gospel" />
+    
+    <!-- SEO: Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalUrl} />
+    <meta name="twitter:title" content={`${title} | Real & Raw Gospel`} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    
+    <!-- SEO: Structured Data (JSON-LD) -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Real & Raw Gospel",
+      "url": siteUrl,
+      "logo": ogImage,
+      "description": "Training the Remnant in the Ways of YAHUAH - Biblical teachings, videos, books, and resources for spiritual growth",
+      "sameAs": []
+    })} />
+    
     <style>
       /* Global Theme Switching Styles */
       html[data-theme="light"] body {
